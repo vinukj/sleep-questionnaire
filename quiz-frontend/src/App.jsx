@@ -1,0 +1,36 @@
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+
+// Import your page and component files
+import AuthScreen from './pages/authScreen.jsx';
+import QuizScreen from './pages/QuizScreen.jsx';
+import ProtectedRoute from './components/ProtectedRoute';
+import HomeScreen from './pages/HomeScreen.jsx';
+
+export default function App() {
+  return (
+    <Routes>
+      {/* Route for the login/signup page */}
+      <Route path="/login" element={<AuthScreen />} />
+
+      {/* A protected route for the quiz. Only logged-in users can access this. */}
+      <Route
+        path="/quiz"
+        element={
+          <ProtectedRoute>
+            <QuizScreen />
+          </ProtectedRoute>
+        }
+      />
+       <Route path="/home" element={
+        <ProtectedRoute>
+          <HomeScreen />
+        </ProtectedRoute>
+        } />
+
+      {/* This is a catch-all. If a user goes to any other URL,
+          it will automatically redirect them to the login page. */}
+      <Route path="*" element={<Navigate to="/login" />} />
+    </Routes>
+  );
+}

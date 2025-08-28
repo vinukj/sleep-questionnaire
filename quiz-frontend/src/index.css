@@ -1,0 +1,42 @@
+/* --- Global Reset & Font Defaults --- */
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Set a default light theme background */
+  color: #213547;
+  background-color: #ffffff;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Basic Body Styles --- */
+body {
+  margin: 0;
+  /* Remove flex properties to allow components to control their own layout */
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* --- Remove Generic Button Overrides --- */
+/* Let the quiz component's styles handle button appearance */
+button {
+  /* Resetting to browser defaults or keeping minimal styles */
+  font-family: inherit;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+/* You can keep these styles if you have other links in your app */
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}

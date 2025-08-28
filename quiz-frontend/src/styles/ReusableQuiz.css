@@ -1,0 +1,218 @@
+/* --- Base Mobile-First Styles --- */
+.quiz-safe-area {
+  /* On mobile, the safe area and container blend together for a seamless, app-like feel. */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #ffffff;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.quiz-container {
+  width: 100%;
+  min-height: 100vh;
+  padding: 4rem 1.25rem 1.25rem; /* More top padding for status bar */
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* --- Close Button --- */
+.quiz-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  z-index: 10;
+}
+
+.quiz-close-btn:hover {
+  background: #e2e8f0;
+  transform: scale(1.1);
+}
+
+/* --- Text Elements --- */
+.quiz-progress {
+  font-size: 0.875rem; /* 14px */
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 0.75rem; /* 12px */
+}
+
+.quiz-question {
+  font-size: 1.25rem; /* 20px */
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 1.5rem; /* 24px */
+  line-height: 1.4;
+  min-height: 3.5rem; /* Approx 2 lines */
+}
+
+/* --- Options & Inputs --- */
+.quiz-options-container {
+  margin-bottom: 2rem; /* 32px */
+}
+
+.quiz-option-button {
+  width: 100%;
+  background-color: #f8fafc;
+  padding: 1rem;
+  border-radius: 0.75rem; /* 12px */
+  margin: 0.625rem 0; /* 10px */
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  text-align: center;
+  font-size: 1rem; /* 16px */
+  font-weight: 500;
+  color: #334155;
+  transition: all 0.25s ease-in-out;
+}
+
+.quiz-option-button:hover {
+  border-color: #60a5fa;
+  background-color: #eff6ff;
+}
+
+.quiz-option-button.selected {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+  font-weight: 600;
+}
+
+.quiz-input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem; /* 12px */
+  padding: 0.875rem; /* 14px */
+  font-size: 1rem; /* 16px */
+  background-color: #fff;
+  box-sizing: border-box;
+  text-align: center;
+  transition: all 0.25s ease;
+}
+
+.quiz-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.quiz-input.time {
+  /* Style to normalize appearance of time input across browsers */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding: 0.875rem;
+}
+
+
+/* --- Navigation --- */
+.quiz-navigation-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.25rem; /* 20px */
+  gap: 1rem; /* 16px */
+}
+
+.quiz-nav-button {
+  padding: 0.875rem 0; /* 14px */
+  border-radius: 0.75rem; /* 12px */
+  flex-grow: 1;
+  border: none;
+  font-size: 1rem; /* 16px */
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+/* Style the 'Back' button as secondary */
+.quiz-navigation-container .quiz-nav-button:first-of-type {
+   background-color: #e2e8f0;
+   color: #475569;
+}
+
+.quiz-navigation-container .quiz-nav-button:first-of-type:hover:not(:disabled) {
+   background-color: #cbd5e1;
+}
+
+/* Style the 'Next/Submit' button as primary */
+.quiz-navigation-container .quiz-nav-button:last-of-type {
+   background-color: #3b82f6;
+   color: #fff;
+}
+
+.quiz-navigation-container .quiz-nav-button:last-of-type:hover:not(:disabled) {
+   background-color: #2563eb;
+}
+
+.quiz-nav-button:disabled {
+  background-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+
+/* --- Tablet Styles (min-width: 768px) --- */
+@media (min-width: 48em) { /* 768px */
+  .quiz-safe-area {
+    /* On tablets, introduce a background color and center the quiz container. */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f9fafb;
+    padding: 2rem;
+  }
+
+  .quiz-container {
+    /* The container now becomes a distinct card. */
+    min-height: auto;
+    width: 100%;
+    max-width: 37.5rem; /* 600px */
+    border-radius: 1.25rem; /* 20px */
+    padding: 2.5rem 2rem;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .quiz-close-btn {
+    top: 1.25rem;
+    right: 1.25rem;
+  }
+
+  .quiz-question {
+    font-size: 1.5rem; /* 24px */
+  }
+}
+
+
+/* --- Laptop & Desktop Styles (min-width: 1024px) --- */
+@media (min-width: 64em) { /* 1024px */
+  .quiz-container {
+    max-width: 43.75rem; /* 700px */
+    padding: 3rem 2.5rem;
+  }
+
+  .quiz-question {
+    font-size: 1.75rem; /* 28px */
+  }
+
+  .quiz-nav-button {
+    padding: 1rem 0;
+  }
+}

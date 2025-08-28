@@ -1,0 +1,9 @@
+
+#root {
+  /* Ensure the root element takes up the full viewport height 
+     and can act as a flex container for its children. */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
