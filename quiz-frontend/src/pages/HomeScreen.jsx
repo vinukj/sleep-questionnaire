@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
 const API_URL = 'http://localhost:5000';
-
+import Navbar from '../components/Navbar.jsx';
+import '../styles/HomeScreen.css';
 function HomeScreen() {
   const [user, setUser] = useState(null); // store user data
 
@@ -29,22 +30,29 @@ function HomeScreen() {
       console.error("Error fetching profile:", error.message);
     }
   };
+  const handleLogout = () => {
+  localStorage.removeItem('token');
+  // optionally call backend to revoke session (if you support refresh tokens)
+  window.location.href = '/login'; // hard reload or:
+  // navigate('/login', { replace: true }); // if using react-router hook
+};
+
 
   useEffect(() => {
     getProfile();
   }, []);
 
   return (
-    <div>
-      <h1>Welcome</h1>
-      {user ? (
-        <div>
-         
-          <p>{user.email}</p>
+    <div className="home-container">
+      <Navbar />
+      <main className="home-main">
+        <h2>Welcome to Sleep Questionnaire App</h2>
+        <p>Track your sleep, answer questionnaires, and monitor your progress.</p>
+
+        <div className="placeholder-content">
+          <p>Questionnaire content will go here.</p>
         </div>
-      ) : (
-        <p>Loading profile...</p>
-      )}
+      </main>
     </div>
   );
 }

@@ -67,9 +67,9 @@ export default function ReusableQuiz({
   };
 
   const handleSubmit = () => {
-    const result = calculateScore(answers);
-    onComplete(answers, result);
-    setScore(result);
+    
+    onComplete(answers);
+    
   };
 
   const handleRetake = () => {
@@ -96,6 +96,7 @@ export default function ReusableQuiz({
         &times;
       </button>
       <div className="quiz-container">
+        <div className="quiz-header">
         <p className="quiz-progress">
           Question {currentIndex + 1} of {visibleQuestions.length}
         </p>
@@ -147,6 +148,7 @@ export default function ReusableQuiz({
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 }

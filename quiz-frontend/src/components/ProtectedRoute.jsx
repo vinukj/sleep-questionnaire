@@ -1,17 +1,32 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 
-// This component is a wrapper that checks for a JWT.
-// If the token exists, it renders the child component (the quiz screen).
-// If not, it redirects the user to the login page.
-const ProtectedRoute = ({ children }) => {
+export default function ProtectedRoute({ children }) {
+  const [isValid, setIsValid] = useState(null);
   const token = localStorage.getItem('token');
 
-  if (!token) {
-    return <Navigate to="/login" />;
-  }
+  useEffect(() => {
+    if (!token) {
+      setIsValid(false);
+      return;
+    }
 
-  return children;
-};
+    fetch('http://localhost:5000/auth/verify', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Invalid token');
+      })
+      .then(data => setIsValid(true))
+      .catch(() => {
+        localStorage.removeItem('token');
+        setIsValid(false);
+      });
+  }, [token]);
 
-export default ProtectedRoute;
+  if (isValid === null) return <div>Loading...</div>;
+
+  return isValid ? children : <Navigate to="/login" replace />;
+}

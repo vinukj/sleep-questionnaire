@@ -1,0 +1,80 @@
+/* Mobile first */
+.questionnaire-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: "Segoe UI", Roboto, sans-serif;
+  background-color: #f5f5f5;
+  color: #1b1b2f;
+}
+
+.questionnaire-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  gap: 2rem;
+}
+
+.questionnaire-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Button group */
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 25rem;
+}
+
+/* Buttons */
+.questionnaire-button {
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: white;
+  background-color: #1b1b2f;
+  border: none;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+  width: 100%;
+  text-align: center;
+}
+
+.questionnaire-button:hover {
+  background-color: #2a2a4d;
+}
+
+/* Responsive: tablet */
+@media (min-width: 768px) {
+  .questionnaire-title {
+    font-size: 2rem;
+  }
+
+  .questionnaire-button {
+    font-size: 1.1rem;
+    padding: 1.2rem 1.8rem;
+  }
+}
+
+/* Responsive: desktop */
+@media (min-width: 1024px) {
+  .questionnaire-main {
+    padding: 3rem 5rem;
+  }
+
+  .questionnaire-title {
+    font-size: 2.2rem;
+  }
+
+  .questionnaire-button {
+    font-size: 1.2rem;
+    padding: 1.5rem 2rem;
+  }
+}

@@ -3,8 +3,10 @@
 import express from 'express';
 import pool from '../config/db.js';
 import { verifyTokens } from '../middleware/authMiddleware.js'; // 1. IMPORT your middleware
+import  { handlePsqiScore } from '../controllers/scoringController.js';
 
 const router = express.Router();
+
 
 /**
  * @route   GET /api/quizzes/:quizName/:language
@@ -43,5 +45,132 @@ router.get('/:quizName/:language', verifyTokens, async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
+
+
+// --- SCORING ENDPOINT ---
+// router.post('/score/:quizName',verifyTokens, async (req, res) => {
+//     const { quizName } = req.params;
+//     const userAnswers = req.body;
+//     const userId = req.user.id;
+
+//     // Route to special handlers for complex quizzes
+//     if (quizName === 'psqi') {
+//         return handlePsqiScore(userAnswers, res);
+//     }
+
+//     // --- GENERIC LOGIC FOR SIMPLE QUIZZES (like 'asdq') ---
+//     try {
+//         // Fetch all rules for the given quiz
+//         const rulesResult = await pool.query(
+//             'SELECT question_key, answer_value, score_value FROM scoring_rules WHERE quiz_name = $1',
+//             [quizName]
+//         );
+//         const rules = rulesResult.rows;
+
+//         if (rules.length === 0) {
+//             return res.status(404).json({ error: `Scoring rules for quiz '${quizName}' not found.` });
+//         }
+        
+//         // Separate default rules (where question_key is null) from specific ones
+//         const defaultRules = rules.filter(r => r.question_key === null);
+//         const specificRules = rules.filter(r => r.question_key !== null);
+
+//         let globalScore = 0;
+//         for (const [questionKey, userAnswer] of Object.entries(userAnswers)) {
+//             // First, look for a rule specific to this question
+//             let rule = specificRules.find(r => r.question_key === questionKey && r.answer_value === userAnswer);
+            
+//             // If no specific rule is found, fall back to the default rules
+//             if (!rule) {
+//                 rule = defaultRules.find(r => r.answer_value === userAnswer);
+//             }
+            
+//             if (rule) {
+//                 globalScore += Number(rule.score_value);
+//             }
+//         }
+        
+//         // Fetch the correct interpretation based on the final score
+//         const interpretationResult = await pool.query(
+//             `SELECT interpretation_text FROM result_interpretations 
+//              WHERE quiz_name = $1 
+//              AND (min_score IS NULL OR $2 >= min_score) 
+//              AND (max_score IS NULL OR $2 <= max_score)`,
+//             [quizName, globalScore]
+//         );
+        
+//         const interpretation = interpretationResult.rows.length > 0 
+//             ? interpretationResult.rows[0].interpretation_text 
+//             : 'No interpretation available for this score.';
+            
+//         return res.status(200).json({
+//             quizName,
+//             globalScore,
+//             interpretation
+//         });
+
+//     } catch (error) {
+//         console.error('Generic scoring failed:', error);
+//         return res.status(500).json({ error: 'Internal Server Error' });
+//     }
+// });
+
+router.post('/score/:quizName', verifyTokens, async (req, res) => {
+    const { quizName } = req.params;
+    const userAnswers = req.body;
+    const userId = req.user.id; // Get user ID from middleware
+
+    try {
+        let result;
+
+        // Route to the correct scoring logic
+        if (quizName === 'psqi') {
+            result = await handlePsqiScore(userAnswers); // Assume handlePsqiScore is now async and returns the result object
+        } else {
+            // --- GENERIC LOGIC ---
+            const rulesResult = await pool.query('SELECT question_key, answer_value, score_value FROM scoring_rules WHERE quiz_name = $1', [quizName]);
+            const rules = rulesResult.rows;
+            if (rules.length === 0) return res.status(404).json({ error: `Scoring rules for quiz '${quizName}' not found.` });
+            
+            const defaultRules = rules.filter(r => r.question_key === null);
+            const specificRules = rules.filter(r => r.question_key !== null);
+
+            let globalScore = 0;
+            for (const [questionKey, userAnswer] of Object.entries(userAnswers)) {
+                let rule = specificRules.find(r => r.question_key === questionKey && r.answer_value === userAnswer) || defaultRules.find(r => r.answer_value === userAnswer);
+                if (rule) {
+                    globalScore += Number(rule.score_value);
+                }
+            }
+            
+            const interpretationResult = await pool.query(
+                `SELECT interpretation_text FROM result_interpretations WHERE quiz_name = $1 AND (min_score IS NULL OR $2 >= min_score) AND (max_score IS NULL OR $2 <= max_score)`,
+                [quizName, globalScore]
+            );
+            const interpretation = interpretationResult.rows[0]?.interpretation_text || 'No interpretation available for this score.';
+            
+            result = { quizName, globalScore, interpretation };
+        }
+
+        // --- SAVE THE RESULT TO THE DATABASE ---
+        // This block runs after either scoring logic is complete
+        if (result && result.globalScore !== undefined) {
+            await pool.query(
+                `INSERT INTO user_scores (user_id, quiz_name, score, interpretation, answers)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [userId, quizName, result.globalScore, result.interpretation, userAnswers]
+            );
+        }
+        
+        // --- SEND RESPONSE TO FRONTEND ---
+        return res.status(200).json(result);
+
+    } catch (error) {
+        console.error(`Scoring failed for quiz ${quizName}:`, error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 
 export default router;

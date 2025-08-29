@@ -1,0 +1,122 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background-color: #1b1b2f;
+  color: white;
+  font-family: "Segoe UI", Roboto, sans-serif;
+  position: relative;
+}
+
+/* Logo */
+.navbar-logo {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Hamburger menu (mobile) */
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 2rem;
+  height: 1.5rem;
+  cursor: pointer;
+}
+
+.hamburger span {
+  display: block;
+  height: 0.2rem;
+  width: 100%;
+  background-color: white;
+  border-radius: 2px;
+  transition: 0.3s;
+}
+
+.hamburger.open span:nth-child(1) {
+  transform: rotate(45deg) translateY(0.5rem);
+}
+.hamburger.open span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.open span:nth-child(3) {
+  transform: rotate(-45deg) translateY(-0.5rem);
+}
+
+/* Nav links (hidden on mobile by default) */
+.navbar-tabs {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 200px;
+  background-color: #1b1b2f;
+  border-radius: 0.5rem;
+  padding: 1rem 0;
+  transform: translateY(-20px);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease-in-out;
+}
+
+.navbar-tabs.active {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tab-item {
+  padding: 0.8rem 1.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.tab-item:hover {
+  background-color: #2a2a4d;
+  color: white;
+}
+
+.tab-item.logout {
+  background-color: #e63946;
+  color: white;
+  margin-top: 0.5rem;
+  border-radius: 0.4rem;
+}
+
+.tab-item.logout:hover {
+  background-color: #d62839;
+}
+
+/* Tablet/Desktop: show nav horizontally and hide hamburger */
+@media (min-width: 768px) {
+  .hamburger {
+    display: none;
+  }
+
+  .navbar-tabs {
+    position: static;
+    flex-direction: row;
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+    background: none;
+    width: auto;
+    padding: 0;
+  }
+
+  .tab-item {
+    margin-left: 1.5rem;
+    border-radius: 0;
+    padding: 0.5rem 0;
+  }
+
+  .tab-item.logout {
+    background-color: #e63946;
+    padding: 0.5rem 1rem;
+    border-radius: 0.4rem;
+    margin-left: 1.5rem;
+  }
+}
