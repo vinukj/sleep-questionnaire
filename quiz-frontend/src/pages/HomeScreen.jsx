@@ -3,8 +3,18 @@ import React, { useEffect, useState } from 'react';
 const API_URL = 'http://localhost:5000';
 import Navbar from '../components/Navbar.jsx';
 import '../styles/HomeScreen.css';
+import { fetchAndCacheAllQuizzes } from '../service/quizCacheService.js';
 function HomeScreen() {
   const [user, setUser] = useState(null); // store user data
+
+   const isAuthenticated = !!localStorage.getItem('token');
+
+  useEffect(() => {
+    // Fetch all quizzes as soon as the user is authenticated
+    if (isAuthenticated) {
+      fetchAndCacheAllQuizzes();
+    }
+  }, [isAuthenticated]);
 
   const getProfile = async () => {
     const token = localStorage.getItem('token');

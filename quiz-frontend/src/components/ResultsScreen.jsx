@@ -61,7 +61,7 @@ const ResultsScreen = () => {
         </div>
       )}
 
-      <button className="button" onClick={() => navigate('/home')}>
+      <button className="button" onClick={() => navigate('/questionnaire')}>
         Done
       </button>
     </div>

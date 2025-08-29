@@ -8,6 +8,31 @@ import  { handlePsqiScore } from '../controllers/scoringController.js';
 const router = express.Router();
 
 
+
+// In backend/routes/quizRoutes.js
+
+// ... (at the top with other routes)
+
+/**
+ * @route   GET /api/quizzes
+ * @desc    Get a list of all available quizzes
+ * @access  PRIVATE
+ */
+router.get('/', verifyTokens, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT quiz_name, name, description FROM questionnaires ORDER BY name ASC'
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching questionnaire list:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ... (your other routes like /:quizName/:language and /score/:quizName)
+
+
 /**
  * @route   GET /api/quizzes/:quizName/:language
  * @desc    Get all questions for a specific quiz and language
@@ -170,6 +195,36 @@ router.post('/score/:quizName', verifyTokens, async (req, res) => {
         console.error(`Scoring failed for quiz ${quizName}:`, error);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
+});
+
+
+/**
+ * @route   GET /api/quizzes/all
+ * @desc    Get all questions for all quizzes, structured by quiz and language
+ * @access  PRIVATE
+ */
+router.get('/all', verifyTokens, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM questions ORDER BY quiz_name, language, display_order ASC');
+
+    // Restructure the flat data from the DB into a nested object
+    const structuredQuizzes = rows.reduce((acc, q) => {
+      const { quiz_name, language, ...questionData } = q;
+      if (!acc[quiz_name]) {
+        acc[quiz_name] = {};
+      }
+      if (!acc[quiz_name][language]) {
+        acc[quiz_name][language] = [];
+      }
+      acc[quiz_name][language].push(questionData);
+      return acc;
+    }, {});
+
+    res.json(structuredQuizzes);
+  } catch (error) {
+    console.error('Error fetching all questionnaires:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 

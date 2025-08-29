@@ -1,7 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-
-// Import your page and component files
 import AuthScreen from "./pages/authScreen.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -9,8 +7,11 @@ import HomeScreen from "./pages/HomeScreen.jsx";
 import QuestionnairePage from "./pages/questionnairePage.jsx";
 import QuizScreen from "./pages/QuizScreen.jsx";
 import ResultsScreen from "./components/ResultsScreen.jsx";
+import AboutPage from "./pages/AboutPage.jsx";
+import { fetchAndCacheAllQuizzes } from "./service/quizCacheService.js";
 
 export default function App() {
+  
   return (
     <Routes>
       {/* Route for the login/signup page */}
@@ -54,8 +55,14 @@ export default function App() {
         }
       />
 
-      {/* This is a catch-all. If a user goes to any other URL,
-          it will automatically redirect them to the login page. */}
+      <Route
+        path="/about"
+        element={
+          <ProtectedRoute>
+            <AboutPage />
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<Navigate to="/login" />} />
     </Routes>
   );

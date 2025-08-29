@@ -1,4 +1,12 @@
 
+/* Universal Box Sizing Reset */
+html {
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
+}
 #root {
   /* Ensure the root element takes up the full viewport height 
      and can act as a flex container for its children. */

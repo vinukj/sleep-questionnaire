@@ -31,7 +31,7 @@ export default function Navbar() {
       <ul className={`navbar-tabs ${menuOpen ? "active" : ""}`}>
         <li className="tab-item" onClick={() => navigate("/home")}>Home</li>
         <li className="tab-item" onClick={() => navigate("/questionnaire")}>Questionnaires</li>
-        <li className="tab-item" onClick={() => alert("Profile placeholder")}>Profile</li>
+        <li className="tab-item" onClick={() =>navigate("/about")}>Profile</li>
         <li className="tab-item logout" onClick={handleLogout}>Logout</li>
       </ul>
     </nav>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ReusableQuiz from "../components/ReusableQuiz";
 import ResultsScreen from "../components/ResultsScreen"; // Assuming you have this component
+import { getQuizFromCache } from "../service/quizCacheService";
 
 export default function QuizScreen() {
   const { quizName, language } = useParams();
@@ -15,34 +16,26 @@ export default function QuizScreen() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchQuestions = async () => {
-      // ... your fetchQuestions logic remains exactly the same
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/login");
-        return;
-      }
+    const cachedQuestions = getQuizFromCache(quizName, language);
+    
+    if (cachedQuestions) {
+      // ✅ TRANSFORM THE DATA HERE
+      const formattedQuestions = cachedQuestions.map(q => ({
+        id: q.question_id_string,
+        question: q.question_text,
+        inputType: q.input_type,
+        options: q.options,
+        dependsOn: q.depends_on,
+      }));
+      setQuestions(formattedQuestions);
+    } else {
+      console.error(`Quiz '${quizName}/${language}' not found in cache.`);
+    }
+    setIsLoading(false);
+   
 
-      try {
-        const response = await fetch(`http://localhost:5000/quizzes/${quizName}/${language}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch quiz data.");
-        }
-
-        const data = await response.json();
-        setQuestions(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchQuestions();
-  }, [navigate, quizName, language]);
+  }, [quizName, language]);
 
   // This function is passed to ReusableQuiz
   const handleQuizComplete = async (answers) => {
