@@ -1,62 +1,39 @@
-import React, { useEffect, useState } from 'react';
-
-const API_URL = 'http://localhost:5000';
+// file: frontend/src/pages/HomeScreen.jsx
+import React, { useEffect } from 'react';
 import Navbar from '../components/Navbar.jsx';
 import '../styles/HomeScreen.css';
 import { fetchAndCacheAllQuizzes } from '../service/quizCacheService.js';
-function HomeScreen() {
-  const [user, setUser] = useState(null); // store user data
+import { useAuth } from '../context/AuthContext.jsx';
+import { useNavigate } from 'react-router-dom';
 
-   const isAuthenticated = !!localStorage.getItem('token');
+function HomeScreen() {
+  const { currentUser, loading } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch all quizzes as soon as the user is authenticated
-    if (isAuthenticated) {
+    // Redirect to login if not authenticated
+    if (!loading && !currentUser) {
+      navigate('/login', { replace: true });
+    }
+  }, [currentUser, loading, navigate]);
+
+  useEffect(() => {
+    // Fetch quizzes once the user is logged in
+    if (currentUser) {
       fetchAndCacheAllQuizzes();
     }
-  }, [isAuthenticated]);
+  }, [currentUser]);
 
-  const getProfile = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    try {
-      const response = await fetch(`${API_URL}/auth/profile`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Unauthorized or invalid token");
-      }
-
-      const data = await response.json();
-      console.log("Profile Data:", data);
-      setUser(data.user); // save user object in state
-    } catch (error) {
-      console.error("Error fetching profile:", error.message);
-    }
-  };
-  const handleLogout = () => {
-  localStorage.removeItem('token');
-  // optionally call backend to revoke session (if you support refresh tokens)
-  window.location.href = '/login'; // hard reload or:
-  // navigate('/login', { replace: true }); // if using react-router hook
-};
-
-
-  useEffect(() => {
-    getProfile();
-  }, []);
+  if (loading || !currentUser) {
+    // Show loading while AuthContext is checking session
+    return <div className="home-container">Loading...</div>;
+  }
 
   return (
     <div className="home-container">
       <Navbar />
       <main className="home-main">
-        <h2>Welcome to Sleep Questionnaire App</h2>
+        <h2>Welcome, {currentUser.name || currentUser.email}</h2>
         <p>Track your sleep, answer questionnaires, and monitor your progress.</p>
 
         <div className="placeholder-content">

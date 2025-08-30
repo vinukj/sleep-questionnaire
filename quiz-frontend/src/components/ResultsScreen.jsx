@@ -3,6 +3,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import '../styles/ResultsScreen.css'; // We'll create this CSS file next
+import Navbar from './NavBar';
 
 const ResultsScreen = () => {
   const navigate = useNavigate();
@@ -37,6 +38,8 @@ const ResultsScreen = () => {
   const hasDetailedComponents = score.c1 !== undefined;
 
   return (
+    <>
+    <Navbar></Navbar>
     <div className="results-container">
       <div className="header-container">
         <h1 className="header-title">Your Results</h1>
@@ -65,6 +68,7 @@ const ResultsScreen = () => {
         Done
       </button>
     </div>
+    </>
   );
 };
 

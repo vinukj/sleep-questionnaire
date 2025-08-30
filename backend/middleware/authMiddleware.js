@@ -3,36 +3,74 @@ import pool from '../config/db.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-export const verifyTokens = async (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader) return res.status(401).json({ message: "Token missing" });
-    const token = authHeader.split(' ')[1];
-    if (!token) return res.status(401).json({ message: "Access Denied" });
-    try {
-         console.log("SECRET AT VERIFICATION:", `"${process.env.JWT_SECRET}"`);
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // Fetch user info from DB
-        const userResult = await pool.query(
-            "SELECT id,email FROM users WHERE id=$1",
-            [decoded.id]
-        );
-        if (!userResult.rows.length) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        req.user = userResult.rows[0];
-        next();
-    } catch (err) {
-    // MODIFIED PART: Log the full error to see the exact reason for failure
-    console.error("JWT Verification Failed:", err);
+// export const verifyTokens = async (req, res, next) => {
+//     const authHeader = req.headers['authorization'];
+//     if (!authHeader) return res.status(401).json({ message: "Token missing" });
+//     const token = authHeader.split(' ')[1];
+//     if (!token) return res.status(401).json({ message: "Access Denied" });
+//     try {
+//          console.log("SECRET AT VERIFICATION:", `"${process.env.JWT_SECRET}"`);
+//         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//         // Fetch user info from DB
+//         const userResult = await pool.query(
+//             "SELECT id,email FROM users WHERE id=$1",
+//             [decoded.id]
+//         );
+//         if (!userResult.rows.length) {
+//             return res.status(404).json({ message: "User not found" });
+//         }
+//         req.user = userResult.rows[0];
+//         next();
+//     } catch (err) {
+//     // MODIFIED PART: Log the full error to see the exact reason for failure
+//     console.error("JWT Verification Failed:", err);
 
-    // Optionally, send more specific error info in the response
+//     // Optionally, send more specific error info in the response
+//     return res.status(403).json({
+//         message: "Invalid or expired token",
+//         errorName: err.name,
+//         errorMessage: err.message
+//     });
+// }
+// };
+
+
+
+export const verifyTokens = async (req, res, next) => {
+  // Look for token inside cookies
+  const token = req.cookies?.accessToken;  // use the cookie name you set when logging in
+
+  if (!token) {
+    return res.status(401).json({ message: "Token missing" });
+  }
+
+  try {
+    console.log("SECRET AT VERIFICATION:", `"${process.env.JWT_SECRET}"`);
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Fetch user info from DB
+    const userResult = await pool.query(
+      "SELECT id, email FROM users WHERE id=$1",
+      [decoded.id]
+    );
+
+    if (!userResult.rows.length) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    req.user = userResult.rows[0];
+    next();
+  } catch (err) {
+    console.error("JWT Verification Failed:", err);
     return res.status(403).json({
-        message: "Invalid or expired token",
-        errorName: err.name,
-        errorMessage: err.message
+      message: "Invalid or expired token",
+      errorName: err.name,
+      errorMessage: err.message,
     });
-}
+  }
 };
+
 
 
 export const verifyTokenBasic = (req, res, next) => {

@@ -25,13 +25,12 @@ export function useCachedQuizList() {
           }
         }
 
-        // 2. Fetch from API if no valid cache
+        // 2. Fetch from API using HttpOnly cookies
         console.log('Fetching quiz list from API...');
-        const token = localStorage.getItem('token');
         const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
         
-        const response = await fetch(`http://localhost:5000/quizzes`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const response = await fetch(`${API_URL}/quizzes`, {
+          credentials: 'include', // <-- important for sending cookies
         });
 
         if (!response.ok) {

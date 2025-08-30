@@ -1,5 +1,5 @@
 import express from 'express';
-import { signup, login } from '../controllers/authController.js';
+import { signup, login, getProfile } from '../controllers/authController.js';
 import { verifyTokens,verifyTokenBasic } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -90,15 +90,7 @@ router.post('/login', login);
  *       403:
  *         description: Forbidden, invalid or expired token
  */
-router.get('/profile', verifyTokens, (req, res) => {
-  res.json({
-    message: "This is a protected route",
-    user: {
-      name: req.user.name,
-      email: req.user.email
-    }
-  });
-  });
+
 
 router.get('/verify', verifyTokenBasic, (req, res) => {
   res.status(200).json({
@@ -107,7 +99,9 @@ router.get('/verify', verifyTokenBasic, (req, res) => {
   })
 });
 
-
+router.get('/profile', verifyTokens, (req, res) => {
+  res.json({ id: req.user.id });
+});
 
 
 export default router;

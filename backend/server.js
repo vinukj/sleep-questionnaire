@@ -2,15 +2,29 @@ import express from "express";
 import cors from "cors";
 import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
-import userRoutes from "./routes/user.js";
 import authRoute from "./routes/authRoute.js";
 import quizRoute from "./routes/quizRoute.js";
+import userRoutes from "./routes/userRoute.js";
 
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
+
 dotenv.config();
 const app = express();
-app.use(cors());
+
+// Parse JSON bodies
 app.use(express.json());
+
+// Parse cookies
+app.use(cookieParser());
+
+// CORS setup to allow frontend to send cookies
+app.use(cors({
+    origin: "http://localhost:5173", // replace with your frontend URL
+    credentials: true // important: allows sending cookies
+}));
+
+// Routes
 app.use("/api", userRoutes);
 app.use("/auth", authRoute);
 app.use("/quizzes", quizRoute);
@@ -25,7 +39,7 @@ const swaggerOptions = {
       description: "API documentation using Swagger",
     },
     servers: [{ url: "http://localhost:5000" }],
-    components: {            // <-- moved inside definition
+    components: {
       securitySchemes: {
         bearerAuth: {
           type: "http",
@@ -34,9 +48,9 @@ const swaggerOptions = {
         },
       },
     },
-    security: [{ bearerAuth: [] }], // global security (optional)
+    security: [{ bearerAuth: [] }],
   },
-  apis: ["./routes/*.js"], // path to your route files
+  apis: ["./routes/*.js"],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -50,3 +64,4 @@ app.get("/api/hello", (req, res) => {
 // Start server
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+export default app;

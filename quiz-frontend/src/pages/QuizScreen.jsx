@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import ReusableQuiz from "../components/ReusableQuiz";
 import ResultsScreen from "../components/ResultsScreen"; // Assuming you have this component
 import { getQuizFromCache } from "../service/quizCacheService";
+import NavBar from "../components/NavBar";
 
 export default function QuizScreen() {
   const { quizName, language } = useParams();
@@ -39,29 +40,31 @@ export default function QuizScreen() {
 
   // This function is passed to ReusableQuiz
   const handleQuizComplete = async (answers) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/quizzes/score/${quizName}`, {
+  try {
+    const response = await fetch(
+      `http://localhost:5000/quizzes/score/${quizName}`,
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(answers), // Correctly send answers directly
-      });
+        credentials: "include", // ✅ send cookies (accessToken, refreshToken)
+        body: JSON.stringify(answers),
+      }
+    );
 
-      if (!response.ok) throw new Error("Failed to calculate score.");
+    if (!response.ok) throw new Error("Failed to calculate score.");
 
-      const scoreData = await response.json();
-      
-      // Set the final score, which will trigger the UI to show the results
-       navigate('/results', { state: { score: scoreData } });
+    const scoreData = await response.json();
 
-    } catch (err) {
-      console.error(err);
-      alert("Error calculating score. Please try again.");
-    }
-  };
+    // Navigate to results page
+    navigate("/results", { state: { score: scoreData } });
+  } catch (err) {
+    console.error(err);
+    alert("Error calculating score. Please try again.");
+  }
+};
+
 
   const handleQuizExit = () => {
     navigate("/");
@@ -79,6 +82,7 @@ export default function QuizScreen() {
   // Otherwise, show the ReusableQuiz.
   return (
     <div>
+      <NavBar></NavBar>
       {finalScore ? (
         <ResultsScreen score={finalScore} onRetake={handleRetake} />
       ) : (

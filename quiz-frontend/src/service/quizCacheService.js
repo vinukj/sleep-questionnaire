@@ -18,11 +18,10 @@ export const fetchAndCacheAllQuizzes = async () => {
     }
 
     console.log('Fetching all questionnaires for caching...');
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("Authentication token not found.");
 
+    // Send cookies to backend; token is now handled via HttpOnly cookie
     const response = await fetch(`http://localhost:5000/quizzes/all`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include', // important for sending cookies
     });
 
     if (!response.ok) throw new Error('Failed to fetch all quizzes.');
@@ -31,7 +30,7 @@ export const fetchAndCacheAllQuizzes = async () => {
     const cacheData = { data, timestamp: Date.now() };
     localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
     console.log('All questionnaires have been fetched and cached.');
-
+    
   } catch (error) {
     console.error('Failed to fetch and cache quizzes:', error);
   }
@@ -39,6 +38,8 @@ export const fetchAndCacheAllQuizzes = async () => {
 
 /**
  * Retrieves a specific quiz from the localStorage cache.
+ * @param {string} quizName
+ * @param {string} language
  * @returns {Array|null} The array of questions or null if not found.
  */
 export const getQuizFromCache = (quizName, language) => {
