@@ -117,7 +117,10 @@ export default function ReusableQuiz({
             <input
               type="time"
               className="quiz-input time"
-              value={answers[currentQuestion.id] || ""}
+              value={answers[currentQuestion.id] || "00:00"}
+              step='3600'
+              min="00:00"
+              max="23:59"
               onChange={handleTimeChange}
             />
           ) : (

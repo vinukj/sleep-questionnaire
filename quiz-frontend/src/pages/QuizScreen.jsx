@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import ReusableQuiz from "../components/ReusableQuiz";
 import ResultsScreen from "../components/ResultsScreen"; // Assuming you have this component
 import { getQuizFromCache } from "../service/quizCacheService";
-import NavBar from "../components/NavBar";
+import Navbar from "../components/Navbar";
+
 
 export default function QuizScreen() {
   const { quizName, language } = useParams();
@@ -82,7 +83,7 @@ export default function QuizScreen() {
   // Otherwise, show the ReusableQuiz.
   return (
     <div>
-      <NavBar></NavBar>
+      <Navbar></Navbar>
       {finalScore ? (
         <ResultsScreen score={finalScore} onRetake={handleRetake} />
       ) : (

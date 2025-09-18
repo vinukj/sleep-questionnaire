@@ -21,11 +21,22 @@ app.use(cookieParser());
 // CORS setup to allow frontend to send cookies
 app.use(cors({
     origin: "http://localhost:5173", // replace with your frontend URL
-    credentials: true // important: allows sending cookies
+    credentials: true, // important: allows sending cookies
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
 }));
 
+// Security headers for Google OAuth
+app.use((req, res, next) => {
+    // Allow popups for Google OAuth
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    // Allow embedding in iframes for Google OAuth
+    res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+    next();
+});
+
 // Routes
-app.use("/api", userRoutes);
+app.use("/about", userRoutes);
 app.use("/auth", authRoute);
 app.use("/quizzes", quizRoute);
 

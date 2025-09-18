@@ -1,6 +1,8 @@
 import express from 'express';
-import { signup, login, getProfile } from '../controllers/authController.js';
+import { signup, login, getProfile, googleLogin } from '../controllers/authController.js';
 import { verifyTokens,verifyTokenBasic } from '../middleware/authMiddleware.js';
+import { invalidateAllUserSessions } from '../models/userModel.js';
+
 
 const router = express.Router();
 
@@ -100,7 +102,51 @@ router.get('/verify', verifyTokenBasic, (req, res) => {
 });
 
 router.get('/profile', verifyTokens, (req, res) => {
-  res.json({ id: req.user.id });
+  res.json({ user:{id: req.user.id , name : req.user.name, email: req.user.email} });
+});
+
+router.post('/google', googleLogin);
+
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Log out the current user and clear the auth cookie
+ *     tags:
+ *       - Auth
+ *     responses:
+ *       200:
+ *         description: Successfully logged out
+ */
+router.post('/logout', verifyTokens, async (req, res) => {
+  try {
+    await invalidateAllUserSessions(req.user.id);
+    
+    // Clear both cookies
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      path: '/'
+    });
+    
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      path: '/'
+    });
+
+    return res.status(200).json({
+      message: 'Successfully logged out',
+      clearCache: true,
+      broadcastLogout: true
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    return res.status(500).json({ error: 'Error during logout' });
+  }
 });
 
 

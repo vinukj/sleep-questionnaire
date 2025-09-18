@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
 
-const CACHE_KEY = 'quiz_list';
 const CACHE_EXPIRATION_MS = 60 * 60 * 1000; // 1 hour
+
+// Get user-specific cache key
+const getUserSpecificCacheKey = () => {
+  const cookies = document.cookie.split(';');
+  const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('accessToken='));
+  const userIdentifier = tokenCookie ? tokenCookie.split('=')[1] : 'anonymous';
+  return `quiz_list_${userIdentifier}`;
+};
 
 export function useCachedQuizList() {
   const [quizzes, setQuizzes] = useState([]);
@@ -12,7 +19,8 @@ export function useCachedQuizList() {
     const fetchAndCacheList = async () => {
       try {
         // 1. Check for cached data
-        const cachedItem = localStorage.getItem(CACHE_KEY);
+        const cacheKey = getUserSpecificCacheKey();
+        const cachedItem = localStorage.getItem(cacheKey);
         if (cachedItem) {
           const { data, timestamp } = JSON.parse(cachedItem);
           const isCacheStale = Date.now() - timestamp > CACHE_EXPIRATION_MS;
@@ -39,9 +47,9 @@ export function useCachedQuizList() {
 
         const data = await response.json();
         
-        // 3. Update cache
+        // 3. Update cache with user-specific key
         const cacheData = { data, timestamp: Date.now() };
-        localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
         
         setQuizzes(data);
 

@@ -1,12 +1,12 @@
 import express from "express";
-import { verifyTokenBasic } from "../middleware/authMiddleware.js";
+import { verifyTokens } from '../middleware/authMiddleware.js';
 
 import pool from "../config/db.js";
 
 const router = express.Router();
 
 // Create or Update About User profile
-router.post("/", verifyTokenBasic, async (req, res) => {
+router.post("/", verifyTokens, async (req, res) => {
   const { name, age, weight } = req.body;
   const userId = req.user.id; // from JWT authMiddleware
 
@@ -41,7 +41,7 @@ router.post("/", verifyTokenBasic, async (req, res) => {
 
 
 // GET /about-user/me
-router.get("/me", verifyTokenBasic, async (req, res) => {
+router.get("/me", verifyTokens, async (req, res) => {
   const userId = req.user.id;
 
   try {

@@ -2,16 +2,50 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/AuthScreen.css";
 import { useAuth } from "../context/AuthContext.jsx"; // import context
-
+import { GoogleLogin } from '@react-oauth/google';
 export default function AuthScreen() {
   const [isLoginView, setIsLoginView] = useState(true);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const { currentUser, login } = useAuth();
+  
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError("");
+    setIsLoading(true);
+    try {
+      console.log('Received Google credential:', credentialResponse);
+      const response = await fetch("http://localhost:5000/auth/google", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ 
+          credential: credentialResponse.credential 
+        }),
+        credentials: "include",
+      });
+      
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Google login failed");
+      }
+      
+      // Navigate to home page on success
+      // The AuthContext will handle the session via cookies
+      window.location.href = '/home';
+    } catch (err) {
+      setError(err.message || "Google login failed");
+      console.error("Google login error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (currentUser) {
@@ -55,6 +89,14 @@ export default function AuthScreen() {
         {isLoginView ? (
           <>
             <h1 className="auth-title">Login</h1>
+            <GoogleLogin 
+              onSuccess={handleGoogleSuccess}
+              onError={() => {
+                console.error("Google login failed");
+                setError("Google login failed. Please try again.");
+              }}
+              disabled={isLoading}
+            />
             <form onSubmit={handleLogin} className="auth-form">
               <input
                 type="email"

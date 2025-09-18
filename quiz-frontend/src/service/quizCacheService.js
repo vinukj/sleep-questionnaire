@@ -1,11 +1,25 @@
-const CACHE_KEY = 'all_quizzes_cache';
 const CACHE_EXPIRATION_MS = 60 * 60 * 1000; // 1 hour
+
+/**
+ * Generates a user-specific cache key
+ * @param {string} baseKey - The base cache key
+ * @returns {string} The user-specific cache key
+ */
+const getUserSpecificCacheKey = (baseKey) => {
+  // Get the JWT token from cookies (we'll only use it for the key generation)
+  const cookies = document.cookie.split(';');
+  const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('accessToken='));
+  const userIdentifier = tokenCookie ? tokenCookie.split('=')[1] : 'anonymous';
+  
+  return `${baseKey}_${userIdentifier}`;
+};
 
 /**
  * Fetches all quizzes from the API and stores them in localStorage.
  * This should be called once when the application loads.
  */
 export const fetchAndCacheAllQuizzes = async () => {
+  const CACHE_KEY = getUserSpecificCacheKey('all_quizzes_cache');
   try {
     const cachedItem = localStorage.getItem(CACHE_KEY);
     if (cachedItem) {
@@ -43,9 +57,18 @@ export const fetchAndCacheAllQuizzes = async () => {
  * @returns {Array|null} The array of questions or null if not found.
  */
 export const getQuizFromCache = (quizName, language) => {
+  const CACHE_KEY = getUserSpecificCacheKey('all_quizzes_cache');
   const cachedItem = localStorage.getItem(CACHE_KEY);
   if (!cachedItem) return null;
 
   const { data } = JSON.parse(cachedItem);
   return data?.[quizName]?.[language] || null;
+};
+
+/**
+ * Clears the cache for the current user
+ */
+export const clearUserCache = () => {
+  const CACHE_KEY = getUserSpecificCacheKey('all_quizzes_cache');
+  localStorage.removeItem(CACHE_KEY);
 };

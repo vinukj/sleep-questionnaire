@@ -1,94 +1,102 @@
 /* file: components/ResultsScreen.css */
 
-body {
-  background-color: #f4f4f8;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  color: #1a202c;
-}
-
+/* Base styles with responsive units */
 .results-container {
-  max-width: 600px;
-  margin: 40px auto;
-  padding: 20px;
+  width: min(95%, 600px);
+  margin: clamp(20px, 5vh, 40px) auto;
+  padding: clamp(15px, 3vw, 25px);
 }
 
 .header-container {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: clamp(15px, 4vw, 25px);
 }
 
 .header-title {
-  font-size: 2.5rem;
-  font-weight: bold;
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  font-weight: 700;
   margin: 0;
+  line-height: 1.2;
+  color: #1a202c;
 }
 
 .quiz-name {
-  font-size: 1rem;
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
   color: #718096;
-  margin-top: 4px;
-  letter-spacing: 1px;
+  margin-top: clamp(4px, 1vw, 8px);
+  letter-spacing: 0.05em;
 }
 
 .score-card {
   background-color: white;
-  border-radius: 12px;
-  padding: 30px;
+  border-radius: clamp(8px, 2vw, 12px);
+  padding: clamp(20px, 4vw, 30px);
   text-align: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-bottom: 30px;
+  margin-bottom: clamp(20px, 4vw, 30px);
 }
 
 .score-label {
-  font-size: 1.25rem;
+  font-size: clamp(1rem, 3vw, 1.25rem);
   color: #4a5568;
   margin: 0;
+  font-weight: 500;
 }
 
 .score-value {
-  font-size: 5rem;
-  font-weight: bold;
+  font-size: clamp(3rem, 10vw, 5rem);
+  font-weight: 700;
   color: #2d3748;
-  margin: 10px 0;
+  margin: clamp(8px, 2vw, 10px) 0;
+  line-height: 1;
 }
 
 .interpretation {
-  font-size: 1.1rem;
+  font-size: clamp(0.9rem, 2.5vw, 1.1rem);
   color: #4a5568;
   line-height: 1.6;
+  max-width: 65ch;
+  margin: 0 auto;
+  padding: 0 clamp(10px, 2vw, 20px);
 }
 
 .breakdown-container {
   background-color: white;
-  border-radius: 12px;
-  padding: 25px;
-  margin-bottom: 30px;
+  border-radius: clamp(8px, 2vw, 12px);
+  padding: clamp(20px, 4vw, 25px);
+  margin-bottom: clamp(20px, 4vw, 30px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .breakdown-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin: 0 0 15px 0;
+  font-size: clamp(1.25rem, 3.5vw, 1.5rem);
+  font-weight: 700;
+  margin: 0 0 clamp(12px, 3vw, 15px) 0;
   border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 10px;
+  padding-bottom: clamp(8px, 2vw, 10px);
+  color: #2d3748;
 }
 
 .component-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 0;
-  font-size: 1rem;
+  padding: clamp(12px, 2.5vw, 15px) 0;
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  gap: clamp(10px, 2vw, 20px);
 }
 
 .component-label {
   color: #2d3748;
+  flex: 1;
+  min-width: 0;
+  word-wrap: break-word;
 }
 
 .component-score {
-  font-weight: bold;
+  font-weight: 600;
   color: #2d3748;
+  white-space: nowrap;
 }
 
 .button {
@@ -96,15 +104,72 @@ body {
   width: 100%;
   background-color: #4299e1;
   color: white;
-  padding: 15px;
+  padding: clamp(12px, 3vw, 15px);
   border: none;
-  border-radius: 12px;
-  font-size: 1.2rem;
-  font-weight: bold;
+  border-radius: clamp(8px, 2vw, 12px);
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  touch-action: manipulation;
 }
 
-.button:hover {
-  background-color: #3182ce;
+/* Hover styles only for devices that support hover */
+@media (hover: hover) {
+  .button:hover {
+    background-color: #3182ce;
+  }
+}
+
+.button:active {
+  transform: scale(0.98);
+}
+
+/* Additional responsive adjustments */
+@media (max-width: 360px) {
+  .results-container {
+    padding: 10px;
+  }
+  
+  .breakdown-container,
+  .score-card {
+    padding: 15px;
+  }
+  
+  .component-row {
+    padding: 10px 0;
+  }
+}
+
+/* High contrast mode support */
+@media (forced-colors: active) {
+  .score-card,
+  .breakdown-container {
+    border: 1px solid CanvasText;
+  }
+  
+  .button {
+    border: 1px solid ButtonText;
+  }
+}
+
+/* Print styles */
+@media print {
+  .results-container {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 20px;
+  }
+  
+  .score-card,
+  .breakdown-container {
+    box-shadow: none;
+    border: 1px solid #000;
+    break-inside: avoid;
+  }
+  
+  .button {
+    display: none;
+  }
 }

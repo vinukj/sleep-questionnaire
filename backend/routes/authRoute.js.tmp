@@ -1,0 +1,20 @@
+import express from 'express';
+import { signup, login, getProfile, googleLogin, logout } from '../controllers/authController.js';
+import { verifyTokens, verifyTokenBasic } from '../middleware/authMiddleware.js';
+
+const router = express.Router();
+
+router.post('/signup', signup);
+router.post('/login', login);
+router.get('/verify', verifyTokenBasic, (req, res) => {
+  res.status(200).json({
+    valid: true,
+    user: req.user
+  });
+});
+
+router.get('/profile', verifyTokens, getProfile);
+router.post('/google', googleLogin);
+router.post('/logout', verifyTokens, logout);
+
+export default router;

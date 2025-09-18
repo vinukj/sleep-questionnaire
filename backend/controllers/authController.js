@@ -1,8 +1,10 @@
 import express from "express";
-import { createUser, findUserbyEmail } from "../models/userModel.js";
+import { createUser, findUserbyEmail, createSession, invalidateAllUserSessions, findOrCreateGoogleUser } from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
+import crypto from 'crypto';
+import { verifyGoogleToken } from "../config/google.js";
 dotenv.config();
 
 const ACCESS_TOKEN_EXPIRE = '15m'; // short-lived access token
@@ -29,29 +31,48 @@ export const login = async (req, res) => {
         return res.status(400).json({ error: "Invalid credentials" });
     }
 
+    // Check if this is a Google user trying to login with password
+    if (user.google_id) {
+        return res.status(401).json({ error: "This account uses Google Sign-In. Please use the Google Sign-In button." });
+    }
+
+    // For regular users, verify password
+    if (!user.password) {
+        return res.status(401).json({ error: "Invalid credentials" });
+    }
+
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
-        return res.status(400).json({ error: "Invalid credentials" });
+        return res.status(401).json({ error: "Invalid credentials" });
     }
+
+    // Generate a unique token ID for this session
+    const tokenId = crypto.randomBytes(16).toString('hex');
 
     // Create access token (short-lived)
     const accessToken = jwt.sign(
-        { id: user.id },
+        { id: user.id, tokenId },
         process.env.JWT_SECRET,
         { expiresIn: ACCESS_TOKEN_EXPIRE }
     );
 
     // Create refresh token (long-lived)
     const refreshToken = jwt.sign(
-        { id: user.id },
+        { id: user.id, tokenId },
         process.env.REFRESH_TOKEN_SECRET,
         { expiresIn: REFRESH_TOKEN_EXPIRE }
     );
 
+    // Calculate expiration time for the session
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    // Store the session in the database
+    await createSession(user.id, refreshToken, tokenId, expiresAt);
+
     // Send tokens as HttpOnly cookies
     res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // only HTTPS in prod
+        secure: process.env.NODE_ENV === 'production',
         sameSite: 'Strict',
         maxAge: 15 * 60 * 1000 // 15 minutes
     });
@@ -67,12 +88,93 @@ export const login = async (req, res) => {
 };
 
 // ---------------- LOGOUT ----------------
-export const logout = (req, res) => {
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
-    res.json({ message: "Logged out successfully" });
+export const logout = async (req, res) => {
+    try {
+        // Get the user ID from the token
+        const token = req.cookies.accessToken;
+        if (token) {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            // Invalidate all sessions for this user
+            await invalidateAllUserSessions(decoded.id);
+        }
+
+        // Clear auth cookies
+        res.clearCookie("accessToken");
+        res.clearCookie("refreshToken");
+        
+        // Send instruction to clear cache and broadcast logout
+        res.json({ 
+            message: "Logged out successfully",
+            clearCache: true,
+            broadcastLogout: true
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ error: "Error during logout" });
+    }
 };
 
+
+// ---------------- GOOGLE LOGIN ----------------
+export const googleLogin = async (req, res) => {
+    try {
+        const { credential } = req.body;
+        
+        // Verify the Google token
+        const payload = await verifyGoogleToken(credential);
+        
+        // Find or create user with Google data
+        const user = await findOrCreateGoogleUser({
+            email: payload.email,
+            name: payload.name,
+            googleId: payload.sub,
+            picture: payload.picture
+        });
+
+        // Generate a unique token ID for this session
+        const tokenId = crypto.randomBytes(16).toString('hex');
+
+        // Create access token (short-lived)
+        const accessToken = jwt.sign(
+            { id: user.id, tokenId },
+            process.env.JWT_SECRET,
+            { expiresIn: ACCESS_TOKEN_EXPIRE }
+        );
+
+        // Create refresh token (long-lived)
+        const refreshToken = jwt.sign(
+            { id: user.id, tokenId },
+            process.env.REFRESH_TOKEN_SECRET,
+            { expiresIn: REFRESH_TOKEN_EXPIRE }
+        );
+
+        // Calculate expiration time for the session
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+        // Store the session in the database
+        await createSession(user.id, refreshToken, tokenId, expiresAt);
+
+        // Send tokens as HttpOnly cookies
+        res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: 15 * 60 * 1000 // 15 minutes
+        });
+
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
+        res.json({ message: "Google login successful" });
+    } catch (error) {
+        console.error('Google login error:', error);
+        res.status(401).json({ error: error.message || "Google authentication failed" });
+    }
+};
 
 export const getProfile = async (req, res) => {
   try {

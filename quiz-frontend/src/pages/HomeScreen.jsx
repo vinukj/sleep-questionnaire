@@ -30,17 +30,19 @@ function HomeScreen() {
   }
 
   return (
-    <div className="home-container">
+    <>
       <Navbar />
+    <div className="home-container">
       <main className="home-main">
-        <h2>Welcome, {currentUser.name || currentUser.email}</h2>
+        <h2>Welcome{currentUser.user.name}</h2>
         <p>Track your sleep, answer questionnaires, and monitor your progress.</p>
 
         <div className="placeholder-content">
-          <p>Questionnaire content will go here.</p>
+          {/* <p>Questionnaire content will go here.</p> */}
         </div>
       </main>
     </div>
+    </>
   );
 }
 

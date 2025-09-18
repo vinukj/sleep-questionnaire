@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
 import dotenv from 'dotenv';
+import { v4 as uuidv4 } from 'uuid';
 dotenv.config();
 
 // export const verifyTokens = async (req, res, next) => {
@@ -38,16 +39,27 @@ dotenv.config();
 
 export const verifyTokens = async (req, res, next) => {
   // Look for token inside cookies
-  const token = req.cookies?.accessToken;  // use the cookie name you set when logging in
+  const token = req.cookies?.accessToken;
 
   if (!token) {
     return res.status(401).json({ message: "Token missing" });
   }
 
   try {
-    console.log("SECRET AT VERIFICATION:", `"${process.env.JWT_SECRET}"`);
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if this session is still valid in the database
+    const sessionResult = await pool.query(
+      "SELECT * FROM user_sessions WHERE token_id = $1 AND expires_at > NOW()",
+      [decoded.tokenId]
+    );
+
+    if (!sessionResult.rows.length) {
+      return res.status(401).json({ 
+        message: "Session expired or invalidated",
+        sessionExpired: true
+      });
+    }
 
     // Fetch user info from DB
     const userResult = await pool.query(
