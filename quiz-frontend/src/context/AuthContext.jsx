@@ -1,10 +1,11 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { clearUserCache } from "../service/quizCacheService";
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
-const API_URL = "http://localhost:5000";
+const API_URL =  import.meta.env.VITE_API_URL||"http://localhost:5000";
 
 // Channels for cross-tab communication
 const authChannel = new BroadcastChannel('auth_sync');
@@ -12,6 +13,8 @@ const authChannel = new BroadcastChannel('auth_sync');
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   // ---------------- CHECK LOGIN STATUS ----------------
   useEffect(() => {
@@ -46,7 +49,7 @@ export const AuthProvider = ({ children }) => {
             const data = await response.json();
             // If the session was explicitly expired (not just missing)
             if (data.sessionExpired) {
-              console.log('Session expired, logging out');
+              setError("Session expired. Logging out.");
               handleLogout();
               authChannel.postMessage({ type: 'logout' });
             } else {
@@ -54,13 +57,15 @@ export const AuthProvider = ({ children }) => {
             }
             return;
           }
+          setError("Failed to check session");
           throw new Error("Failed to check session");
         }
 
         const data = await response.json();
         setCurrentUser(data);
-      } catch {
+      } catch (err) {
         setCurrentUser(null);
+        setError(err.message || "Session check failed");
       } finally {
         setLoading(false);
       }
@@ -77,6 +82,7 @@ export const AuthProvider = ({ children }) => {
   // ---------------- LOGIN ----------------
   const login = async (email, password) => {
     setLoading(true);
+    setError("");
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
@@ -86,7 +92,10 @@ export const AuthProvider = ({ children }) => {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Login failed");
+      if (!response.ok) {
+        setError(data.error || "Login failed");
+        throw new Error(data.error || "Login failed");
+      }
 
       // fetch profile after successful login
       const profileRes = await fetch(`${API_URL}/auth/profile`, {
@@ -97,17 +106,16 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(profileData);
       
       // Broadcast login success to other tabs
-      console.log('Broadcasting login message');
       authChannel.postMessage({ 
         type: 'login',
         data: profileData
       });
       
-      // Navigate to home page
-      window.location.href = '/home';
+      // Use router navigation instead of hard reload
+      navigate('/home', { replace: true });
     } catch (error) {
-      console.error("Login error:", error);
       setCurrentUser(null);
+      setError(error.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -126,6 +134,7 @@ export const AuthProvider = ({ children }) => {
   // ---------------- LOGOUT ----------------
   const logout = async () => {
     setLoading(true);
+    setError("");
     try {
       // First inform the server
       const response = await fetch(`${API_URL}/auth/logout`, {
@@ -134,24 +143,24 @@ export const AuthProvider = ({ children }) => {
       });
       
       if (!response.ok) {
+        setError('Logout request failed');
         throw new Error('Logout request failed');
       }
 
       // Then broadcast to other tabs
-      console.log('Broadcasting logout message');
       authChannel.postMessage({ type: 'logout' });
       
       // Finally perform local logout and redirect
       handleLogout();
       
-      // Force navigation to login page
-      window.location.href = '/login';
+      // Use router navigation instead of hard reload
+      navigate('/login', { replace: true });
       
     } catch (error) {
-      console.error("Logout failed:", error);
+      setError(error.message || "Logout failed");
       // Even if server logout fails, clear local state
       handleLogout();
-      window.location.href = '/login';
+      navigate('/login', { replace: true });
     } finally {
       setLoading(false);
     }
@@ -160,34 +169,31 @@ export const AuthProvider = ({ children }) => {
   // Verify user's session is still valid
   const verifySession = React.useCallback(async () => {
     try {
-      console.log('Verifying session...');
       const response = await fetch(`${API_URL}/auth/profile`, {
         method: "GET",
         credentials: "include",
       });
       
       if (!response.ok) {
-        console.log('Session verification failed:', response.status);
-        // Always clean up on any non-200 response
         handleLogout();
-        logoutChannel.postMessage('logout');
+        authChannel.postMessage({ type: 'logout' });
+        setError("Session verification failed");
         return false;
       }
 
       const data = await response.json();
       if (!data || !data.user) {
-        console.log('No user data in response');
         handleLogout();
+        setError("No user data in response");
         return false;
       }
 
-      console.log('Session verified successfully');
       setCurrentUser(data);
       return true;
     } catch (error) {
-      console.error("Session verification failed:", error);
       handleLogout();
       authChannel.postMessage({ type: 'logout' });
+      setError(error.message || "Session verification failed");
       return false;
     }
   }, []);
@@ -195,6 +201,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     currentUser,
     loading,
+    error,
     login,
     logout,
     verifySession

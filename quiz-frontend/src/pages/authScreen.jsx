@@ -8,14 +8,14 @@ export default function AuthScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [localError, setLocalError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const { currentUser, login } = useAuth();
+  const { currentUser, login, error: contextError } = useAuth();
   
   const handleGoogleSuccess = async (credentialResponse) => {
-    setError("");
+    setLocalError("");
     setIsLoading(true);
     try {
       console.log('Received Google credential:', credentialResponse);
@@ -33,6 +33,7 @@ export default function AuthScreen() {
       
       const data = await response.json();
       if (!response.ok) {
+        setLocalError(data.error || "Google login failed");
         throw new Error(data.error || "Google login failed");
       }
       
@@ -40,7 +41,7 @@ export default function AuthScreen() {
       // The AuthContext will handle the session via cookies
       window.location.href = '/home';
     } catch (err) {
-      setError(err.message || "Google login failed");
+      setLocalError(err.message || "Google login failed");
       console.error("Google login error:", err);
     } finally {
       setIsLoading(false);
@@ -55,18 +56,18 @@ export default function AuthScreen() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
+    setLocalError("");
     try {
       await login(email, password);
       // no navigate here, context effect handles it
     } catch (err) {
-      setError(err.message || "Login failed");
+      setLocalError(err.message || "Login failed");
     }
   };
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    setError("");
+    setLocalError("");
     try {
       const response = await fetch("http://localhost:5000/auth/signup", {
         method: "POST",
@@ -75,11 +76,14 @@ export default function AuthScreen() {
         credentials: "include",
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Signup failed");
+      if (!response.ok) {
+        setLocalError(data.error || "Signup failed");
+        throw new Error(data.error || "Signup failed");
+      }
       // after signup, the server can auto-login, or you can call context login
       await login(email, password);
     } catch (err) {
-      setError(err.message || "Signup failed");
+      setLocalError(err.message || "Signup failed");
     }
   };
 
@@ -171,7 +175,9 @@ export default function AuthScreen() {
             </p>
           </>
         )}
-        {error && <p className="auth-error-message">{error}</p>}
+        {(localError || contextError) && (
+          <p className="auth-error-message">{localError || contextError}</p>
+        )}
       </div>
     </div>
   );
