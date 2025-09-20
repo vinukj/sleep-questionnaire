@@ -35,7 +35,7 @@ export function useCachedQuizList() {
 
         // 2. Fetch from API using HttpOnly cookies
         console.log('Fetching quiz list from API...');
-        const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         
         const response = await fetch(`${API_URL}/quizzes`, {
           credentials: 'include', // <-- important for sending cookies
