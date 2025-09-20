@@ -60,6 +60,7 @@ const AboutContainer = () => {
     <div className="about-container">
       <h2 className="about-title">About Yourself</h2>
       <form onSubmit={handleSubmit}>
+        <h3>Name</h3>
         <input
           type="text"
           className="input-box"
@@ -68,6 +69,7 @@ const AboutContainer = () => {
           value={form.name}
           onChange={handleChange}
         />
+        <h3>Age</h3>
         <input
           type="number"
           className="input-box"
@@ -76,6 +78,7 @@ const AboutContainer = () => {
           value={form.age}
           onChange={handleChange}
         />
+        <h3>Weight</h3>
         <input
           type="number"
           className="input-box"

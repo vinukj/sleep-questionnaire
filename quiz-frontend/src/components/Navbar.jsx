@@ -1,41 +1,170 @@
-import React, { useState } from "react";
+import * as React from "react";
+import {
+  AppBar,
+  Toolbar,
+  IconButton,
+  Typography,
+  Button,
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemText,
+  useMediaQuery,
+  Box,
+} from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
+import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
-import "../styles/Navbar.css";
 import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [open, setOpen] = React.useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
+  const { logout, currentUser } = useAuth();
 
-  const {logout, currentUser} = useAuth();
-  const handleLogout = async() => {
+  const handleLogout = async () => {
     await logout();
     navigate("/login", { replace: true });
   };
 
+  const menuItems = [
+    { text: "Home", path: "/home" },
+    { text: "Questionnaires", path: "/questionnaire" },
+    { text: "Profile", path: "/about" },
+  ];
+
   return (
-    <nav className="navbar">
-      <div className="navbar-left">
-        <h1 className="navbar-logo">SleepApp</h1>
-      </div>
-
-      {/* Hamburger for mobile */}
-      <div
-        className={`hamburger ${menuOpen ? "open" : ""}`}
-        onClick={() => setMenuOpen(!menuOpen)}
+    <>
+      {/* Top Navigation Bar */}
+      <AppBar
+        position="sticky"
+        elevation={0}
+        sx={{
+          background: "#f8fcfe", // light clean background
+          color: "black",
+          px: { xs: 2, md: 8 },
+          borderBottom: "1px solid #e0e0e0", // subtle bottom border
+        }}
       >
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+        <Toolbar disableGutters sx={{ justifyContent: "space-between" }}>
+          {/* Mobile Hamburger */}
+          {isMobile && (
+            <IconButton
+              edge="start"
+              color="inherit"
+              onClick={() => setOpen(true)}
+              aria-label="open navigation menu"
+              sx={{ mr: 1 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
 
-      {/* Nav links */}
-      <ul className={`navbar-tabs ${menuOpen ? "active" : ""}`}>
-        <li className="tab-item" onClick={() => navigate("/home")}>Home</li>
-        <li className="tab-item" onClick={() => navigate("/questionnaire")}>Questionnaires</li>
-        <li className="tab-item" onClick={() =>navigate("/about")}>Profile</li>
-        <li className="tab-item logout" onClick={handleLogout}>Logout</li>
-      </ul>
-    </nav>
+          {/* Logo / Title */}
+          <Typography
+            variant="h6"
+            onClick={() => navigate("/home")}
+            sx={{
+              flexGrow: 1,
+              fontWeight: 700,
+              letterSpacing: 1,
+              cursor: "pointer",
+            }}
+          >
+            SleepApp
+          </Typography>
+
+          {/* Desktop Menu */}
+          {!isMobile && (
+            <Box sx={{ display: "flex", gap: 4, alignItems: "center" }}>
+              {menuItems.map(({ text, path }) => (
+                <Button
+                  key={text}
+                  onClick={() => navigate(path)}
+                  sx={{
+                    fontWeight: 500,
+                    textTransform: "none",
+                    color: "black",
+                    "&:hover": { color: "#1976d2", bgcolor: "transparent" },
+                  }}
+                >
+                  {text}
+                </Button>
+              ))}
+              <Button
+                onClick={handleLogout}
+                sx={{
+                  fontWeight: 500,
+                  textTransform: "none",
+                  color: "black",
+                  "&:hover": { color: "red", bgcolor: "transparent" },
+                }}
+              >
+                Logout
+              </Button>
+            </Box>
+          )}
+        </Toolbar>
+      </AppBar>
+
+      {/* Mobile Drawer */}
+      <Drawer
+        anchor="left"
+        open={open}
+        onClose={() => setOpen(false)}
+        PaperProps={{
+          sx: { width: 250, bgcolor: "#ffffff" },
+        }}
+      >
+        <Box
+          sx={{
+            p: 2,
+            fontWeight: "bold",
+            fontSize: "1.1rem",
+            color: "#0d47a1",
+          }}
+        >
+          Menu
+        </Box>
+        <List>
+          {menuItems.map(({ text, path }) => (
+            <ListItemButton
+              key={text}
+              onClick={() => {
+                navigate(path);
+                setOpen(false);
+              }}
+              sx={{
+                "&:hover": { bgcolor: "rgba(25,118,210,0.08)" },
+              }}
+            >
+              <ListItemText
+                primary={text}
+                primaryTypographyProps={{ fontWeight: 500 }}
+              />
+            </ListItemButton>
+          ))}
+          <ListItemButton
+            onClick={() => {
+              handleLogout();
+              setOpen(false);
+            }}
+            sx={{
+              "&:hover": { bgcolor: "rgba(255,0,0,0.08)" },
+            }}
+          >
+            <ListItemText
+              primary="Logout"
+              primaryTypographyProps={{
+                fontWeight: 500,
+                color: "error.main",
+              }}
+            />
+          </ListItemButton>
+        </List>
+      </Drawer>
+    </>
   );
 }
