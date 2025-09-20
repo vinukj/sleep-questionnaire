@@ -3,7 +3,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import '../styles/ResultsScreen.css'; // We'll create this CSS file next
-import Navbar from './NavBar';
+import Navbar from './Navbar';
 
 const ResultsScreen = () => {
   const navigate = useNavigate();
