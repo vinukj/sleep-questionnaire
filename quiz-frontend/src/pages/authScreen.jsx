@@ -35,7 +35,8 @@ export default function AuthScreen() {
     setLocalError("");
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/auth/google", {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_URL}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ credential: credentialResponse.credential }),
@@ -65,7 +66,8 @@ export default function AuthScreen() {
     e.preventDefault();
     setLocalError("");
     try {
-      const response = await fetch("http://localhost:5000/auth/signup", {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_URL}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),

@@ -73,6 +73,10 @@ app.get("/api/hello", (req, res) => {
 });
 
 // Start server
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📖 API Documentation: http://localhost:${PORT}/api-docs`);
+  console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
+});
 export default app;
