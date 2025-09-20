@@ -41,7 +41,6 @@ A full-stack web application for sleep research and quiz management. Built with 
    ```
 
 3. **Configure environment variables:**
-   - Copy `.env.example` to `.env` in both `backend` and `quiz-frontend` folders.
    - Fill in database, JWT, and Google OAuth credentials.
 
 4. **Start PostgreSQL and create the database:**
