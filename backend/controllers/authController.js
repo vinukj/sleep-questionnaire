@@ -1,7 +1,7 @@
 import express from "express";
 import { createUser, findUserbyEmail, createSession, invalidateAllUserSessions, findOrCreateGoogleUser } from "../models/userModel.js";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import crypto from 'crypto';
 import { verifyGoogleToken } from "../config/google.js";
