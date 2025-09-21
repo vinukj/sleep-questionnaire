@@ -62,8 +62,8 @@ export const login = async (req, res) => {
         const isProd = process.env.NODE_ENV === 'production';
         res.cookie("accessToken", accessToken, {
             httpOnly: true,
-            secure: isProd,
-            sameSite: isProd ? 'None' : 'Lax',
+            secure: true,
+            sameSite: 'None',
             maxAge: 15 * 60 * 1000, // 15 minutes
             path: '/'
         });

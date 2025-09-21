@@ -23,6 +23,7 @@ const allowedOrigins = [
   "https://zaid-vercel-sleep.vercel.app",
   "zaid-vercel-sleep-git-main-zaids-projects-ed10428c.vercel.app",
   "https://zaid-vercel-sleep-git-main-zaids-projects-ed10428c.vercel.app/login",
+  "https://zaid-vercel-sleep.vercel.app/login"
 
 ];
 
