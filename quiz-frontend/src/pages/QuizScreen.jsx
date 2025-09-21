@@ -5,7 +5,7 @@ import ResultsScreen from "../components/ResultsScreen"; // Assuming you have th
 import { getQuizFromCache } from "../service/quizCacheService";
 import Navbar from "../components/Navbar";
 
-
+const API_URL = import.meta.env.VITE_API_URL;
 export default function QuizScreen() {
   const { quizName, language } = useParams();
   const [questions, setQuestions] = useState([]);
@@ -43,7 +43,7 @@ export default function QuizScreen() {
   const handleQuizComplete = async (answers) => {
   try {
     const response = await fetch(
-      `http://localhost:5000/quizzes/score/${quizName}`,
+      `${API_URL}/quizzes/score/${quizName}`,
       {
         method: "POST",
         headers: {

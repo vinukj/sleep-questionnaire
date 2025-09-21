@@ -14,6 +14,8 @@ const getUserSpecificCacheKey = (baseKey) => {
   return `${baseKey}_${userIdentifier}`;
 };
 
+const API_URL = import.meta.env.VITE_API_URL ;
+
 /**
  * Fetches all quizzes from the API and stores them in localStorage.
  * This should be called once when the application loads.
@@ -34,7 +36,7 @@ export const fetchAndCacheAllQuizzes = async () => {
     console.log('Fetching all questionnaires for caching...');
 
     // Send cookies to backend; token is now handled via HttpOnly cookie
-    const response = await fetch(`http://localhost:5000/quizzes/all`, {
+    const response = await fetch(`${API_URL}/quizzes/all`, {
       credentials: 'include', // important for sending cookies
     });
 

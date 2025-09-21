@@ -5,7 +5,7 @@ import { clearUserCache } from "../service/quizCacheService";
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
-const API_URL =  import.meta.env.VITE_API_URL||"http://localhost:5000";
+const API_URL =  import.meta.env.VITE_API_URL
 
 // Channels for cross-tab communication
 const authChannel = new BroadcastChannel('auth_sync');

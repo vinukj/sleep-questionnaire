@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../styles/AboutContainer.css";
 
-const API_URL = "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL
 const AboutContainer = () => {
   const [form, setForm] = useState({ name: "", age: "", weight: "" });
   const [loading, setLoading] = useState(false);
