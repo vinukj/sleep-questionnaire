@@ -17,15 +17,19 @@ app.use(express.json());
 
 // Parse cookies
 app.use(cookieParser());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://sleep-deploy-8zdtsxqy5-zaids-projects-ed10428c.vercel.app"
+];
 
 // CORS setup to allow frontend to send cookies
 app.use(cors({
-    origin: "http://localhost:5173", // replace with your frontend URL
+    origin: allowedOrigins, // replace with your frontend URL
     credentials: true, // important: allows sending cookies
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
 }));
-
+    
 // Security headers for Google OAuth
 app.use((req, res, next) => {
     // Allow popups for Google OAuth
