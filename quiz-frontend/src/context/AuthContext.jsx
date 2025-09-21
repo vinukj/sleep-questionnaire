@@ -97,24 +97,44 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.error || "Login failed");
       }
 
-      // fetch profile after successful login
-      const profileRes = await fetch(`${API_URL}/auth/profile`, {
-        method: "GET",
-        credentials: "include",
-      });
-      const profileData = await profileRes.json();
+      // Wait a short time to ensure cookies are set (helps in incognito/Safari)
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      // Retry profile fetch up to 3 times if it fails
+      let profileData = null;
+      let success = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const profileRes = await fetch(`${API_URL}/auth/profile`, {
+            method: "GET",
+            credentials: "include",
+          });
+          if (profileRes.ok) {
+            profileData = await profileRes.json();
+            success = true;
+            break;
+          }
+        } catch (e) {
+          // ignore and retry
+        }
+        // Wait a bit before retrying
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+      if (!success) {
+        setError("Session verification failed after login. Please try again.");
+        setCurrentUser(null);
+        throw new Error("Session verification failed after login");
+      }
       setCurrentUser(profileData);
-      
+
       // Broadcast login success to other tabs
       authChannel.postMessage({ 
         type: 'login',
         data: profileData
       });
-      
+
       // Use router navigation instead of hard reload
       navigate('/home', { replace: true });
-
-      
     } catch (error) {
       setCurrentUser(null);
       setError(error.message || "Login failed");
