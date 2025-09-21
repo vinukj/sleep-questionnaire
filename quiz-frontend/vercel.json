@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "builds": [
     {
       "src": "package.json",
@@ -13,3 +14,9 @@
     }
   ]
 }
+=======
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+>>>>>>> afba2bf4546a45219983e44641cb665aff0c3e82

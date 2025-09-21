@@ -14,6 +14,8 @@ import {
   Divider,
 } from "@mui/material";
 
+const API_URL =  import.meta.env.VITE_API_URL
+
 export default function AuthScreen() {
   const [isLoginView, setIsLoginView] = useState(true);
   const [name, setName] = useState("");
@@ -28,6 +30,7 @@ export default function AuthScreen() {
   useEffect(() => {
     if (currentUser) {
       navigate("/home", { replace: true });
+      console.log("User is already logged in:", currentUser);
     }
   }, [currentUser, navigate]);
 
@@ -36,6 +39,7 @@ export default function AuthScreen() {
     setIsLoading(true);
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
       const response = await fetch(`${API_URL}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -44,7 +48,7 @@ export default function AuthScreen() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Google login failed");
-      window.location.href = "/home";
+      navigate("/home", { replace: true });
     } catch (err) {
       setLocalError(err.message);
     } finally {
@@ -66,6 +70,7 @@ export default function AuthScreen() {
     e.preventDefault();
     setLocalError("");
     try {
+
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const response = await fetch(`${API_URL}/auth/signup`, {
         method: "POST",

@@ -144,6 +144,7 @@ router.get('/verify', verifyTokenBasic, (req, res) => {
  *         description: Forbidden, invalid or expired token
  */
 router.get('/profile', verifyTokens, (req, res) => {
+  console.log(`[AUTH] Inline profile route:`, { method: req.method, path: req.originalUrl, user: req.user });
   res.json({ user: { id: req.user.id, name: req.user.name, email: req.user.email } });
 });
 
@@ -202,6 +203,7 @@ router.post('/google', googleLogin);
  *         description: Error during logout
  */
 router.post('/logout', verifyTokens, async (req, res) => {
+  console.log(`[AUTH] Inline logout route:`, { method: req.method, path: req.originalUrl, user: req.user });
   try {
     await invalidateAllUserSessions(req.user.id);
 

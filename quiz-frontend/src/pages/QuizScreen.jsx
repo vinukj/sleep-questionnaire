@@ -8,6 +8,8 @@ import Navbar from "../components/Navbar";
 import LoadingScreen from "../components/LoadingScreen";
 import ErrorDisplay from "../components/ErrorDisplay";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function QuizScreen() {
   const { quizName, language } = useParams();
   const [questions, setQuestions] = useState([]);
@@ -15,13 +17,11 @@ export default function QuizScreen() {
   const [error, setError] = useState(null);
   const [submitError, setSubmitError] = useState(null);
   const [finalScore, setFinalScore] = useState(null);
-  
   const navigate = useNavigate();
 
   useEffect(() => {
     try {
       const cachedQuestions = getQuizFromCache(quizName, language);
-      
       if (cachedQuestions && cachedQuestions.length > 0) {
         const formattedQuestions = cachedQuestions.map(q => ({
           id: q.question_id_string,
@@ -44,8 +44,6 @@ export default function QuizScreen() {
   const handleQuizComplete = async (answers) => {
     try {
       setSubmitError(null);
-      
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const response = await fetch(
         `${API_URL}/quizzes/score/${quizName}`,
         {
@@ -57,11 +55,9 @@ export default function QuizScreen() {
           body: JSON.stringify(answers),
         }
       );
-
       if (!response.ok) {
         throw new Error(`Failed to calculate score: ${response.status}`);
       }
-
       const scoreData = await response.json();
       navigate("/results", { state: { score: scoreData, quizName } });
     } catch (err) {
@@ -73,7 +69,7 @@ export default function QuizScreen() {
   const handleQuizExit = () => {
     navigate("/questionnaire");
   };
-  
+
   const handleRetake = () => {
     setFinalScore(null);
   };
@@ -91,7 +87,7 @@ export default function QuizScreen() {
     return (
       <Box sx={{ flexGrow: 1 }}>
         <Navbar />
-        <ErrorDisplay 
+        <ErrorDisplay
           error={error}
           title="Quiz Not Available"
           onRetry={() => {
@@ -107,7 +103,6 @@ export default function QuizScreen() {
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh' }}>
       <Navbar />
-      
       {finalScore ? (
         <ResultsScreen score={finalScore} onRetake={handleRetake} />
       ) : (
@@ -118,7 +113,6 @@ export default function QuizScreen() {
           quizName={quizName}
         />
       )}
-
       {/* Error Snackbar */}
       <Snackbar
         open={!!submitError}
@@ -126,9 +120,9 @@ export default function QuizScreen() {
         onClose={() => setSubmitError(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert 
-          onClose={() => setSubmitError(null)} 
-          severity="error" 
+        <Alert
+          onClose={() => setSubmitError(null)}
+          severity="error"
           variant="filled"
           sx={{ width: '100%' }}
         >

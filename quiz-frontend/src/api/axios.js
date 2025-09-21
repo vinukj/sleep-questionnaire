@@ -1,7 +1,9 @@
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
-const API_URL =  import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL =  import.meta.env.VITE_API_URL 
 
+const navigate = useNavigate();
 const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
@@ -19,7 +21,7 @@ api.interceptors.response.use(
       // ✅ CRITICAL FIX: If the failed request was already for a refresh token, give up.
       if (originalRequest.url === '/auth/refresh-token') {
         console.error("Refresh token is invalid or expired. Redirecting to login.");
-        window.location.href = '/login'; // Or use navigate
+        navigate('/login'); // Use your routing method here
         return Promise.reject(error);
       }
       
@@ -33,7 +35,7 @@ api.interceptors.response.use(
 
       } catch (refreshError) {
         console.error('Unable to refresh token:', refreshError);
-        window.location.href = '/login'; 
+        navigate('/login');
         return Promise.reject(refreshError);
       }
     }

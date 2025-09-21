@@ -24,6 +24,10 @@ import {
   Download as DownloadIcon,
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
+
+
+import '../styles/ResultsScreen.css'; // We'll create this CSS file next
+
 import Navbar from './Navbar';
 
 const ResultsScreen = () => {
