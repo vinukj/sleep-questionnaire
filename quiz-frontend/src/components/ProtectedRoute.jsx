@@ -2,8 +2,9 @@ import React, { use } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const navigate = useNavigate();
+
 export default function ProtectedRoute({ children }) {
+  const navigate = useNavigate();
   const { currentUser, loading, verifySession } = useAuth();
   const [isVerifying, setIsVerifying] = React.useState(true);
   const location = useLocation();

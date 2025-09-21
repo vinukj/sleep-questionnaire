@@ -19,14 +19,11 @@ app.use(express.json());
 app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://sleep-deploy-8zdtsxqy5-zaids-projects-ed10428c.vercel.app",
-  "https://sleep-deploy-ex5ty6m16-zaids-projects-ed10428c.vercel.app",
-  "https://sleep-deploy-ex5ty6m16-zaids-projects-ed10428c.vercel.app/",
 ];
 
 // CORS setup to allow frontend to send cookies
 app.use(cors({
-    origin: allowedOrigins, // replace with your frontend URL
+    origin: allowedOrigins, // 
     credentials: true, // important: allows sending cookies
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
