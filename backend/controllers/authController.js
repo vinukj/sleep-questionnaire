@@ -12,6 +12,7 @@ const REFRESH_TOKEN_EXPIRE = '7d'; // refresh token lifespan
 
 // ---------------- SIGNUP ----------------
 export const signup = async (req, res) => {
+    console.log(`[AUTH] Signup request:`, { method: req.method, path: req.originalUrl, body: req.body });
     const { email, password } = req.body;
     const existingUser = await findUserbyEmail(email);
     if (existingUser) {
@@ -25,6 +26,7 @@ export const signup = async (req, res) => {
 
 // ---------------- LOGIN ----------------
 export const login = async (req, res) => {
+    console.log(`[AUTH] Login request:`, { method: req.method, path: req.originalUrl, body: req.body });
     const { email, password } = req.body;
     const user = await findUserbyEmail(email);
     if (!user) {
@@ -70,18 +72,22 @@ export const login = async (req, res) => {
     await createSession(user.id, refreshToken, tokenId, expiresAt);
 
     // Send tokens as HttpOnly cookies
+    // Set cookies for local development and production
+    const isProd = process.env.NODE_ENV === 'production';
     res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
-        maxAge: 15 * 60 * 1000 // 15 minutes
+        secure: isProd,
+        sameSite: isProd ? 'None' : 'Lax',
+        maxAge: 15 * 60 * 1000, // 15 minutes
+        path: '/'
     });
 
     res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        secure: isProd,
+        sameSite: isProd ? 'None' : 'Lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: '/'
     });
 
     res.json({ message: "Login successful" });
@@ -89,6 +95,7 @@ export const login = async (req, res) => {
 
 // ---------------- LOGOUT ----------------
 export const logout = async (req, res) => {
+    console.log(`[AUTH] Logout request:`, { method: req.method, path: req.originalUrl, cookies: req.cookies });
     try {
         // Get the user ID from the token
         const token = req.cookies.accessToken;
@@ -117,6 +124,7 @@ export const logout = async (req, res) => {
 
 // ---------------- GOOGLE LOGIN ----------------
 export const googleLogin = async (req, res) => {
+    console.log(`[AUTH] Google login request:`, { method: req.method, path: req.originalUrl, body: req.body });
     try {
         const { credential } = req.body;
         
@@ -155,18 +163,21 @@ export const googleLogin = async (req, res) => {
         await createSession(user.id, refreshToken, tokenId, expiresAt);
 
         // Send tokens as HttpOnly cookies
+        const isProd = process.env.NODE_ENV === 'production';
         res.cookie("accessToken", accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Strict',
-            maxAge: 15 * 60 * 1000 // 15 minutes
+            secure: isProd,
+            sameSite: isProd ? 'None' : 'Lax',
+            maxAge: 15 * 60 * 1000, // 15 minutes
+            path: '/'
         });
 
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            secure: isProd,
+            sameSite: isProd ? 'None' : 'Lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            path: '/'
         });
 
         res.json({ message: "Google login successful" });
@@ -177,6 +188,7 @@ export const googleLogin = async (req, res) => {
 };
 
 export const getProfile = async (req, res) => {
+    console.log(`[AUTH] Get profile request:`, { method: req.method, path: req.originalUrl, cookies: req.cookies });
   try {
     const token = req.cookies.accessToken;
     if (!token) {

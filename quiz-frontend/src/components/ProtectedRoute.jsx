@@ -1,7 +1,8 @@
-import React from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import React, { use } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+const navigate = useNavigate();
 export default function ProtectedRoute({ children }) {
   const { currentUser, loading, verifySession } = useAuth();
   const [isVerifying, setIsVerifying] = React.useState(true);
@@ -25,7 +26,7 @@ export default function ProtectedRoute({ children }) {
   if (!currentUser) {
     console.log('No current user, redirecting to login');
     // Force navigation to login
-    window.location.href = '/login';
+    navigate("/login", { replace: true, state: { from: location } });
     return null;
   }
 

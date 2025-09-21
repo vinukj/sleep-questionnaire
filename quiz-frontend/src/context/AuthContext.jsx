@@ -113,6 +113,8 @@ export const AuthProvider = ({ children }) => {
       
       // Use router navigation instead of hard reload
       navigate('/home', { replace: true });
+
+      
     } catch (error) {
       setCurrentUser(null);
       setError(error.message || "Login failed");
