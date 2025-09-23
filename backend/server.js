@@ -36,16 +36,8 @@ app.use(cors({
 app.use((req, res, next) => {
     // Allow popups for Google OAuth
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-  // NOTE: Setting a strict Cross-Origin-Embedder-Policy (COEP) such as
-  // 'require-corp' will enable cross-origin isolation but also blocks
-  // many cross-origin operations (including some window.postMessage flows
-  // used by OAuth popups). For typical OAuth popup flows with external
-  // providers (e.g. accounts.google.com) it's safer to keep COEP permissive.
-  // Set to 'unsafe-none' (the default) so the OAuth popup can postMessage
-  // back to the opener. If you need cross-origin isolation features
-  // (e.g. SharedArrayBuffer), revisit this and implement a full COEP/COOP
-  // plan and ensure all resources opt-in via CORP.
-  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+    // Allow embedding in iframes for Google OAuth
+    res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
     next();
 });
 
