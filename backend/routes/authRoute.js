@@ -1,5 +1,5 @@
 import express from 'express';
-import { signup, login, getProfile, googleLogin } from '../controllers/authController.js';
+import { signup, login, googleLogin } from '../controllers/authController.js';
 import { verifyTokens, verifyTokenBasic } from '../middleware/authMiddleware.js';
 import { invalidateAllUserSessions } from '../models/userModel.js';
 

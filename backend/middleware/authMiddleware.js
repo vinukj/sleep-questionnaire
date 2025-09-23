@@ -38,12 +38,13 @@ dotenv.config();
 
 
 export const verifyTokens = async (req, res, next) => {
-  // Look for token inside cookies
-  const token = req.cookies?.accessToken;
-
-  if (!token) {
+  // Look for token in Authorization header (Bearer <token>)
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: "Token missing" });
   }
+
+  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
