@@ -19,11 +19,7 @@ app.use(express.json());
 app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
-  "zaid-vercel-sleep-611e80dg1-zaids-projects-ed10428c.vercel.app",
-  "https://zaid-vercel-sleep.vercel.app",
-  "zaid-vercel-sleep-git-main-zaids-projects-ed10428c.vercel.app",
-  "https://zaid-vercel-sleep-git-main-zaids-projects-ed10428c.vercel.app/login",
-  "https://zaid-vercel-sleep.vercel.app/login"
+  "sleep-development-build.vercel.app"
 
 ];
 
