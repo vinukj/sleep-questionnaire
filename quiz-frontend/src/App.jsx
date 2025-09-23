@@ -8,7 +8,6 @@ import QuestionnairePage from "./pages/questionnairePage.jsx";
 import QuizScreen from "./pages/QuizScreen.jsx";
 import ResultsScreen from "./components/ResultsScreen.jsx";
 import AboutPage from "./pages/AboutPage.jsx";
-import { fetchAndCacheAllQuizzes } from "./service/quizCacheService.js";
 
 export default function App() {
   

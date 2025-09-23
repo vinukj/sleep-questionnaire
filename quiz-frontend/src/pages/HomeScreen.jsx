@@ -7,41 +7,46 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
 
 function HomeScreen() {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, loading, authFetch,authReady } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Redirect to login if not authenticated
-    if (!loading && !currentUser) {
+    // Redirect to login if auth check finished and user is not authenticated
+    if (authReady && !currentUser) {
       navigate('/login', { replace: true });
     }
-  }, [currentUser, loading, navigate]);
+  }, [currentUser, authReady, navigate]);
 
   useEffect(() => {
     // Fetch quizzes once the user is logged in
     if (currentUser) {
-      fetchAndCacheAllQuizzes();
+      fetchAndCacheAllQuizzes(authFetch, currentUser.user.id);
     }
-  }, [currentUser]);
+  }, [currentUser, authFetch]);
 
-  if (loading || !currentUser) {
-    // Show loading while AuthContext is checking session
-    return <div className="home-container">Loading...</div>;
+  if (!authReady) {
+    return (
+      <div className="home-container">
+        <div className="loading-spinner">Loading...</div>
+      </div>
+    );
   }
+
+  if (!currentUser) return null;
 
   return (
     <>
       <Navbar />
-    <div className="home-container">
-      <main className="home-main">
-        <h2>Welcome{currentUser.user.name}</h2>
-        <p>Track your sleep, answer questionnaires, and monitor your progress.</p>
+      <div className="home-container">
+        <main className="home-main">
+          <h2>Welcome {currentUser.user ? currentUser.user.email : currentUser.email}</h2>
+          <p>Track your sleep, answer questionnaires, and monitor your progress.</p>
 
-        <div className="placeholder-content">
-          {/* <p>Questionnaire content will go here.</p> */}
-        </div>
-      </main>
-    </div>
+          <div className="placeholder-content">
+            {/* <p>Questionnaire content will go here.</p> */}
+          </div>
+        </main>
+      </div>
     </>
   );
 }

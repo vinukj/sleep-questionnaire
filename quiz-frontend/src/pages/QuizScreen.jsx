@@ -4,6 +4,7 @@ import ReusableQuiz from "../components/ReusableQuiz";
 import ResultsScreen from "../components/ResultsScreen"; // Assuming you have this component
 import { getQuizFromCache } from "../service/quizCacheService";
 import Navbar from "../components/Navbar";
+import { useAuth } from "../context/AuthContext";
 
 const API_URL = import.meta.env.VITE_API_URL;
 export default function QuizScreen() {
@@ -11,6 +12,7 @@ export default function QuizScreen() {
   const [questions, setQuestions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { currentUser } = useAuth();
   
   // State to hold the final score object
   const [finalScore, setFinalScore] = useState(null);
@@ -18,26 +20,58 @@ export default function QuizScreen() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const cachedQuestions = getQuizFromCache(quizName, language);
-    
-    if (cachedQuestions) {
-      // ✅ TRANSFORM THE DATA HERE
-      const formattedQuestions = cachedQuestions.map(q => ({
-        id: q.question_id_string,
-        question: q.question_text,
-        inputType: q.input_type,
-        options: q.options,
-        dependsOn: q.depends_on,
-      }));
-      setQuestions(formattedQuestions);
-    } else {
-      console.error(`Quiz '${quizName}/${language}' not found in cache.`);
-    }
-    setIsLoading(false);
-   
+    const loadQuiz = async () => {
+      setIsLoading(true);
+      const userId = currentUser?.user?.id || currentUser?.id;
+      let cachedQuestions = getQuizFromCache(quizName, language, userId);
 
+      if (cachedQuestions) {
+        console.log(`Loaded cached quiz for ${quizName}/${language}:`, cachedQuestions);
+      } else {
+        console.warn(`Quiz '${quizName}/${language}' not found in cache — falling back to /quizzes/all`);
+        try {
+          // Try to fetch all quizzes from backend and find the requested quiz
+          const response = await fetch(`${API_URL}/quizzes/all`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include'
+          });
 
-  }, [quizName, language]);
+          if (!response.ok) throw new Error('Failed to fetch quizzes from server');
+          const allData = await response.json();
+          console.log('Fetched all quizzes from server for fallback:', allData);
+
+          // try to locate the quiz in the returned structure
+          cachedQuestions = allData?.[quizName]?.[language] || null;
+          if (cachedQuestions) {
+            // Store into local cache for next time
+            const cacheKey = `all_quizzes_cache_${userId || 'anonymous'}`;
+            localStorage.setItem(cacheKey, JSON.stringify({ data: allData, timestamp: Date.now() }));
+            console.log('Stored fetched quizzes into cache with key', cacheKey);
+          }
+        } catch (err) {
+          console.error('Fallback fetch failed:', err);
+        }
+      }
+
+      if (cachedQuestions) {
+        const formattedQuestions = cachedQuestions.map(q => ({
+          id: q.question_id_string,
+          question: q.question_text,
+          inputType: q.input_type,
+          options: q.options,
+          dependsOn: q.depends_on,
+        }));
+        setQuestions(formattedQuestions);
+      } else {
+        setError(`Quiz '${quizName}/${language}' not found.`);
+      }
+
+      setIsLoading(false);
+    };
+
+    loadQuiz();
+  }, [quizName, language, currentUser]);
 
   // This function is passed to ReusableQuiz
   const handleQuizComplete = async (answers) => {

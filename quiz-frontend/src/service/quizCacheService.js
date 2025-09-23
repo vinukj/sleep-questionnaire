@@ -1,65 +1,61 @@
+import { useAuth } from "../context/AuthContext";
+
 const CACHE_EXPIRATION_MS = 60 * 60 * 1000; // 1 hour
 
 /**
- * Generates a user-specific cache key
- * @param {string} baseKey - The base cache key
- * @returns {string} The user-specific cache key
+ * Generates a user-specific cache key using currentUser.id
+ * @param {string} baseKey
+ * @param {string} userId
+ * @returns {string}
  */
-const getUserSpecificCacheKey = (baseKey) => {
-  // Get the JWT token from cookies (we'll only use it for the key generation)
-  const cookies = document.cookie.split(';');
-  const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('accessToken='));
-  const userIdentifier = tokenCookie ? tokenCookie.split('=')[1] : 'anonymous';
-  
-  return `${baseKey}_${userIdentifier}`;
+const getUserSpecificCacheKey = (baseKey, userId) => {
+  return `${baseKey}_${userId || "anonymous"}`;
 };
 
-const API_URL = import.meta.env.VITE_API_URL ;
-
 /**
- * Fetches all quizzes from the API and stores them in localStorage.
- * This should be called once when the application loads.
+ * Fetches all quizzes from the API and caches them in localStorage.
+ * @param {Function} authFetch - The auth-aware fetch function from AuthContext
+ * @param {string} userId - Current user's ID
  */
-export const fetchAndCacheAllQuizzes = async () => {
-  const CACHE_KEY = getUserSpecificCacheKey('all_quizzes_cache');
+export const fetchAndCacheAllQuizzes = async (authFetch, userId) => {
+  const uid = userId?.user?.id || userId;
+  const CACHE_KEY = getUserSpecificCacheKey("all_quizzes_cache", uid);
+
   try {
     const cachedItem = localStorage.getItem(CACHE_KEY);
     if (cachedItem) {
-      const { timestamp } = JSON.parse(cachedItem);
+      const parsed = JSON.parse(cachedItem);
+      const { timestamp } = parsed;
       const isCacheStale = Date.now() - timestamp > CACHE_EXPIRATION_MS;
       if (!isCacheStale) {
-        console.log('Full quiz cache is still fresh. Skipping fetch.');
-        return; // Cache is valid, do nothing
+        console.log("Full quiz cache is still fresh (key=", CACHE_KEY, "). Skipping fetch.");
+        return;
       }
     }
 
-    console.log('Fetching all questionnaires for caching...');
+    console.log("Fetching all quizzes for caching...");
 
-    // Send cookies to backend; token is now handled via HttpOnly cookie
-    const response = await fetch(`${API_URL}/quizzes/all`, {
-      credentials: 'include', // important for sending cookies
-    });
-
-    if (!response.ok) throw new Error('Failed to fetch all quizzes.');
+    const response = await authFetch("/quizzes/all");
+    if (!response.ok) throw new Error("Failed to fetch all quizzes.");
 
     const data = await response.json();
-    const cacheData = { data, timestamp: Date.now() };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-    console.log('All questionnaires have been fetched and cached.');
-    
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+
+    console.log("All quizzes have been fetched and cached (key=", CACHE_KEY, "):", data);
   } catch (error) {
-    console.error('Failed to fetch and cache quizzes:', error);
+    console.error("Failed to fetch and cache quizzes:", error);
   }
 };
 
 /**
- * Retrieves a specific quiz from the localStorage cache.
+ * Retrieves a specific quiz from cache
  * @param {string} quizName
  * @param {string} language
- * @returns {Array|null} The array of questions or null if not found.
+ * @param {string} userId
+ * @returns {Array|null}
  */
-export const getQuizFromCache = (quizName, language) => {
-  const CACHE_KEY = getUserSpecificCacheKey('all_quizzes_cache');
+export const getQuizFromCache = (quizName, language, userId) => {
+  const CACHE_KEY = getUserSpecificCacheKey("all_quizzes_cache", userId);
   const cachedItem = localStorage.getItem(CACHE_KEY);
   if (!cachedItem) return null;
 
@@ -68,9 +64,10 @@ export const getQuizFromCache = (quizName, language) => {
 };
 
 /**
- * Clears the cache for the current user
+ * Clears cache for current user
+ * @param {string} userId
  */
-export const clearUserCache = () => {
-  const CACHE_KEY = getUserSpecificCacheKey('all_quizzes_cache');
+export const clearUserCache = (userId) => {
+  const CACHE_KEY = getUserSpecificCacheKey("all_quizzes_cache", userId);
   localStorage.removeItem(CACHE_KEY);
 };

@@ -1,82 +1,63 @@
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+
+// ---------------- VERIFY SESSION ----------------
+// Checks if the current access token is valid by calling /auth/profile
+// (moved to correct place below)
 import { clearUserCache } from "../service/quizCacheService";
 
 const AuthContext = createContext(null);
-export const useAuth = () => useContext(AuthContext);
 
-const API_URL =  import.meta.env.VITE_API_URL
+// Exported hook - keep as a stable named export for Fast Refresh
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Channels for cross-tab communication
 const authChannel = new BroadcastChannel('auth_sync');
 
-export const AuthProvider = ({ children }) => {
+// Token management using localStorage so tokens are visible across tabs
+const getStoredTokens = () => {
+  try {
+    const tokens = JSON.parse(localStorage.getItem('auth_tokens'));
+    return tokens || { accessToken: null, refreshToken: null };
+  } catch {
+    return { accessToken: null, refreshToken: null };
+  }
+};
+
+const setStoredTokens = (tokens) => {
+  if (tokens) {
+    localStorage.setItem('auth_tokens', JSON.stringify(tokens));
+  } else {
+    localStorage.removeItem('auth_tokens');
+  }
+};
+
+export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const [authReady, setAuthReady] = useState(false);
+  const [tokens, setTokens] = useState(getStoredTokens());
 
-  // ---------------- CHECK LOGIN STATUS ----------------
-  useEffect(() => {
-    // Function to handle auth messages from other tabs
-    const handleAuthMessage = (event) => {
-      console.log('Received auth message:', event.data);
-      const { type, data } = event.data;
-      
-      if (type === 'logout') {
-        console.log('Handling logout in other tab');
-        handleLogout();
-      } else if (type === 'login') {
-        console.log('Handling login in other tab');
-        setCurrentUser(data);
-        // Refresh the page to ensure proper state
-        window.location.reload();
-      }
-    };
-
-    // Listen for auth events from other tabs
-    authChannel.addEventListener('message', handleAuthMessage);
-
-    const checkUserSession = async () => {
-      try {
-        const response = await fetch(`${API_URL}/auth/profile`, {
-          method: "GET",
-          credentials: "include",
-        });
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            const data = await response.json();
-            // If the session was explicitly expired (not just missing)
-            if (data.sessionExpired) {
-              setError("Session expired. Logging out.");
-              handleLogout();
-              authChannel.postMessage({ type: 'logout' });
-            } else {
-              setCurrentUser(null);
-            }
-            return;
-          }
-          setError("Failed to check session");
-          throw new Error("Failed to check session");
-        }
-
-        const data = await response.json();
-        setCurrentUser(data);
-      } catch (err) {
-        setCurrentUser(null);
-        setError(err.message || "Session check failed");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkUserSession();
-
-    // Cleanup broadcast channel listener when component unmounts
-    return () => {
-      authChannel.removeEventListener('message', handleAuthMessage);
-    };
+  // ---------------- HANDLE LOGOUT ----------------
+  const handleLogout = useCallback(() => {
+    // Clear auth-related state (do not clear entire sessionStorage/localStorage)
+    setCurrentUser(null);
+    setTokens({ accessToken: null, refreshToken: null });
+    setStoredTokens(null);
+    localStorage.removeItem('lastRoute');
+    // mark auth as ready (we know user is logged out) and stop loading
+    setAuthReady(true);
+    setLoading(false);
   }, []);
 
   // ---------------- LOGIN ----------------
@@ -84,73 +65,63 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-        credentials: "include",
+        credentials: 'include'
       });
 
-      const data = await response.json();
-      if (!response.ok) {
-        setError(data.error || "Login failed");
-        throw new Error(data.error || "Login failed");
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || "Login failed");
       }
 
-      // Wait a short time to ensure cookies are set (helps in incognito/Safari)
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      const data = await res.json();
+      const newTokens = {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken
+      };
+      
+      // Store tokens
+      setTokens(newTokens);
+      setStoredTokens(newTokens);
 
-      // Retry profile fetch up to 3 times if it fails
-      let profileData = null;
-      let success = false;
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          const profileRes = await fetch(`${API_URL}/auth/profile`, {
-            method: "GET",
-            credentials: "include",
-          });
-          if (profileRes.ok) {
-            profileData = await profileRes.json();
-            success = true;
-            break;
-          }
-        } catch (e) {
-          // ignore and retry
-        }
-        // Wait a bit before retrying
-        await new Promise((resolve) => setTimeout(resolve, 200));
+      // Fetch profile with new access token
+      const profileRes = await fetch(`${API_URL}/auth/profile`, {
+        headers: { 
+          Authorization: `Bearer ${newTokens.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (!profileRes.ok) {
+        throw new Error("Failed to fetch profile");
       }
-      if (!success) {
-        setError("Session verification failed after login. Please try again.");
-        setCurrentUser(null);
-        throw new Error("Session verification failed after login");
-      }
+
+      const profileData = await profileRes.json();
+      
+      // Set user data first
       setCurrentUser(profileData);
+      setAuthReady(true);
+      setLoading(false); // Set loading to false before navigation
 
-      // Broadcast login success to other tabs
+      // Broadcast login to other tabs (include tokens and user)
       authChannel.postMessage({ 
-        type: 'login',
-        data: profileData
+        type: 'login', 
+        data: { user: profileData, tokens: newTokens }
       });
 
-      // Use router navigation instead of hard reload
-      navigate('/home', { replace: true });
-    } catch (error) {
-      setCurrentUser(null);
-      setError(error.message || "Login failed");
-    } finally {
+      // Navigate to intended destination or home
+      const intendedPath = sessionStorage.getItem('intendedPath') || '/home';
+      sessionStorage.removeItem('intendedPath');
+      navigate(intendedPath, { replace: true });
+    } catch (err) {
+      handleLogout();
+      setError(err.message || "Login failed");
       setLoading(false);
     }
-  };
-
-  // ---------------- LOGOUT ----------------
-  const handleLogout = () => {
-    console.log('Handling logout: clearing state and cache');
-    setCurrentUser(null);
-    clearUserCache();
-    // Clear any other local storage items that might contain user data
-    localStorage.removeItem('lastRoute');
-    sessionStorage.clear();
   };
 
   // ---------------- LOGOUT ----------------
@@ -158,76 +129,218 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError("");
     try {
-      // First inform the server
-      const response = await fetch(`${API_URL}/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-      
-      if (!response.ok) {
-        setError('Logout request failed');
-        throw new Error('Logout request failed');
+      const currentTokens = getStoredTokens();
+      if (currentTokens.accessToken) {
+        await fetch(`${API_URL}/auth/logout`, {
+          method: "POST",
+          headers: { 
+            Authorization: `Bearer ${currentTokens.accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
       }
 
-      // Then broadcast to other tabs
+  // Broadcast to other tabs
       authChannel.postMessage({ type: 'logout' });
-      
-      // Finally perform local logout and redirect
+
+      // clear cache for current user if known
+      try {
+        const storedUser = currentUser?.user?.id || currentUser?.id;
+        if (storedUser) clearUserCache(storedUser);
+      } catch (e) {
+        console.warn('Could not clear user cache on logout:', e);
+      }
+
       handleLogout();
-      
-      // Use router navigation instead of hard reload
       navigate('/login', { replace: true });
-      
-    } catch (error) {
-      setError(error.message || "Logout failed");
-      // Even if server logout fails, clear local state
+    } catch (err) {
+      console.error('Logout error:', err);
       handleLogout();
+      setError(err.message || "Logout failed");
       navigate('/login', { replace: true });
     } finally {
       setLoading(false);
     }
   };
 
-  // Verify user's session is still valid
-  const verifySession = React.useCallback(async () => {
+  // ---------------- REFRESH TOKEN ----------------
+  const refreshTokens = useCallback(async () => {
+    const currentTokens = getStoredTokens();
+    if (!currentTokens.refreshToken) return false;
+
     try {
-      const response = await fetch(`${API_URL}/auth/profile`, {
-        method: "GET",
-        credentials: "include",
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: "POST",
+        headers: { 
+          Authorization: `Bearer ${currentTokens.refreshToken}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
       });
-      
-      if (!response.ok) {
-        handleLogout();
-        authChannel.postMessage({ type: 'logout' });
-        setError("Session verification failed");
-        return false;
+
+      if (!res.ok) {
+        throw new Error("Failed to refresh token");
       }
 
-      const data = await response.json();
-      if (!data || !data.user) {
-        handleLogout();
-        setError("No user data in response");
-        return false;
-      }
+      const data = await res.json();
+      const newTokens = {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken
+      };
 
-      setCurrentUser(data);
+      // Update tokens in state and storage
+      setTokens(newTokens);
+      setStoredTokens(newTokens);
+
       return true;
-    } catch (error) {
+    } catch (err) {
+      console.error("Token refresh failed:", err);
       handleLogout();
-      authChannel.postMessage({ type: 'logout' });
-      setError(error.message || "Session verification failed");
       return false;
     }
-  }, []);
+  }, [handleLogout]);
 
-  const value = {
-    currentUser,
-    loading,
-    error,
-    login,
-    logout,
-    verifySession
+  // ---------------- CHECK LOGIN STATUS ----------------
+  const checkUserSession = useCallback(async () => {
+    try {
+      const storedTokens = getStoredTokens();
+      if (!storedTokens.accessToken) {
+        // No token: user is not logged in. Mark auth as ready and stop loading.
+        setAuthReady(true);
+        setLoading(false);
+        return;
+      }
+
+      // Try to use current access token
+      let res = await fetch(`${API_URL}/auth/profile`, {
+        headers: { 
+          Authorization: `Bearer ${storedTokens.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      // If token expired, try to refresh
+      if (res.status === 401 && storedTokens.refreshToken) {
+        const refreshed = await refreshTokens();
+        if (!refreshed) {
+          throw new Error("Failed to refresh session");
+        }
+
+        // Retry with new access token
+        res = await fetch(`${API_URL}/auth/profile`, {
+          headers: { 
+            Authorization: `Bearer ${getStoredTokens().accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+      }
+
+      if (!res.ok) {
+        throw new Error("Failed to verify session");
+      }
+
+      const data = await res.json();
+      setCurrentUser(data);
+    } catch (err) {
+      console.error("Session check failed:", err);
+      handleLogout();
+    } finally {
+      setAuthReady(true);
+      setLoading(false);
+    }
+  }, [handleLogout, refreshTokens]);
+
+  useEffect(() => {
+    // Listen for auth events from other tabs
+    const handleAuthMessage = (event) => {
+      const { type, data } = event.data;
+      if (type === 'logout') {
+        handleLogout();
+      }
+
+      if (type === 'login') {
+        // Expecting { user, tokens } from the broadcasting tab
+        const incomingUser = data?.user;
+        const incomingTokens = data?.tokens;
+        if (incomingTokens) {
+          setTokens(incomingTokens);
+          setStoredTokens(incomingTokens);
+        } else {
+          // If no tokens provided, ignore the login broadcast to avoid mixing users without tokens
+          console.warn('Received login broadcast without tokens — ignoring to avoid inconsistent auth state');
+          return;
+        }
+
+        if (incomingUser) {
+          setCurrentUser(incomingUser);
+        }
+        setAuthReady(true);
+        setLoading(false);
+      }
+    };
+    authChannel.addEventListener('message', handleAuthMessage);
+
+    // Storage event for cross-tab sync (covers new tabs and tabs without BroadcastChannel support)
+    const handleStorage = (e) => {
+      if (e.key === 'auth_tokens') {
+        // If tokens were added in another tab, re-run session check
+        console.log('storage event: auth_tokens changed, re-checking session');
+        checkUserSession();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // Run initial session check
+    checkUserSession();
+
+    return () => {
+      authChannel.removeEventListener('message', handleAuthMessage);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [checkUserSession, handleLogout]);
+
+  const authFetch = async (url, options = {}, retry = true) => {
+    const currentTokens = getStoredTokens();
+    if (!currentTokens.accessToken) throw new Error("Not authenticated");
+
+    const headers = {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${currentTokens.accessToken}`,
+      "Content-Type": "application/json",
+    };
+
+    const res = await fetch(`${API_URL}${url}`, { 
+      ...options, 
+      headers,
+      credentials: 'include' 
+    });
+
+    if (res.status === 401 && retry) {
+      const refreshed = await refreshTokens();
+      if (refreshed) return authFetch(url, options, false);
+      handleLogout();
+      navigate('/login', { replace: true });
+    }
+
+    return res;
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{
+      currentUser,
+      loading,
+      authReady,
+      error,
+      login,
+      logout,
+      authFetch,
+      refreshTokens,
+      verifySession: checkUserSession,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

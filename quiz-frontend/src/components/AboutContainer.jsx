@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import "../styles/AboutContainer.css";
+import { useAuth } from "../context/AuthContext.jsx";
 
-const API_URL = import.meta.env.VITE_API_URL
 const AboutContainer = () => {
+  const { authFetch } = useAuth();
   const [form, setForm] = useState({ name: "", age: "", weight: "" });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -12,9 +13,8 @@ const AboutContainer = () => {
       setLoading(true);
       setMessage("");
       try {
-        const res = await fetch(`${API_URL}/about/me`, {
-          credentials: "include", // IMPORTANT
-        });
+        const res = await authFetch('/about/me', { method: 'GET' });
+        if (!res.ok) throw new Error('Failed to load profile');
         const data = await res.json();
         if (data && data.profile) {
           setForm({
@@ -24,6 +24,7 @@ const AboutContainer = () => {
           });
         }
       } catch (e) {
+        console.error('fetch profile error:', e);
         setMessage("Failed to load profile.");
       }
       setLoading(false);
@@ -40,17 +41,17 @@ const AboutContainer = () => {
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch(`${API_URL}/about/`, {
+      const res = await authFetch('/about/', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // IMPORTANT
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error("Submission failed");
       setMessage("Profile saved successfully!");
     } catch (e) {
+      console.error('submit profile error:', e);
       setMessage("Error submitting profile.");
     }
     setLoading(false);

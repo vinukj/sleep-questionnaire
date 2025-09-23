@@ -1,58 +1,52 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const CACHE_EXPIRATION_MS = 60 * 60 * 1000; // 1 hour
 
-// Get user-specific cache key
-const getUserSpecificCacheKey = () => {
-  const cookies = document.cookie.split(';');
-  const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('accessToken='));
-  const userIdentifier = tokenCookie ? tokenCookie.split('=')[1] : 'anonymous';
-  return `quiz_list_${userIdentifier}`;
+const getUserSpecificCacheKey = (userId) => {
+  return `quiz_list_${userId || "anonymous"}`;
 };
 
 export function useCachedQuizList() {
+  const { currentUser, authFetch } = useAuth();
   const [quizzes, setQuizzes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!currentUser) return;
+
+    // normalize user id shape (support both { user: { id } } and { id })
+    const userId = currentUser?.user?.id || currentUser?.id;
+
     const fetchAndCacheList = async () => {
       try {
-        // 1. Check for cached data
-        const cacheKey = getUserSpecificCacheKey();
+        const cacheKey = getUserSpecificCacheKey(userId);
         const cachedItem = localStorage.getItem(cacheKey);
+
         if (cachedItem) {
           const { data, timestamp } = JSON.parse(cachedItem);
           const isCacheStale = Date.now() - timestamp > CACHE_EXPIRATION_MS;
 
           if (!isCacheStale) {
-            console.log('Loading quiz list from cache.');
+            console.log("Loading quiz list from cache (key=", cacheKey, "):", data);
             setQuizzes(data);
             setIsLoading(false);
             return;
           }
         }
 
-        // 2. Fetch from API using HttpOnly cookies
-        console.log('Fetching quiz list from API...');
-        const API_URL = import.meta.env.VITE_API_URL ;
-        
-        const response = await fetch(`${API_URL}/quizzes`, {
-          credentials: 'include', // <-- important for sending cookies
-        });
+        console.log("Fetching quiz list from API...");
+        const response = await authFetch("/quizzes");
 
         if (!response.ok) {
-          throw new Error('Could not fetch the list of questionnaires.');
+          throw new Error("Could not fetch the list of questionnaires.");
         }
 
         const data = await response.json();
-        
-        // 3. Update cache with user-specific key
-        const cacheData = { data, timestamp: Date.now() };
-        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-        
-        setQuizzes(data);
 
+        localStorage.setItem(cacheKey, JSON.stringify({ data, timestamp: Date.now() }));
+        setQuizzes(data);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -61,7 +55,7 @@ export function useCachedQuizList() {
     };
 
     fetchAndCacheList();
-  }, []); // Runs once on component mount
+  }, [currentUser, authFetch]);
 
   return { quizzes, isLoading, error };
 }

@@ -1,35 +1,24 @@
-import React, { use } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-
 export default function ProtectedRoute({ children }) {
-  const navigate = useNavigate();
-  const { currentUser, loading, verifySession } = useAuth();
-  const [isVerifying, setIsVerifying] = React.useState(true);
+  const { currentUser, loading, authReady } = useAuth();
   const location = useLocation();
 
-  // Verify session on each protected route access
-  React.useEffect(() => {
-    const verify = async () => {
-      setIsVerifying(true);
-      const isValid = await verifySession();
-      if (!isValid) {
-        console.log('Session invalid, redirecting to login');
-      }
-      setIsVerifying(false);
-    };
-    verify();
-  }, [verifySession, location.pathname]); // Re-verify on path change
-
-  if (loading || isVerifying) return <div>Loading...</div>;
-
-  if (!currentUser) {
-    console.log('No current user, redirecting to login');
-    // Force navigation to login
-    navigate("/login", { replace: true, state: { from: location } });
-    return null;
+  // Show loading state only if auth is not ready
+  if (!authReady) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div>Loading...</div>
+      </div>
+    );
   }
 
+  // Redirect to login if user is not authenticated
+  if (!currentUser) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  // Render children if authenticated
   return children;
 }
