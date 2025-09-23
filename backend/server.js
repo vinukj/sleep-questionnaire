@@ -19,7 +19,8 @@ app.use(express.json());
 app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
-  "sleep-development-build.vercel.app"
+  "sleep-development-build.vercel.app",
+  "https://sleep-development-build.vercel.app"
 
 ];
 
