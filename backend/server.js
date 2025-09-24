@@ -33,13 +33,14 @@ app.use(cors({
 }));
     
 // Security headers for Google OAuth
+// Disable COOP/COEP so Google OAuth popup works
 app.use((req, res, next) => {
-    // Allow popups for Google OAuth
-    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-    // Allow embedding in iframes for Google OAuth
-    res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-    next();
+  res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
+  res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
+  next();
 });
+
+
 
 // Routes
 app.use("/about", userRoutes);
