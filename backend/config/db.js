@@ -11,9 +11,9 @@ const pool = new Pool({
   password: process.env.DB_PASS,
   port: Number(process.env.DB_PORT)|| 5432,
   // Only use SSL for production/cloud databases
-  ssl: process.env.NODE_ENV === 'production' && process.env.DB_HOST !== 'localhost' ? {
-    rejectUnauthorized: false,
-  } : false,
+    ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 pool
