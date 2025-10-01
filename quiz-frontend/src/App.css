@@ -1,0 +1,72 @@
+
+/* Universal Box Sizing Reset */
+html {
+  box-sizing: border-box;
+  font-size: 16px; /* Base font size for rem units */
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  /* Ensure the root element takes up the full viewport height 
+     and can act as a flex container for its children. */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Global Container Class */
+.container {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 1rem;
+  padding-left: 1rem;
+}
+
+/* Responsive container sizes */
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+
+/* Responsive Typography */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* Fluid Typography for larger screens */
+@media (min-width: 1440px) {
+  html {
+    font-size: 18px;
+  }
+}
+

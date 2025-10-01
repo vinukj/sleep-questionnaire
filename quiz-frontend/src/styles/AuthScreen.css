@@ -1,0 +1,164 @@
+/* --- Safe Area Layout --- */
+.auth-safe-area {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  min-height: 100dvh; /* For mobile browsers */
+  background: linear-gradient(135deg, #f9fafb, #eef2f7);
+  padding: clamp(1rem, 5vw, 2rem);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* --- Auth Container --- */
+.auth-container {
+  background: #ffffff;
+  border-radius: clamp(1rem, 3vw, 1.5rem);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  width: 100%;
+  max-width: min(90vw, 24rem); /* Responsive with maximum */
+  text-align: center;
+  margin: auto;
+}
+
+/* --- Titles --- */
+.auth-title {
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-weight: 700;
+  margin-bottom: clamp(1rem, 3vw, 1.5rem);
+  color: #111827;
+  line-height: 1.2;
+}
+
+/* --- Forms --- */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 2vw, 1rem);
+  width: 100%;
+}
+
+/* --- Inputs --- */
+.auth-input {
+  padding: clamp(0.75rem, 2vw, 0.875rem) 1rem;
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+  border: 0.0625rem solid #d1d5db;
+  border-radius: 0.75rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.auth-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
+}
+
+/* --- Buttons --- */
+.auth-submit-button {
+  padding: clamp(0.75rem, 2vw, 0.875rem);
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+  font-weight: 600;
+  color: #fff;
+  background: #2563eb;
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  width: 100%;
+  touch-action: manipulation;
+}
+
+/* Hover styles - only on devices that support hover */
+@media (hover: hover) {
+  .auth-submit-button:hover {
+    background: #1d4ed8;
+  }
+}
+
+.auth-submit-button:active {
+  transform: scale(0.98);
+}
+
+.auth-toggle-text {
+  margin-top: clamp(1rem, 3vw, 1.25rem);
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+  color: #4b5563;
+}
+
+.auth-toggle-button {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+  padding: 0.5rem;
+  margin: -0.5rem;
+  touch-action: manipulation;
+}
+
+.auth-toggle-button:hover {
+  text-decoration: underline;
+}
+
+/* --- Error Message --- */
+.auth-error-message {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: #dc2626;
+}
+
+/* --- Responsive Tweaks --- */
+@media (min-width: 40em) { /* ~640px (tablets) */
+  .auth-container {
+    padding: clamp(2rem, 5vw, 2.5rem);
+    max-width: 28rem; /* ~448px */
+  }
+}
+
+@media (min-width: 64em) { /* ~1024px (laptops/desktops) */
+  .auth-container {
+    padding: clamp(2.5rem, 6vw, 3rem);
+    max-width: 32rem; /* ~512px */
+  }
+}
+
+/* Fix for iOS input zooming */
+@media screen and (max-width: 768px) {
+  .auth-input {
+    font-size: 16px !important;
+  }
+}
+
+/* Better touch targets on mobile */
+@media (max-width: 640px) {
+  .auth-form {
+    gap: 1rem;
+  }
+  
+  .auth-toggle-button {
+    padding: 0.75rem;
+    margin: -0.75rem;
+  }
+  
+  .auth-container {
+    border-radius: 1rem;
+  }
+}
+
+/* Adjust for small screens */
+@media (max-width: 360px) {
+  .auth-safe-area {
+    padding: 0.75rem;
+  }
+  
+  .auth-container {
+    padding: 1rem;
+  }
+}

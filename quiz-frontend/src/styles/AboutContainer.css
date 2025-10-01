@@ -1,0 +1,95 @@
+.about-container {
+  display: flex;
+  flex-direction: column;
+  width: 90%;
+  max-width: 420px;
+  margin: clamp(20px, 5vh, 40px) auto;
+  padding: clamp(16px, 4vw, 28px);
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: clamp(8px, 2vw, 12px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.about-title {
+  font-size: clamp(18px, 4vw, 22px);
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: clamp(12px, 3vw, 20px);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.input-box {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: clamp(10px, 2.5vw, 14px);
+  margin: clamp(8px, 2vw, 10px) 0;
+  font-size: clamp(14px, 3.5vw, 16px);
+  background: #ffffff;
+  color: #111827;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  transition: all 0.2s ease;
+  -webkit-appearance: none; /* for iOS */
+  appearance: none;
+}
+
+.input-box::placeholder {
+  color: #9ca3af;
+}
+
+.input-box:focus {
+  border-color: #2563eb; 
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.3);
+}
+
+.submit-btn {
+  margin-top: clamp(12px, 3vw, 16px);
+  padding: clamp(10px, 2.5vw, 14px);
+  background: #2563eb; 
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: clamp(14px, 3.5vw, 16px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  width: 100%;
+  touch-action: manipulation;
+}
+
+/* Hover styles - only on devices that support hover */
+@media (hover: hover) {
+  .submit-btn:hover {
+    background: #1d4ed8;
+  }
+}
+
+.submit-btn:active {
+  transform: scale(0.97);
+}
+
+/* Additional responsive adjustments */
+@media (max-width: 360px) {
+  .about-container {
+    width: 95%;
+    padding: 12px;
+  }
+  
+  .input-box,
+  .submit-btn {
+    font-size: 14px;
+    padding: 10px;
+  }
+}
+
+/* Fix for iOS input zooming */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="number"] {
+    font-size: 16px !important;
+  }
+}
