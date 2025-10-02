@@ -24,7 +24,8 @@ app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
   "sleep-development-build.vercel.app",
-  "https://sleep-development-build.vercel.app"
+  "https://sleep-development-build.vercel.app",
+  "https://st-john-web-app.vercel.app",
 
 ];
 
