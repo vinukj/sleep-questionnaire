@@ -25,7 +25,7 @@ export default function AuthScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const { currentUser, login, error: contextError } = useAuth();
+  const { currentUser, login, error: contextError, verifySession } = useAuth();
 
   useEffect(() => {
     if (currentUser) {
@@ -35,20 +35,55 @@ export default function AuthScreen() {
   }, [currentUser, navigate]);
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    setLocalError("");
-    setIsLoading(true);
+    console.log("Google credential response:", credentialResponse);
     try {
+      const googleToken = credentialResponse?.credential;
+      if (!googleToken) {
+        setLocalError("No credential returned by Google");
+        return;
+      }
+
+      setIsLoading(true);
       const response = await fetch(`${API_URL}/auth/google`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ credential: credentialResponse.credential }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: googleToken }),
         credentials: "include",
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Google login failed");
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const msg = data.error || data.message || `Google login failed (${response.status})`;
+        console.error("Google login failed response:", data);
+        setLocalError(msg);
+        return;
+      }
+
+      // Expect backend to return { accessToken, refreshToken }
+      const { accessToken, refreshToken } = data;
+      if (!accessToken || !refreshToken) {
+        console.warn('Google login did not return tokens:', data);
+      }
+
+      // Persist tokens where AuthContext expects them and re-validate session
+      try {
+        localStorage.setItem('auth_tokens', JSON.stringify({ accessToken, refreshToken }));
+      } catch (e) {
+        console.warn('Failed to store auth tokens in localStorage:', e);
+      }
+
+      // Trigger AuthContext to verify and load profile
+      try {
+        await verifySession();
+      } catch (e) {
+        console.warn('verifySession after Google login failed:', e);
+      }
+
       navigate("/home", { replace: true });
-    } catch (err) {
-      setLocalError(err.message);
+    } catch (error) {
+      console.error("Google login error:", error);
+      setLocalError(error.message || "Google login failed");
     } finally {
       setIsLoading(false);
     }

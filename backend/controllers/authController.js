@@ -116,9 +116,21 @@ export const googleLogin = async (req, res) => {
     // Google login endpoint: verifies Google token, issues JWTs, returns in response body
     console.log(`[AUTH] Google login request`, { method: req.method, path: req.originalUrl });
     try {
-        const { credential } = req.body;
-        // Verify the Google token
-        const payload = await verifyGoogleToken(credential);
+        // Accept multiple field names for the incoming Google token to be tolerant
+        const token = req.body?.credential || req.body?.id_token || req.body?.token || req.body?.google_token;
+        if (!token) {
+            console.warn('[AUTH] No Google token provided in request body');
+            return res.status(400).json({ error: 'Missing Google token' });
+        }
+
+        // Verify the Google token (verifyIdToken will check audience)
+        let payload;
+        try {
+            payload = await verifyGoogleToken(token);
+        } catch (verifyErr) {
+            console.error('Google token verification failed:', verifyErr);
+            return res.status(401).json({ error: 'Invalid Google token', details: verifyErr.message });
+        }
         // Find or create user with Google data
         const user = await findOrCreateGoogleUser({
             email: payload.email,
