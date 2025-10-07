@@ -328,6 +328,7 @@ export const STJohnQuestionnaire = [
         label: "Recommended work-up",
         options: [
           "Level 1 Polysomnography",
+          "Level 2 Polysomnography",
           "Level 3 Polysomnography",
           "Split night polysomnography",
           "Multiple Sleep Latency Test",

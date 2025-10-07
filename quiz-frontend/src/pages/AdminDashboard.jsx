@@ -119,7 +119,7 @@ useEffect(() => {
       const data = typeof responseData === 'string' 
         ? JSON.parse(responseData) 
         : responseData;
-      return data.scores.issScore || 'N/A';
+      return data.issScore || data.scores.issScore || 'N/A';
     } catch {
       return 'N/A';
     }
