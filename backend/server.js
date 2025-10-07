@@ -39,10 +39,24 @@ app.use(cors({
 }));
     
 // Security headers via Helmet
+// Use COOP that allows popups to postMessage back while preserving isolation
 app.use(helmet({
   crossOriginEmbedderPolicy: false, // keep Google OAuth working
-  crossOriginOpenerPolicy: { policy: 'unsafe-none' },
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
 }));
+
+// Fallback: ensure COOP header is present even if other middleware or proxies strip it
+app.use((req, res, next) => {
+  try {
+    const existing = res.getHeader('Cross-Origin-Opener-Policy');
+    if (!existing) {
+      res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    }
+  } catch (e) {
+    // ignore header set failures
+  }
+  next();
+});
 
 // Basic rate limiting
 const generalLimiter = rateLimit({
