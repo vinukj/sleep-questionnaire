@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 // ---------------- VERIFY SESSION ----------------
 // Checks if the current access token is valid by calling /auth/profile
 // (moved to correct place below)
-import { clearUserCache } from "../service/quizCacheService";
+import { clearUserCache, clearQuestionnaireCache } from "../service/quizCacheService";
 
 const AuthContext = createContext(null);
 
@@ -54,6 +54,17 @@ export function AuthProvider({ children }) {
   // ---------------- HANDLE LOGOUT ----------------
   const handleLogout = useCallback(() => {
     // Clear auth-related state (do not clear entire sessionStorage/localStorage)
+    // Clear per-user caches if present
+    try {
+      const storedUser = currentUser?.user?.id || currentUser?.id;
+      if (storedUser) {
+        clearUserCache(storedUser);
+        clearQuestionnaireCache(storedUser);
+      }
+    } catch (e) {
+      console.warn('Failed to clear caches during logout handler:', e);
+    }
+
     setCurrentUser(null);
     setTokens({ accessToken: null, refreshToken: null });
     setStoredTokens(null);

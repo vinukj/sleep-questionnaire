@@ -71,3 +71,48 @@ export const clearUserCache = (userId) => {
   const CACHE_KEY = getUserSpecificCacheKey("all_quizzes_cache", userId);
   localStorage.removeItem(CACHE_KEY);
 };
+
+// ---------------- Questionnaire cache helpers ----------------
+const getQuestionnaireKey = (userId) => `questionnaire_schema_${userId || 'anonymous'}`;
+
+/**
+ * Store questionnaire schema in localStorage for a user
+ * @param {Array} schema
+ * @param {string} userId
+ */
+export const setQuestionnaireInCache = (schema, userId) => {
+  try {
+    const key = getQuestionnaireKey(userId);
+    const payload = { schema, timestamp: Date.now() };
+    localStorage.setItem(key, JSON.stringify(payload));
+  } catch (err) {
+    console.warn('Failed to write questionnaire cache:', err);
+  }
+};
+
+/**
+ * Retrieve questionnaire schema from localStorage for a user
+ * @param {string} userId
+ * @returns {Array|null}
+ */
+export const getQuestionnaireFromCache = (userId) => {
+  try {
+    const key = getQuestionnaireKey(userId);
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const { schema } = JSON.parse(raw);
+    return schema || null;
+  } catch (err) {
+    console.warn('Failed to read questionnaire cache:', err);
+    return null;
+  }
+};
+
+export const clearQuestionnaireCache = (userId) => {
+  try {
+    const key = getQuestionnaireKey(userId);
+    localStorage.removeItem(key);
+  } catch (err) {
+    console.warn('Failed to clear questionnaire cache for', userId, err);
+  }
+};

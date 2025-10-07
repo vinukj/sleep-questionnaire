@@ -311,7 +311,7 @@ useEffect(() => {
                         <TableRow key={response.id}>
                           <TableCell>{response.response_data.hospital_id}</TableCell>
                           <TableCell>{response.response_data.name || 'N/A'}</TableCell>
-                          <TableCell>{response.response_data.email}</TableCell>
+                          <TableCell>{response.response_data.email || '-'}</TableCell>
                           <TableCell>{getScoreFromResponse(response.response_data)}</TableCell>
                           <TableCell>{formatDate(response.created_at)}</TableCell>
                           <TableCell align="center">

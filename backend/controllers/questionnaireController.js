@@ -8,41 +8,29 @@ import {
 import {calculateSleepScore} from '../services/scoringService.js';
 
 // Save questionnaire response
+// ...existing code...
 export const submitQuestionnaireResponse = async (req, res) => {
-    try {
+   try {
         const { responseData } = req.body;
-        const userId = req.user?.id; // From auth middleware
+        const userId = req.user?.id ?? req.userId;
 
-        if (!responseData) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Response data is required' 
-            });
+        if (!responseData || typeof responseData !== 'object') {
+            return res.status(400).json({ success: false, message: 'Invalid response payload' });
         }
 
-        // Basic server-side validation/sanitization to prevent huge payloads or unexpected types
-        if (typeof responseData !== 'object' || Array.isArray(responseData)) {
-            return res.status(400).json({ success: false, message: 'Invalid response data format' });
-        }
-        const sanitized = {};
-        const MAX_VALUE_LEN = 4000;
-        const MAX_FIELDS = 200;
-        const entries = Object.entries(responseData).slice(0, MAX_FIELDS);
-        for (const [k, v] of entries) {
-            const key = String(k).slice(0, 200);
-            let value;
-            if (v == null) value = '';
-            else if (Array.isArray(v)) value = v.map(x => String(x).slice(0, MAX_VALUE_LEN));
-            else if (typeof v === 'object') value = JSON.stringify(v).slice(0, MAX_VALUE_LEN);
-            else value = String(v).slice(0, MAX_VALUE_LEN);
-            sanitized[key] = value;
+        // Basic sanitize/normalize (preserve arrays and primitives)
+        const sanitized = { ...responseData };
+
+        // Calculate flat scores
+        const flatScores = await calculateSleepScore(sanitized);
+
+        // Remove any nested scores object from incoming payload
+        if ('scores' in sanitized) {
+          delete sanitized.scores;
         }
 
-        // Calculate scores
-        const scores = await calculateSleepScore(sanitized);
-        
-        // Add scores to the response data
-        sanitized.scores = scores;
+        // Merge flat scores directly
+        Object.assign(sanitized, flatScores);
 
         // Save the response to database
         const savedResponse = await saveQuestionnaireResponse(userId, sanitized);
@@ -51,7 +39,7 @@ export const submitQuestionnaireResponse = async (req, res) => {
             success: true,
             message: 'Questionnaire response saved successfully',
             data: savedResponse,
-            scores: scores
+            scores: flatScores // optional echo of computed values for the client
         });
     } catch (error) {
         console.error('Error saving questionnaire response:', error);
@@ -62,6 +50,7 @@ export const submitQuestionnaireResponse = async (req, res) => {
         });
     }
 };
+// ...existing code...
 
 // Get user's questionnaire responses
 export const getUserQuestionnaireResponses = async (req, res) => {

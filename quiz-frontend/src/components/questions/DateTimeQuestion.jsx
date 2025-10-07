@@ -2,6 +2,8 @@ import React from 'react';
 import { Box } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 
 // const DateTimeQuestion = ({ question, dateValue, timeValue, onDateChange, onTimeChange, error }) => {
@@ -60,42 +62,44 @@ const DateTimeQuestion = ({ question, dateValue, timeValue, onDateChange, onTime
   };
 
   return (
-    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-      {question.dateLabel && (
-        <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 auto' } }}>
-          <DatePicker
-            label={question.dateLabel}
-            value={parseDateValue(dateValue)}
-            onChange={onDateChange}
-            format="YYYY-MM-DD"
-            slotProps={{
-              textField: {
-                fullWidth: true,
-                error: error
-              }
-            }}
-          />
-        </Box>
-      )}
-      {question.timeLabel && (
-        <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 auto' } }}>
-          <TimePicker
-            label={question.timeLabel}
-            value={parseTimeValue(timeValue)}
-            onChange={onTimeChange}
-            views={['hours', 'minutes']}
-            format="hh:mm A"
-            ampm={true}
-            slotProps={{
-              textField: {
-                fullWidth: true,
-                error: error
-              }
-            }}
-          />
-        </Box>
-      )}
-    </Box>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        {question.dateLabel && (
+          <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 auto' } }}>
+            <DatePicker
+              label={question.dateLabel}
+              value={parseDateValue(dateValue)}
+              onChange={onDateChange}
+              format="YYYY-MM-DD"
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  error: error
+                }
+              }}
+            />
+          </Box>
+        )}
+        {question.timeLabel && (
+          <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 auto' } }}>
+            <TimePicker
+              label={question.timeLabel}
+              value={parseTimeValue(timeValue)}
+              onChange={onTimeChange}
+              views={['hours', 'minutes']}
+              format="hh:mm A"
+              ampm={true}
+              slotProps={{
+                textField: {
+              
+                  error: error
+                }
+              }}
+            />
+          </Box>
+        )}
+      </Box>
+    </LocalizationProvider>
   );
 };
 

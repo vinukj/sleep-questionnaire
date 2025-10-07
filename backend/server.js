@@ -9,6 +9,7 @@ import quizRoute from "./routes/quizRoute.js";
 import userRoutes from "./routes/userRoute.js";
 import exportRoute from "./routes/exportRoute.js";
 import questionnaireRoute from "./routes/questionnaireRoute.js";
+import { initializeTables } from "./models/questionnaireModel.js";
 
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -102,7 +103,15 @@ app.get("/api/hello", (req, res) => {
   res.json({ message: "Hello from Express!" });
 });
 
-// Start server
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Initialize database tables
+initializeTables()
+  .then(() => {
+    // Start server after database is initialized
+    const PORT = 5000;
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  })
+  .catch(error => {
+    console.error('Failed to initialize database tables:', error);
+    process.exit(1);
+  });
 export default app;

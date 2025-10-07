@@ -5,6 +5,8 @@ import {
     getAllResponses,
     updateResponse 
 } from '../controllers/questionnaireController.js';
+import { getQuestionnaireSchema } from '../controllers/questionnaireSchemaController.js';
+import { upsertQuestionnaireSchema } from '../controllers/questionnaireSchemaAdminController.js';
 import { verifyTokens, requireAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -22,5 +24,11 @@ router.get('/admin/all-responses', verifyTokens, requireAdmin, getAllResponses);
 
 // Update questionnaire response (authenticated users)
 router.put('/update/:id', verifyTokens, updateResponse);
+
+// Get questionnaire schema
+router.get('/schema', getQuestionnaireSchema);
+
+// Admin: upsert questionnaire schema
+router.post('/schema', verifyTokens, requireAdmin, upsertQuestionnaireSchema);
 
 export default router;

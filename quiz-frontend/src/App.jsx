@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuthRedirect } from "./hooks/useAuthRedirect";
 import AuthScreen from "./pages/authScreen.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -9,12 +10,12 @@ import QuestionnairePage from "./pages/questionnairePage.jsx";
 import QuizScreen from "./pages/QuizScreen.jsx";
 import ResultsScreen from "./components/ResultsScreen.jsx";
 import AboutPage from "./pages/AboutPage.jsx";
-import Questionnaire from "./components/Questionnaire.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
-
-import {STJohnQuestionnaire} from "../STJOHNQuestions.js";
+import Questionnaire from "./components/Questionnaire.jsx";
 
 export default function App() {
+  // Set up auth redirect handling
+  useAuthRedirect();
   
   return (
     <Routes>
@@ -42,7 +43,7 @@ export default function App() {
       />
       <Route
         path="/STJohnquestionnaire"
-        element={<ProtectedRoute><Questionnaire questionnaire={STJohnQuestionnaire} /></ProtectedRoute>}></Route>
+        element={<ProtectedRoute> <Questionnaire /></ProtectedRoute>}></Route>
 
       <Route
         path="/results"
