@@ -19,7 +19,7 @@ export default function App() {
   
   return (
     <Routes>
-      {/* Route for the login/signup page */}
+      {/* for the login/signup page */}
       <Route path="/login" element={<AuthScreen />} />
 
       <Route

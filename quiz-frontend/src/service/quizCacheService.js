@@ -1,7 +1,6 @@
-import { useAuth } from "../context/AuthContext";
+ import { useAuth } from "../context/AuthContext";
 
-const CACHE_EXPIRATION_MS = 60 * 60 * 1000; // 1 hour
-
+const CACHE_EXPIRATION_MS = 60 * 60 * 1000; // 1 hou
 /**
  * Generates a user-specific cache key using currentUser.id
  * @param {string} baseKey
