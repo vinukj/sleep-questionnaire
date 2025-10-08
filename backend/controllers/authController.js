@@ -8,9 +8,10 @@ import dotenv from "dotenv";
 import crypto from 'crypto';
 import { verifyGoogleToken } from "../config/google.js";
 dotenv.config();
+import pool from "../config/db.js";
 
 // Token expiry durations
-const ACCESS_TOKEN_EXPIRE = '2d'; // Short-lived access token
+const ACCESS_TOKEN_EXPIRE = '60s'; // Short-lived access token
 const REFRESH_TOKEN_EXPIRE = '7d'; // Refresh token lifespan
 
 // ---------------- SIGNUP ----------------
@@ -34,7 +35,7 @@ export const login = async (req, res) => {
     console.log(`[AUTH] Login request`, { method: req.method, path: req.originalUrl });
     try {
         const { email, password } = req.body;
-        if (!email || !password) {
+        if (!(email || password)) {
             return res.status(400).json({ error: "Email and password are required" });
         }
         // Find user by email
@@ -70,7 +71,6 @@ export const login = async (req, res) => {
         // Store refresh session in DB
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
         await createSession(user.id, refreshToken, tokenId, expiresAt);
-        // Return tokens in response body for header-based auth
         res.json({
             message: "Login successful",
             accessToken,
@@ -169,64 +169,111 @@ export const googleLogin = async (req, res) => {
 };
 
 // ---------------- REFRESH TOKENS ----------------
+
+
+
 export const refreshTokens = async (req, res) => {
+    const REFRESH_TOKEN_EXPIRE_DAYS = 7;
+
+    const authHeader = req.headers["authorization"];
+    if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Refresh token missing" });
+    }
+
+    const incomingRefresh = authHeader.split(" ")[1];
+
     try {
-        const authHeader = req.headers['authorization'];
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Refresh token missing' });
-        }
+        const decoded = jwt.verify(incomingRefresh, process.env.REFRESH_TOKEN_SECRET);
 
-        const incomingRefresh = authHeader.split(' ')[1];
+        const client = await pool.connect();
+        let transactionStarted = false;
 
-        // Verify refresh token signature
-        let decoded;
         try {
-            decoded = jwt.verify(incomingRefresh, process.env.REFRESH_TOKEN_SECRET);
-        } catch (err) {
-            return res.status(401).json({ error: 'Invalid or expired refresh token' });
-        }
+            await client.query('BEGIN');
+            transactionStarted = true;
 
-        // Validate session exists and not expired
-        const session = await findSessionByToken(incomingRefresh);
-        if (!session) {
-            return res.status(401).json({ error: 'Session not found or rotated' });
-        }
-
-        if (new Date(session.expires_at).getTime() <= Date.now()) {
-            return res.status(401).json({ error: 'Refresh session expired' });
-        }
-
-        // Issue new access token and rotate refresh token
-        const tokenId = session.token_id; // keep same token id to maintain continuity
-
-        const newAccessToken = jwt.sign(
-            { id: session.user_id, tokenId },
-            process.env.JWT_SECRET,
-            { expiresIn: ACCESS_TOKEN_EXPIRE }
-        );
-
-        const newRefreshToken = jwt.sign(
-            { id: session.user_id, tokenId },
-            process.env.REFRESH_TOKEN_SECRET,
-            { expiresIn: REFRESH_TOKEN_EXPIRE }
-        );
-
-        const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-        // Update the session with the new refresh token
-        await import('../config/db.js').then(async ({ default: pool }) => {
-            await pool.query(
-                `UPDATE user_sessions SET refresh_token = $1, expires_at = $2 WHERE token_id = $3`,
-                [newRefreshToken, newExpiresAt, tokenId]
+            // Lock the session row to avoid concurrent refresh collisions
+            const { rows } = await client.query(
+                `SELECT * FROM user_sessions WHERE refresh_token = $1 FOR UPDATE`,
+                [incomingRefresh]
             );
-        });
 
-        return res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
-    } catch (error) {
-        console.error('Refresh token error:', error);
-        return res.status(500).json({ error: 'Failed to refresh tokens' });
+            if (!rows.length) {
+                await client.query('ROLLBACK');
+                transactionStarted = false;
+                return res.status(401).json({ error: "Session not found or already rotated", sessionExpired: true });
+            }
+
+            const session = rows[0];
+
+            if (session.user_id !== decoded.id) {
+                await client.query('ROLLBACK');
+                transactionStarted = false;
+                return res.status(401).json({ error: "Session does not match user", sessionExpired: true });
+            }
+
+            if (new Date(session.expires_at).getTime() <= Date.now()) {
+                await client.query('ROLLBACK');
+                transactionStarted = false;
+                return res.status(401).json({ error: "Refresh session expired", sessionExpired: true });
+            }
+
+            const newTokenId = crypto.randomUUID();
+            const newAccessToken = jwt.sign(
+                { id: session.user_id, tokenId: newTokenId },
+                process.env.JWT_SECRET,
+                { expiresIn: ACCESS_TOKEN_EXPIRE }
+            );
+
+            const newRefreshToken = jwt.sign(
+                { id: session.user_id, tokenId: newTokenId },
+                process.env.REFRESH_TOKEN_SECRET,
+                { expiresIn: `${REFRESH_TOKEN_EXPIRE_DAYS}d` }
+            );
+
+            const newExpiresAt = new Date(
+                Date.now() + REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60 * 1000
+            );
+
+            const updateResult = await client.query(
+                `UPDATE user_sessions
+                 SET refresh_token = $1, token_id = $2, expires_at = $3, created_at = NOW()
+                 WHERE token_id = $4`,
+                [newRefreshToken, newTokenId, newExpiresAt, session.token_id]
+            );
+
+            if (updateResult.rowCount !== 1) {
+                await client.query('ROLLBACK');
+                transactionStarted = false;
+                return res.status(409).json({ error: "Refresh token rotation conflict", sessionExpired: true });
+            }
+
+            await client.query('COMMIT');
+            transactionStarted = false;
+
+            return res.json({
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken,
+            });
+        } catch (error) {
+            if (transactionStarted) {
+                try {
+                    await client.query('ROLLBACK');
+                } catch (rollbackError) {
+                    console.error('Refresh token rollback failed:', rollbackError);
+                }
+            }
+            console.error("Refresh token error:", error);
+            return res.status(500).json({ error: "Failed to refresh tokens" });
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error("Refresh token verification failed:", err);
+        return res.status(401).json({ error: "Invalid or expired refresh token" });
     }
 };
+
 
 // ---------------- GET PROFILE ----------------
 export const getProfile = async (req, res) => {
