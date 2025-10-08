@@ -19,6 +19,7 @@ const app = express();
 
 // Parse JSON bodies (limit to prevent abuse)
 app.use(express.json({ limit: '1mb' }));
+app.set('trust proxy', 1);
 
 // Parse cookies
 app.use(cookieParser());

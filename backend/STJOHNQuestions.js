@@ -20,7 +20,7 @@ export const STJohnQuestionnaire = [
       {
         id: "sleep_latency",
         type: "radio",
-        label: "Sleep latency",
+        label: "Sleep latency/Time taken to fall asleep",
         options: ["< 15 min", "15-30 min", "> 30 min"],
       },
       {
@@ -87,32 +87,37 @@ export const STJohnQuestionnaire = [
       {
         id: "restless_legs",
         type: "radio",
-        label: "Restless legs symptoms",
-        options: ["Yes", "No", "Don't Know"],
+        label: "Restless legs symptoms/Uncomfortable or unpleasant sensation in the legs",
+        options: ["Yes", "No"],
+        required: false
       },
       {
         id: "parasomnias",
         type: "radio",
-        label: "Parasomnias",
-        options: ["Yes", "No", "Don't Know"],
+        label: "Parasomnias/Sleep walking/Sleep talking/Sleep eating/Nightmares",
+        options: ["Yes", "No"],
+        required: false
       },
       {
         id: "narcolepsy",
         type: "radio",
-        label: "Narcolepsy symptoms",
-        options: ["Yes", "No", "Don't Know"],
+        label: "Narcolepsy symptoms/Sleep attacks/Sleep paralysis/Cataplexy/Hallucinations",
+        options: ["Yes", "No"],
+        required: false
       },
       {
         id: "rem_disorder",
         type: "radio",
-        label: "REM Behaviour disorder symptoms",
-        options: ["Yes", "No", "Don't Know"],
+        label: "REM Behaviour disorder symptoms / Acting out dreams",
+        options: ["Yes", "No"],
+        required: false
       },
       {
         id: "bruxism",
         type: "radio",
         label: "Bruxism (grinding teeth in sleep)",
-        options: ["Yes", "No", "Don't Know"],
+        options: ["Yes", "No"],
+        required: false
       },
     ],
   },
@@ -171,7 +176,7 @@ export const STJohnQuestionnaire = [
       {
         id: "medications",
         type: "checkbox",
-        label: "Medications affecting sleep",
+        label: "Are you taking medications affecting sleep?",
         options: [
           "Sedative-hypnotics",
           "Antidepressants",
@@ -271,7 +276,7 @@ export const STJohnQuestionnaire = [
       {
         id: "iss_q6",
         type: "radio",
-        label: "Do you feel drowsy while doing household work?",
+        label: "Do you feel drowsy / sleepy  while doing household work?",
         options: ["Yes", "No"],
       },
       {
@@ -283,31 +288,31 @@ export const STJohnQuestionnaire = [
       {
         id: "iss_q8a",
         type: "radio",
-        label: "Nodded off while conversing?",
+        label: "Nodded off / Felt sleepy while conversing?",
         options: ["Yes", "No"],
       },
       {
         id: "iss_q8b",
         type: "radio",
-        label: "Nodded off while driving?",
+        label: "Nodded off / Felt sleepy  while driving?",
         options: ["Yes", "No"],
       },
       {
         id: "iss_q8c",
         type: "radio",
-        label: "Nodded off while cooking?",
+        label: "Nodded off / Felt sleepy while cooking?",
         options: ["Yes", "No"],
       },
       {
         id: "iss_q8d",
         type: "radio",
-        label: "Nodded off while office work?",
+        label: "Nodded off / Felt sleepy  while office work?",
         options: ["Yes", "No"],
       },
       {
         id: "iss_q8e",
         type: "radio",
-        label: "Nodded off while operating heavy machinery?",
+        label: "Nodded off / Felt sleepy  while operating heavy machinery?",
         options: ["Yes", "No"],
       },
       // { id: "iss_total_score", type: "number", label: "Total ISS Score" },
