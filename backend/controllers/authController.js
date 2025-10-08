@@ -10,7 +10,7 @@ import { verifyGoogleToken } from "../config/google.js";
 dotenv.config();
 
 // Token expiry durations
-const ACCESS_TOKEN_EXPIRE = '45m'; // Short-lived access token
+const ACCESS_TOKEN_EXPIRE = '2d'; // Short-lived access token
 const REFRESH_TOKEN_EXPIRE = '7d'; // Refresh token lifespan
 
 // ---------------- SIGNUP ----------------
