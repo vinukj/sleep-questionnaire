@@ -11,7 +11,7 @@ dotenv.config();
 import pool from "../config/db.js";
 
 // Token expiry durations
-const ACCESS_TOKEN_EXPIRE = '60s'; // Short-lived access token
+const ACCESS_TOKEN_EXPIRE = '30m'; // Short-lived access token
 const REFRESH_TOKEN_EXPIRE = '7d'; // Refresh token lifespan
 
 // ---------------- SIGNUP ----------------
