@@ -128,6 +128,7 @@ export function AuthProvider({ children }) {
       }
 
       const profileData = await profileRes.json();
+      console.log("Fetched profile data:", profileData);
 
       // Set user data first
       setCurrentUser(profileData);
@@ -174,7 +175,11 @@ export function AuthProvider({ children }) {
       // clear cache for current user if known
       try {
         const storedUser = currentUser?.user?.id || currentUser?.id;
-        if (storedUser) clearUserCache(storedUser);
+        
+        if (storedUser) {
+          clearUserCache(storedUser);
+          clearQuestionnaireCache(storedUser);
+        }
       } catch (e) {
         console.warn("Could not clear user cache on logout:", e);
       }

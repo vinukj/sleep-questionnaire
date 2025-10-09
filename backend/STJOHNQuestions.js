@@ -71,7 +71,7 @@ export const STJohnQuestionnaire = [
         label: "Daytime sleepiness",
         options: ["Yes", "No"],
       },
-      { id: "snoring", type: "radio", label: "Snoring", options: ["Yes", "No"] },
+      { id: "snoring", type: "radio", label: "Loud or intrusive snoring for more than 3 nights a week.", options: ["Yes", "No"] },
       {
         id: "witnessed_apneas",
         type: "radio",
@@ -251,9 +251,9 @@ export const STJohnQuestionnaire = [
       {
         id: "iss_q2b",
         type: "radio",
-        label: "If yes, stop breathing while snoring?",
+        label: "If yes, has your bed partner noticed that you stop breathing while snoring?",
         options: ["Yes", "No"],
-        dependsOn: { "id": "iss", "value": "Yes" }
+        dependsOn: { "id": "iss_q2a", "value": "Yes" }
       },
       {
         id: "iss_q3",

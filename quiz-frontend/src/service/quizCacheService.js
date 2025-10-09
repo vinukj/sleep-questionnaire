@@ -115,3 +115,12 @@ export const clearQuestionnaireCache = (userId) => {
     console.warn('Failed to clear questionnaire cache for', userId, err);
   }
 };
+
+export const setQuestionnaireCache = (schema, userId) => {
+  try {
+    const key = getQuestionnaireKey(userId);
+    const payload = { schema, timestamp: Date.now() };
+    localStorage.setItem(key, JSON.stringify(payload));
+  } catch (error) {
+    console.warn('Failed to write questionnaire cache:', error);
+  }};

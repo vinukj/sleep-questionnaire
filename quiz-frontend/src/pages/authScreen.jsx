@@ -13,6 +13,7 @@ import {
   CircularProgress,
   Divider,
 } from "@mui/material";
+import { clearQuestionnaireCache } from "../service/quizCacheService.js";
 
 const API_URL =  import.meta.env.VITE_API_URL
 
@@ -43,6 +44,8 @@ export default function AuthScreen() {
         return;
       }
 
+
+
       setIsLoading(true);
       const response = await fetch(`${API_URL}/auth/google`, {
         method: "POST",
@@ -69,6 +72,7 @@ export default function AuthScreen() {
       // Persist tokens where AuthContext expects them and re-validate session
       try {
         localStorage.setItem('auth_tokens', JSON.stringify({ accessToken, refreshToken }));
+        clearQuestionnaireCache()
       } catch (e) {
         console.warn('Failed to store auth tokens in localStorage:', e);
       }
@@ -76,6 +80,8 @@ export default function AuthScreen() {
       // Trigger AuthContext to verify and load profile
       try {
         await verifySession();
+        console.log(currentUser);
+        clearQuestionnaireCache(currentUser?.user?.id || currentUser?.id);
       } catch (e) {
         console.warn('verifySession after Google login failed:', e);
       }

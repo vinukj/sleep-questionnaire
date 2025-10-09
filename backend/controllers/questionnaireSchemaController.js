@@ -20,7 +20,7 @@ export const getQuestionnaireSchema = async (req, res) => {
     const STJohnQuestionnaire = STJohnQuestionnaireJSON.map(page => ({
       ...page,
       questions: page.questions.map(question => {
-        if (['neurological_disorder', 'respiratory_disorder', 'medications', 'email'].includes(question.id)) {
+        if (['neurological_disorder', 'respiratory_disorder', 'medications', 'email','phone'].includes(question.id)) {
           return { ...question, required: false };
         }
         return question;
