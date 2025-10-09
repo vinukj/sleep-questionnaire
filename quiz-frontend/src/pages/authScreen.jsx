@@ -72,7 +72,7 @@ export default function AuthScreen() {
       // Persist tokens where AuthContext expects them and re-validate session
       try {
         localStorage.setItem('auth_tokens', JSON.stringify({ accessToken, refreshToken }));
-        clearQuestionnaireCache()
+        clearQuestionnaireCache(currentUser?.user?.id || currentUser?.id);
       } catch (e) {
         console.warn('Failed to store auth tokens in localStorage:', e);
       }
