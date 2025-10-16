@@ -5,7 +5,7 @@ import { EXCEL_COLUMN_ORDER, QUESTION_ID_TO_COLUMN_MAP } from './columnOrder.js'
  * Converts array values to Excel-friendly format
  */
 const processValueForExcel = (value) => {
-  if (Array.isArray(value)) return value.join('; ');
+  if (Array.isArray(value)) return value.join(', ');
   return value ?? '';
 };
 
@@ -73,6 +73,20 @@ const handleSpecialCases = (columnName, row) => {
 
     return nonStandard.length > 0 ? nonStandard.join('; ') : '';
   }
+
+if (columnName === 'Diagnosis') {
+  let diagnosis = '';
+
+  if (row.clinical_impression) diagnosis = row.clinical_impression;
+  else if (row.diagnosis) diagnosis = row.diagnosis;
+
+  // Trim any "Others:" prefix and extra spaces
+  if (typeof diagnosis === 'string') {
+    diagnosis = diagnosis.replace(/^Other:\s*/i, '').trim();
+  }
+
+  return diagnosis || '';
+}
 
  if (columnName === 'SBP (mmHg)') {
   if (typeof row.bp === 'string' && row.bp.includes('/')) return row.bp.split('/')[0].trim();

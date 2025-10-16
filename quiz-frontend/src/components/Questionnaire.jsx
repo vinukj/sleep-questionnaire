@@ -115,30 +115,47 @@ export default function Questionnaire() {
     setPage(newPage);
   }, []);
 
-  const handleFormSubmit = useCallback(async (data) => {
-    setIsSubmitting(true);
-    setSubmitError(null);
-    try {
-      const response = await authFetch("/questionnaire/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ responseData: data }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Server error: ${response.status}`);
-      }
-
-      await response.json();
-      setShowSuccess(true);
-      setTimeout(() => navigate("/home"), 2000);
-    } catch (err) {
-      setSubmitError(err.message || "Failed to submit");
-    } finally {
-      setIsSubmitting(false);
+const handleFormSubmit = useCallback(async (data) => {
+  setIsSubmitting(true);
+  setSubmitError(null);
+  try {
+    // Clean clinical_impression
+    if (Array.isArray(data.clinical_impression)) {
+      data.clinical_impression = data.clinical_impression
+        .filter(item => !/^Others$/i.test(item))      // remove plain "Others"
+        .map(item => item.replace(/^Other:\s*/i, '').trim()) // remove "Other:" prefix
+        .filter(Boolean); // remove empty strings
     }
-  }, [authFetch, navigate]);
+
+    // Clean medications
+    if (Array.isArray(data.medications)) {
+      data.medications = data.medications
+        .filter(item => !/^Others$/i.test(item))
+        .map(item => item.replace(/^Other:\s*/i, '').trim())
+        .filter(Boolean);
+    }
+
+    const response = await authFetch("/questionnaire/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ responseData: data }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Server error: ${response.status}`);
+    }
+
+    await response.json();
+    setShowSuccess(true);
+    setTimeout(() => navigate("/home"), 2000);
+  } catch (err) {
+    setSubmitError(err.message || "Failed to submit");
+  } finally {
+    setIsSubmitting(false);
+  }
+}, [authFetch, navigate]);
+
 
   if (loading) {
     return (

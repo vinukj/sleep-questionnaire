@@ -8,8 +8,8 @@ export const STJohnQuestionnaire = [
       { id: "gender", type: "radio", label: "Gender", options: ["M", "F"] },
       { id: "age", type: "number", label: "Age" },
       { id: "occupation", type: "text", label: "Occupation" },
-      { id: "phone", type: "tel", label: "Phone Number" },
-      { id: "email", type: "email", label: "Email ID" },
+      { id: "phone", type: "tel", label: "Phone Number", required: false },
+      { id: "email", type: "email", label: "Email ID", required: false },
     ],
   },
   {
@@ -49,6 +49,7 @@ export const STJohnQuestionnaire = [
       },
     ],
   },
+ 
   {
     page: 3,
     title: "Main Sleep Complaints",
@@ -87,28 +88,54 @@ export const STJohnQuestionnaire = [
       {
         id: "restless_legs",
         type: "radio",
-        label: "Restless legs symptoms/Uncomfortable or unpleasant sensation in the legs",
+        label: "Restless legs symptoms (Uncomfortable or unpleasant sensation in the legs,more in the evening /night, symptomps relieved on moving around)",
         options: ["Yes", "No"],
         required: false
       },
       {
         id: "parasomnias",
         type: "radio",
-        label: "Parasomnias/Sleep walking/Sleep talking/Sleep eating/Nightmares",
+        label: "Parasomnias",
         options: ["Yes", "No"],
+        required: false
+      },
+      {
+        id:"parasomnia_details",
+        type:"checkbox",
+        options: [
+          "Sleep walking",
+          "Sleep talking",
+          "Sleep eating",
+          "Nightmares can appear"
+        ],
+        label: "If yes, specify",
+        dependsOn: { "id": "parasomnias", "value": "Yes" },
         required: false
       },
       {
         id: "narcolepsy",
         type: "radio",
-        label: "Narcolepsy symptoms/Sleep attacks/Sleep paralysis/Cataplexy/Hallucinations",
+        label: "Narcolepsy symptoms",
         options: ["Yes", "No"],
+        required: false
+      },
+      {
+        id:"narcolepsy_details",
+        type:"checkbox",
+        options: [
+          "Sleep attacks",
+          "Sleep paralysis",
+          "Cataplexy",
+          "Hallucinations"
+        ],
+        label: "If yes, specify",
+        dependsOn: { "id": "narcolepsy", "value": "Yes" },
         required: false
       },
       {
         id: "rem_disorder",
         type: "radio",
-        label: "REM Behaviour disorder symptoms / Acting out dreams",
+        label: "REM Behaviour disorder symptoms (Acting out dreams)",
         options: ["Yes", "No"],
         required: false
       },
@@ -155,6 +182,7 @@ export const STJohnQuestionnaire = [
         type: "checkbox",
         label: "Neurological disorder",
         options: ["Parkinson’s", "Dementia", "Neuromuscular disease"],
+        required: false
       },
       {
         id: "respiratory_disorder",
@@ -166,6 +194,7 @@ export const STJohnQuestionnaire = [
           "Interstitial Lung Disease",
           "Bronchiectasis",
         ],
+        required: false
       },
       {
         id: "surgery_sleep_apnea",
@@ -185,6 +214,7 @@ export const STJohnQuestionnaire = [
           "Opioids",
           "Others"
         ],
+        required: false,
         otherOption: {
           option: "Others",
           textField: true
@@ -322,10 +352,27 @@ export const STJohnQuestionnaire = [
     page: 7,
     title: "Clinical Impression & Work-up",
     questions: [
-      {
+       {
         id: "clinical_impression",
-        type: "textarea",
-        label: "Clinical Impression (500 chars)",
+        type: "checkbox",
+        label: "Clinical Impression",
+        options: [
+          "Poor Sleep Hygiene",
+          "Obstructive Sleep Apnea",
+          "Obesity Hypoventilation Syndrome",
+          "Insomnia",
+          "Restless Legs Syndrome",
+          "Parasomnia",
+          "RBD",
+          "Narcolepsy",
+          "Circadian Rhythm Sleep Disorder",
+          "Shift Work Sleep Disorder",
+          "Others"
+        ],
+        otherOption: {
+          option: "Others",
+          textField: true
+        },
       },
       {
         id: "recommended_workup",
@@ -387,4 +434,4 @@ export const STJohnQuestionnaire = [
   //     },
   //   ],
   // },
-];
+]; 

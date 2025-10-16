@@ -26,6 +26,57 @@ const QuestionnaireContent = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const watchAllFields = methods.watch();
+  const FIELD_VALIDATION = {
+  spo2: {
+    validate: (value) => {
+      if (!value) return true; // optional
+      const num = Number(value);
+      if (isNaN(num)) return "Must be a number";
+      if (num < 0 || num > 100) return "SpO2 must be between 0 and 100";
+      if (!/^\d{1,3}$/.test(value)) return "SpO2 must be max 3 digits";
+      return true;
+    },
+  },
+  age:{
+    validate: (value) => {
+      if (!value) return true;
+      const num = Number(value);
+      if (isNaN(num) || num <= 0 || !Number.isInteger(num)) return "Enter a valid age";
+      return true;
+    }
+  },
+  height: {
+    validate: (value) => {
+      if (!value) return true;
+      const num = Number(value);
+      if (isNaN(num) || num <= 0) return "Enter a valid height";
+      return true;
+    },
+  },
+  weight: {
+    validate: (value) => {
+      if (!value) return true;
+      const num = Number(value);
+      if (isNaN(num) || num <= 0) return "Enter a valid weight";
+      return true;
+    },
+  },
+  bmi: {
+    validate: (value) => {
+      if (!value) return true;
+      const num = Number(value);
+      if (isNaN(num) || num <= 0) return "Enter a valid BMI";
+      return true;
+    },
+  },
+  bp: {
+    pattern: {
+      value: /^\d{2,3}\/\d{2,3}$/,
+      message: "BP must be in the format systolic/diastolic (e.g., 120/80)",
+    },
+  },
+};
+
 
   return (
     <FormProvider {...methods}>
@@ -55,13 +106,8 @@ const QuestionnaireContent = ({
               control={methods.control}
               defaultValue={q.type === "checkbox" ? [] : ""}
               rules={{
-                required: isRequired ? { value: true, message: "This field is required" } : false,
-                ...(q.type === "tel"
-                  ? { pattern: { value: PHONE_REGEX, message: "Use +91 followed by 10 digits" } }
-                  : {}),
-                ...(q.type === "email"
-                  ? { pattern: { value: EMAIL_REGEX, message: "Enter a valid email address" } }
-                  : {}),
+                 required: q.required !== false ? { value: true, message: "This field is required" } : false,
+    ...(FIELD_VALIDATION[q.id] || {}),
               }}
               render={({ field }) => (
                 <QuestionRenderer

@@ -3,7 +3,8 @@ import {
     submitQuestionnaireResponse, 
     getUserQuestionnaireResponses, 
     getAllResponses,
-    updateResponse 
+    updateResponse, 
+    getVersion
 } from '../controllers/questionnaireController.js';
 import { getQuestionnaireSchema } from '../controllers/questionnaireSchemaController.js';
 import { upsertQuestionnaireSchema } from '../controllers/questionnaireSchemaAdminController.js';
@@ -30,5 +31,7 @@ router.get('/schema', getQuestionnaireSchema);
 
 // Admin: upsert questionnaire schema
 router.post('/schema', verifyTokens, requireAdmin, upsertQuestionnaireSchema);
+
+router.get('/version', getVersion);
 
 export default router;

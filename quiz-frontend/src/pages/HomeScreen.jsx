@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar.jsx';
 import ExcelExportButton from '../components/ExcelExportButton.jsx';
 import '../styles/HomeScreen.css';
-import { fetchAndCacheAllQuizzes } from '../service/quizCacheService.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Link, useNavigate } from 'react-router-dom';
 import { Box, Typography, Card, CardContent, Alert, Button, CircularProgress } from '@mui/material';
@@ -108,13 +107,6 @@ const handleTestDatabase = async () => {
       navigate('/login', { replace: true });
     }
   }, [currentUser, authReady, navigate]);
-
-  // useEffect(() => {
-  //   // Fetch quizzes once the user is logged in
-  //   if (currentUser) {
-  //     fetchAndCacheAllQuizzes(authFetch, currentUser.user.id);
-  //   }
-  // }, [currentUser, authFetch]);
 
   if (!authReady) {
     return (

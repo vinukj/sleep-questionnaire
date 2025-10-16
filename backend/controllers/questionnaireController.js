@@ -1,3 +1,4 @@
+import pool from '../config/db.js';
 import { 
     saveQuestionnaireResponse, 
     getQuestionnaireResponsesByUser, 
@@ -135,3 +136,12 @@ export const updateResponse = async (req, res) => {
         });
     }
 };
+
+export const getVersion = async(req,res)=>{
+    const result = await pool.query("SELECT version FROM questionnaire_schemas WHERE name = 'STJohnQuestionnaire'");
+    const version = result.rows[0]?.version;
+   res.json({
+       success: true,
+       version
+   });
+}

@@ -1,9 +1,13 @@
+
 import pool from '../config/db.js';
 
 export const getQuestionnaireSchema = async (req, res) => {
+
+
+
   try {
     const query = `
-      SELECT schema 
+      SELECT schema, version
       FROM questionnaire_schemas 
       WHERE name = $1 
       LIMIT 1
@@ -27,7 +31,7 @@ export const getQuestionnaireSchema = async (req, res) => {
       })
     }));
 
-    res.json(STJohnQuestionnaire);
+    res.json({questionnaire:STJohnQuestionnaire, version: result.rows[0].version });
   } catch (error) {
     console.error('Error fetching questionnaire schema:', error);
     res.status(500).json({ error: 'Internal server error' });
