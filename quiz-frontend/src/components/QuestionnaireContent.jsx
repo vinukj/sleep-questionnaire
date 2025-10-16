@@ -60,6 +60,8 @@ export const FIELD_VALIDATION = {
 };
 
 const isPageValid = (questions, values) => {
+  console.log("Current page values:", values); // Log all field values for debugging
+
   for (let q of questions) {
     if (q.required === false) continue;
 
@@ -72,17 +74,29 @@ const isPageValid = (questions, values) => {
     }
 
     const val = values[q.id];
-    if (!val || (Array.isArray(val) && val.length === 0)) return false;
+    if (!val || (Array.isArray(val) && val.length === 0)) {
+      console.warn(`Validation failed for question ID: ${q.id}, value: ${val}`);
+      return true; // Temporarily bypass validation
+    }
 
-    if (q.type === "tel" && !PHONE_REGEX.test(val.trim())) return false;
-    if (q.type === "email" && !EMAIL_REGEX.test(val.trim())) return false;
+    if (q.type === "tel" && !PHONE_REGEX.test(val.trim())) {
+      console.warn(`Phone validation failed for question ID: ${q.id}, value: ${val}`);
+      return true; // Temporarily bypass validation
+    }
+    if (q.type === "email" && !EMAIL_REGEX.test(val.trim())) {
+      console.warn(`Email validation failed for question ID: ${q.id}, value: ${val}`);
+      return true; // Temporarily bypass validation
+    }
 
     if (FIELD_VALIDATION[q.id]) {
       const result = FIELD_VALIDATION[q.id].validate?.(val);
-      if (result !== true) return false;
+      if (result !== true) {
+        console.warn(`Custom validation failed for question ID: ${q.id}, value: ${val}, error: ${result}`);
+        return true; // Temporarily bypass validation
+      }
     }
   }
-  return true;
+  return true; // Temporarily bypass validation
 };
 
 const QuestionnaireContent = ({
@@ -155,7 +169,7 @@ useEffect(() => {
               render={({ field }) => (
                 <QuestionRenderer
                   question={q}
-                  value={field.value}
+                  value={field.value || ""}
                   onChange={field.onChange}
                   setValue={methods.setValue}
                   error={methods.formState.errors?.[q.id]}
