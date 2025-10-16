@@ -54,6 +54,7 @@ export const EXCEL_COLUMN_ORDER = [
   "ESS",
   "ISS",
   "Diagnosis",
+  "Other Diagnosis",
   "Recommendation",
 ];
 
@@ -141,7 +142,7 @@ export const QUESTION_ID_TO_COLUMN_MAP = {
   antipsychotics: "Antipsychotics",
   stimulants: "Stimulants",
   opioids: "Opioids",
-  otherMedications: "Others",
+  medications_other: "Other Medications",
   waistCircumference: "Waist_circumference (cms)",
   hipCircumference: "Hip_circumference (cms)",
   whr: "WHR (AQ/AR)",
@@ -152,5 +153,6 @@ export const QUESTION_ID_TO_COLUMN_MAP = {
   ess_score: "ESS",
   iss_score: "ISS",
   diagnosis: "Diagnosis",
+  clinical_impression_other: "Other Diagnosis",
   recommendation: "Recommendation",
 };

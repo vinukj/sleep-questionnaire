@@ -119,21 +119,6 @@ const handleFormSubmit = useCallback(async (data) => {
   setIsSubmitting(true);
   setSubmitError(null);
   try {
-    // Clean clinical_impression
-    if (Array.isArray(data.clinical_impression)) {
-      data.clinical_impression = data.clinical_impression
-        .filter(item => !/^Others$/i.test(item))      // remove plain "Others"
-        .map(item => item.replace(/^Other:\s*/i, '').trim()) // remove "Other:" prefix
-        .filter(Boolean); // remove empty strings
-    }
-
-    // Clean medications
-    if (Array.isArray(data.medications)) {
-      data.medications = data.medications
-        .filter(item => !/^Others$/i.test(item))
-        .map(item => item.replace(/^Other:\s*/i, '').trim())
-        .filter(Boolean);
-    }
 
     const response = await authFetch("/questionnaire/submit", {
       method: "POST",
