@@ -17,9 +17,6 @@ const processValueForExcel = (value) => {
  * Handles special cases like medications, BP split, and shift pattern.
  */
 const handleSpecialCases = (columnName, row) => {
-
-  console.log("Handling special cases for column:", columnName);
-  console.log(row.medications)
   // Normalize medications to an array even if flattened to a string
   const meds = Array.isArray(row.medications)
     ? row.medications.map((m) => String(m).trim())
