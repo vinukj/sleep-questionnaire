@@ -1,5 +1,5 @@
 // QuestionRenderer.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Box,
   TextField,
@@ -21,6 +21,11 @@ const QuestionBox = ({ children }) => <Box sx={{ mb: 3 }}>{children}</Box>;
 const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
   const { id, type, label, options, otherOption, required } = question;
   const helperText = error?.message || "";
+
+  // Log the value being rendered for debugging
+  useEffect(() => {
+    console.log(`Rendering question ${id} with value:`, value);
+  }, [id, value]);
 
   // Checkbox handler for regular + "Other" option
   const renderCheckboxes = () => {

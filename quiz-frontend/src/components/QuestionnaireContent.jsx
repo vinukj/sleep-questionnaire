@@ -1,9 +1,8 @@
 // QuestionnaireContent.jsx
-import React from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { FormProvider, Controller } from "react-hook-form";
-import { Box, Button, Alert, TextField, useTheme, useMediaQuery } from "@mui/material";
+import { Box, Button, Alert, useTheme, useMediaQuery } from "@mui/material";
 import QuestionRenderer from "./QuestionRenderer";
-import { useEffect } from "react";
 
 const PHONE_REGEX = /^\+91[-\s]?[6-9]\d{9}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -72,8 +71,6 @@ export const FIELD_VALIDATION = {
 };
 
 const isPageValid = (questions, values) => {
-  console.log("Validating current page fields:", questions.map((q) => q.id)); // Log current page fields
-
   return questions.every((q) => {
     // Skip validation if the field has a dependsOn condition that is not satisfied
     if (q.dependsOn) {
@@ -108,52 +105,97 @@ const QuestionnaireContent = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const watchAllFields = methods.watch();
+  const previousValuesRef = useRef({});
+  const resetTimeoutRef = useRef(null);
+
+  // Initial sync of previous values on mount or when currentPage changes
+  useEffect(() => {
+    previousValuesRef.current = { ...watchAllFields };
+  }, [currentPage]);
+
+  // Debounced reset of dependent fields to avoid performance issues
+  useEffect(() => {
+    // Clear previous timeout
+    if (resetTimeoutRef.current) {
+      clearTimeout(resetTimeoutRef.current);
+    }
+
+    // Set new timeout for dependency check
+    resetTimeoutRef.current = setTimeout(() => {
+      currentPage?.questions.forEach((q) => {
+        if (q.dependsOn) {
+          const depValue = watchAllFields[q.dependsOn.id];
+          const previousDepValue = previousValuesRef.current[q.dependsOn.id];
+          
+          // Compare values properly (handles both arrays and primitives)
+          const valuesChanged = JSON.stringify(depValue) !== JSON.stringify(previousDepValue);
+          
+          // Only reset if the dependency value actually changed
+          if (valuesChanged) {
+            const dependsOnValue = q.dependsOn.value;
+            let matched = false;
+            
+            if (Array.isArray(depValue)) {
+              matched = depValue.includes(dependsOnValue);
+              
+              // Special handling for "Others" / "Other Diagnosis" mapping
+              if (!matched && dependsOnValue === "Others") {
+                matched = depValue.includes("Other Diagnosis");
+              }
+              if (!matched && dependsOnValue === "Other Diagnosis") {
+                matched = depValue.includes("Others");
+              }
+            } else {
+              matched = depValue === dependsOnValue;
+            }
+
+            if (!matched && watchAllFields[q.id] !== "") {
+              methods.setValue(q.id, q.type === "checkbox" ? [] : "");
+            }
+          }
+        }
+      });
+
+      // Update previous values ref
+      previousValuesRef.current = { ...watchAllFields };
+    }, 100); // 100ms debounce
+
+    return () => {
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+      }
+    };
+  }, [watchAllFields, currentPage, methods]);
 
   // Watch inputs for calculations
-const height = methods.watch("height");
-const weight = methods.watch("weight");
-const waist = methods.watch("waist");
-const hip = methods.watch("hip");
+  const height = methods.watch("height");
+  const weight = methods.watch("weight");
+  const waist = methods.watch("waist");
+  const hip = methods.watch("hip");
 
-// BMI calculation
-useEffect(() => {
-  const h = parseFloat(height);
-  const w = parseFloat(weight);
-  if (h > 0 && w > 0) {
-    const bmi = w / ((h / 100) ** 2);
-    methods.setValue("bmi", Number.isFinite(bmi) ? bmi.toFixed(2) : "");
-  } else {
-    methods.setValue("bmi", "N/A"); // Set default value if calculation is not possible
-  }
-}, [height, weight, methods]);
-
-// Waist/Hip ratio calculation
-useEffect(() => {
-  const wst = parseFloat(waist);
-  const hp = parseFloat(hip);
-  if (wst > 0 && hp > 0) {
-    const ratio = wst / hp;
-    methods.setValue("waist_hip_ratio", Number.isFinite(ratio) ? ratio.toFixed(2) : "");
-  } else {
-    methods.setValue("waist_hip_ratio", "N/A"); // Set default value if calculation is not possible
-  }
-}, [waist, hip, methods]);
-
-  // Reset dependent fields when their dependsOn condition is not satisfied
-useEffect(() => {
-  currentPage?.questions.forEach((q) => {
-    if (q.dependsOn) {
-      const depValue = watchAllFields[q.dependsOn.id];
-      const matched = Array.isArray(depValue)
-        ? depValue.includes(q.dependsOn.value)
-        : depValue === q.dependsOn.value;
-
-      if (!matched) {
-        methods.setValue(q.id, q.type === "checkbox" ? [] : ""); // Reset the dependent field
-      }
+  // BMI calculation
+  useEffect(() => {
+    const h = parseFloat(height);
+    const w = parseFloat(weight);
+    if (h > 0 && w > 0) {
+      const bmi = w / ((h / 100) ** 2);
+      methods.setValue("bmi", Number.isFinite(bmi) ? bmi.toFixed(2) : "");
+    } else {
+      methods.setValue("bmi", "N/A"); // Set default value if calculation is not possible
     }
-  });
-}, [watchAllFields, currentPage, methods]);
+  }, [height, weight, methods]);
+
+  // Waist/Hip ratio calculation
+  useEffect(() => {
+    const wst = parseFloat(waist);
+    const hp = parseFloat(hip);
+    if (wst > 0 && hp > 0) {
+      const ratio = wst / hp;
+      methods.setValue("waist_hip_ratio", Number.isFinite(ratio) ? ratio.toFixed(2) : "");
+    } else {
+      methods.setValue("waist_hip_ratio", "N/A"); // Set default value if calculation is not possible
+    }
+  }, [waist, hip, methods]);
 
   return (
     <FormProvider {...methods}>
@@ -162,9 +204,25 @@ useEffect(() => {
           // Skip if dependency not satisfied
           if (q.dependsOn) {
             const depValue = watchAllFields[q.dependsOn.id];
-            const matched = Array.isArray(depValue)
-              ? depValue.includes(q.dependsOn.value)
-              : depValue === q.dependsOn.value;
+            const dependsOnValue = q.dependsOn.value;
+            
+            // Handle both array and non-array values
+            let matched = false;
+            if (Array.isArray(depValue)) {
+              // Check for the main value or any alternative values
+              matched = depValue.includes(dependsOnValue);
+              
+              // Special handling for "Others" / "Other Diagnosis" mapping
+              if (!matched && dependsOnValue === "Others") {
+                matched = depValue.includes("Other Diagnosis");
+              }
+              if (!matched && dependsOnValue === "Other Diagnosis") {
+                matched = depValue.includes("Others");
+              }
+            } else {
+              matched = depValue === dependsOnValue;
+            }
+            
             if (!matched) return null;
           }
 

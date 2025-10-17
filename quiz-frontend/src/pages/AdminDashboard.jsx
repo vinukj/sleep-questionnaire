@@ -21,7 +21,8 @@ import {
   TableRow,
   TablePagination,
   IconButton,
-  Tooltip
+  Tooltip,
+  TextField
 } from '@mui/material';
 import {
   Dashboard,
@@ -31,8 +32,11 @@ import {
   Visibility,
   Refresh
 } from '@mui/icons-material';
+import { debounce } from 'lodash';
 import { useAuth } from '../context/AuthContext';
 import ExcelExportButton from '../components/ExcelExportButton';
+import { useNavigate } from "react-router-dom";
+
 
 import Navbar from '../components/Navbar.jsx';
 /**
@@ -41,6 +45,7 @@ import Navbar from '../components/Navbar.jsx';
  */
 const AdminDashboard = () => {
   const { currentUser: user, authFetch } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
@@ -48,16 +53,14 @@ const AdminDashboard = () => {
     totalUsers: 0,
     recentResponses: []
   });
-  const [responses, 
-    
-    
-    setResponses] = useState([]);
+  const [responses, setResponses] = useState([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
 
-useEffect(() => {
-  console.log('Admin dashboard mounted');
-}, []);
+  useEffect(() => {
+    console.log('Admin dashboard mounted');
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -124,6 +127,39 @@ useEffect(() => {
       return 'N/A';
     }
   };
+
+  const handleModifyResponses = () => {
+
+  }
+
+  const handleViewResponse = (response) => {
+    navigate("/STJohnquestionnaire", { 
+      state: { 
+        responseData: response.response_data,
+        responseId: response.id,
+        isEditing: true 
+      } 
+    });
+  };
+
+  const filteredResponses = responses.filter((response) => {
+    const query = searchQuery.toLowerCase();
+    const hospitalId = response.response_data.hospital_id?.toLowerCase() || "";
+    const name = response.response_data.name?.toLowerCase() || "";
+    const email = response.response_data.email?.toLowerCase() || "";
+    const phone = response.response_data.phone?.toLowerCase() || "";
+
+    return (
+      hospitalId.includes(query) ||
+      name.includes(query) ||
+      email.includes(query) ||
+      phone.includes(query)
+    );
+  });
+
+  const handleSearch = debounce((query) => {
+    setSearchQuery(query);
+  }, 300); // Debounce with a delay of 300ms
 
   if (!user) {
     return (
@@ -229,6 +265,31 @@ useEffect(() => {
                 </CardContent>
               </Card>
             </Grid>
+
+            <Grid item xs={12} sm={6} md={4}>
+              <Card>
+                <CardContent>
+                  <Box display="flex" alignItems="center" justifyContent="space-between">
+                    <Box>
+                      <Typography color="text.secondary" gutterBottom>
+                        View All/ Edit Responses
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 2 }}>
+                        Modify Patient Responses
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={handleModifyResponses}
+                      >
+                        Edit Responses
+                      </Button>
+                    </Box>
+                    <People color="primary" sx={{ fontSize: 40 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
           </Grid>
 
           {/* Recent Responses */}
@@ -285,6 +346,16 @@ useEffect(() => {
             </Box>
           </Paper>
 
+          {/* Search Bar */}
+          <Box sx={{ mb: 2 }}>
+            <TextField
+              label="Search by Hospital ID, Name, Email, or Phone"
+              variant="outlined"
+              fullWidth
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+          </Box>
+
           {/* All Responses Table */}
           <Paper>
             <Box sx={{ p: 3 }}>
@@ -305,7 +376,7 @@ useEffect(() => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {responses
+                    {filteredResponses
                       .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                       .map((response) => (
                         <TableRow key={response.id}>
@@ -315,8 +386,8 @@ useEffect(() => {
                           <TableCell>{getScoreFromResponse(response.response_data)}</TableCell>
                           <TableCell>{formatDate(response.created_at)}</TableCell>
                           <TableCell align="center">
-                            <Tooltip title="View Response Details">
-                              <IconButton size="small">
+                            <Tooltip title="Edit/View Response">
+                              <IconButton size="small" onClick={() => handleViewResponse(response)}>
                                 <Visibility />
                               </IconButton>
                             </Tooltip>
@@ -330,7 +401,7 @@ useEffect(() => {
               <TablePagination
                 rowsPerPageOptions={[5, 10, 25]}
                 component="div"
-                count={responses.length}
+                count={filteredResponses.length}
                 rowsPerPage={rowsPerPage}
                 page={page}
                 onPageChange={handleChangePage}

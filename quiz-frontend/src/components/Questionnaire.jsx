@@ -12,7 +12,7 @@ import {
 import { styled } from "@mui/material/styles";
 import Navbar from "./Navbar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import QuestionnaireContent from "./QuestionnaireContent";
 
@@ -61,6 +61,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
 // The main Questionnaire component is defined below and uses QuestionnaireContent for rendering.
 
 export default function Questionnaire() {
+  const location = useLocation();
   const { questionnaire, loading, error } = useQuestionnaire();
   const { authFetch } = useAuth();
   const navigate = useNavigate();
@@ -75,6 +76,8 @@ export default function Questionnaire() {
   const [submitError, setSubmitError] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [responseId, setResponseId] = useState(null);
 
   // Scroll to top when page changes
   useEffect(() => {
@@ -115,32 +118,56 @@ export default function Questionnaire() {
     setPage(newPage);
   }, []);
 
-const handleFormSubmit = useCallback(async (data) => {
-  setIsSubmitting(true);
-  setSubmitError(null);
-  try {
+  const handleFormSubmit = useCallback(async (data) => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      // Determine if we're updating or creating
+      const endpoint = isEditing && responseId 
+        ? `/questionnaire/update/${responseId}` 
+        : '/questionnaire/submit';
+      const method = isEditing && responseId ? 'PUT' : 'POST';
 
-    const response = await authFetch("/questionnaire/submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ responseData: data }),
-    });
+      const response = await authFetch(endpoint, {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ responseData: data }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Server error: ${response.status}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Server error: ${response.status}`);
+      }
+
+      await response.json();
+      setShowSuccess(true);
+      setTimeout(() => navigate("/home"), 2000);
+    } catch (err) {
+      setSubmitError(err.message || "Failed to submit");
+    } finally {
+      setIsSubmitting(false);
     }
+  }, [authFetch, navigate, isEditing, responseId]);
 
-    await response.json();
-    setShowSuccess(true);
-    setTimeout(() => navigate("/home"), 2000);
-  } catch (err) {
-    setSubmitError(err.message || "Failed to submit");
-  } finally {
-    setIsSubmitting(false);
-  }
-}, [authFetch, navigate]);
-
+  // Pre-fill form with responseData if available
+  useEffect(() => {
+    const responseData = location.state?.responseData || {};
+    const editingState = location.state?.isEditing || false;
+    const id = location.state?.responseId || null;
+    
+    console.log("Received responseData in Questionnaire:", responseData);
+    console.log("Editing mode:", editingState, "Response ID:", id);
+    
+    setIsEditing(editingState);
+    setResponseId(id);
+    
+    if (responseData && Object.keys(responseData).length > 0) {
+      Object.keys(responseData).forEach((key) => {
+        console.log(`Setting field ${key} with value:`, responseData[key]);
+        methods.setValue(key, responseData[key]);
+      });
+    }
+  }, [location.state, methods]);
 
   if (loading) {
     return (
@@ -182,6 +209,11 @@ const handleFormSubmit = useCallback(async (data) => {
       <Container ref={containerRef} maxWidth="md" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 2 } }}>
         <StyledCard>
           <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
+            {isEditing && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                You are editing an existing response. Your changes will update the existing entry.
+              </Alert>
+            )}
             <Box component="header" sx={{ mb: { xs: 2, sm: 3 } }}>
               <PageTitle>{currentPage?.title}</PageTitle>
               <PageProgress component="nav" aria-label="questionnaire navigation">

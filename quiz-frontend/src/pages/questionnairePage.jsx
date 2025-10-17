@@ -45,15 +45,25 @@
 
 // file: frontend/src/pages/QuestionnaireSelectionScreen.jsx
 
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useCachedQuizList } from '../hooks/useCachedQuizList'; // Import the new hook
 import '../styles/QuestionnairePage.css';
 import Navbar from '../components/Navbar';
 
 const QuestionnaireSelectionScreen = () => {
-  // Replace the old useState and useEffect with this single line
+  const location = useLocation();
   const { quizzes, isLoading, error } = useCachedQuizList();
+
+  // Prefill logic
+  useEffect(() => {
+    const responseData = location.state?.responseData || {};
+    if (responseData) {
+      Object.keys(responseData).forEach((key) => {
+        methods.setValue(key, responseData[key]);
+      });
+    }
+  }, [location.state, methods]);
 
   if (isLoading) return <div className="loading-message">Loading Questionnaires...</div>;
   if (error) return <div className="error-message">Error: {error}</div>;
