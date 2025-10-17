@@ -57,6 +57,18 @@ export const FIELD_VALIDATION = {
       message: "BP must be in the format systolic/diastolic (e.g., 120/80)",
     },
   },
+  phone: {
+    pattern: {
+      value: PHONE_REGEX,
+      message: "Phone number must be a valid Indian number starting with +91",
+    },
+  },
+  email: {
+    pattern: {
+      value: EMAIL_REGEX,
+      message: "Email must be a valid email address",
+    },
+  },
 };
 
 const isPageValid = (questions, values) => {
