@@ -17,11 +17,14 @@ const processValueForExcel = (value) => {
  * Handles special cases like medications, BP split, and shift pattern.
  */
 const handleSpecialCases = (columnName, row) => {
+
+  console.log("Handling special cases for column:", columnName);
+  console.log(row.medications)
   // Normalize medications to an array even if flattened to a string
   const meds = Array.isArray(row.medications)
     ? row.medications.map((m) => String(m).trim())
     : typeof row.medications === 'string'
-    ? row.medications.split(/\s*;\s*/).filter(Boolean).map((m) => m.trim())
+    ? row.medications.split(/\s*,\s*/).filter(Boolean).map((m) => m.trim())
     : [];
 
   const norm = (s) => String(s).toLowerCase().replace(/[\s_-]+/g, '');
@@ -43,50 +46,50 @@ const handleSpecialCases = (columnName, row) => {
   if (columnName === 'Opioids')
     return hasMed('Opioids') ? 'Yes' : 'No';
 
-  if (columnName === 'Others') {
-    // Prefer the free text from entries like "Other: <text>" or "Others: <text>"
-    const otherTexts = meds
-      .map((m) => {
-        const match = m.match(/^others?\s*:\s*(.*)$/i);
-        return match ? match[1].trim() : null;
-      })
-      .filter((v) => v && v.length > 0);
+  // if (columnName === 'Others') {
+  //   // Prefer the free text from entries like "Other: <text>" or "Others: <text>"
+  //   const otherTexts = meds
+  //     .map((m) => {
+  //       const match = m.match(/^others?\s*:\s*(.*)$/i);
+  //       return match ? match[1].trim() : null;
+  //     })
+  //     .filter((v) => v && v.length > 0);
 
-    if (otherTexts.length > 0) {
-      return otherTexts.join('; ');
-    }
+  //   if (otherTexts.length > 0) {
+  //     return otherTexts.join('; ');
+  //   }
 
-    // If no "Other:" text, list any non-standard medication labels
-    const standard = new Set([
-      'sedativehypnotics',
-      'antidepressants',
-      'antipsychotics',
-      'stimulants',
-      'opioids',
-      'others',
-      'other',
-    ]);
+  //   // If no "Other:" text, list any non-standard medication labels
+  //   const standard = new Set([
+  //     'sedativehypnotics',
+  //     'antidepressants',
+  //     'antipsychotics',
+  //     'stimulants',
+  //     'opioids',
+  //     'others',
+  //     'other',
+  //   ]);
 
-    const nonStandard = meds.filter(
-      (m) => !standard.has(norm(m)) && !/^others?\s*:/i.test(m)
-    );
+  //   const nonStandard = meds.filter(
+  //     (m) => !standard.has(norm(m)) && !/^others?\s*:/i.test(m)
+  //   );
 
-    return nonStandard.length > 0 ? nonStandard.join('; ') : '';
-  }
+  //   return nonStandard.length > 0 ? nonStandard.join('; ') : '';
+  // }
 
-if (columnName === 'Diagnosis') {
-  let diagnosis = '';
+// if (columnName === 'Other Diagnosis') {
+//   let diagnosis = '';
 
-  if (row.clinical_impression) diagnosis = row.clinical_impression;
-  else if (row.diagnosis) diagnosis = row.diagnosis;
+//   if (row.clinical_impression) diagnosis = row.clinical_impression;
+//   else if (row.diagnosis) diagnosis = row.diagnosis;
 
-  // Trim any "Others:" prefix and extra spaces
-  if (typeof diagnosis === 'string') {
-    diagnosis = diagnosis.replace(/^Other:\s*/i, '').trim();
-  }
+//   // Trim any "Others:" prefix and extra spaces
+//   if (typeof diagnosis === 'string') {
+//     diagnosis = diagnosis.replace(/^Other:\s*/i, '').trim();
+//   }
 
-  return diagnosis || '';
-}
+//   return diagnosis || '';
+// }
 
  if (columnName === 'SBP (mmHg)') {
   if (typeof row.bp === 'string' && row.bp.includes('/')) return row.bp.split('/')[0].trim();

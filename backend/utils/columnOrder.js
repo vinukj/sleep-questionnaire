@@ -116,6 +116,7 @@ export const QUESTION_ID_TO_COLUMN_MAP = {
   issScore: "ISS", // camelCase flat
   "scores.issScore": "ISS", // nested
   clinical_impression: "Diagnosis",
+  clinical_impression_other: "Other Diagnosis",
   recommended_workup: "Recommendation",
 
   // Original questionnaire field mappings (for backwards compatibility)
