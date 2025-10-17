@@ -6,6 +6,11 @@ import {
     updateQuestionnaireResponse 
 } from '../models/userModel.js';
 
+import {
+    getAllQuestionnaireResponsesPaginated,
+    getTotalResponseCount
+} from '../models/userModel.js';
+
 import {calculateSleepScore} from '../services/scoringService.js';
 
 // Save questionnaire response
@@ -77,21 +82,42 @@ export const getUserQuestionnaireResponses = async (req, res) => {
 // Get all questionnaire responses (admin only)
 export const getAllResponses = async (req, res) => {
     try {
-        const responses = await getAllQuestionnaireResponses();
+        // Parse pagination parameters
+        const page = Math.max(0, parseInt(req.query.page) || 0);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+        const offset = page * limit;
+        
+        // Get search query parameter
+        const searchQuery = req.query.search || '';
+        
+        // Fetch responses and count with search filter
+        const [responses, countResult] = await Promise.all([
+            getAllQuestionnaireResponsesPaginated(offset, limit, searchQuery),
+            getTotalResponseCount(searchQuery)
+        ]);
 
-        // Log admin access (if user exists in request)
+        // Log admin access
         if (req.user) {
-            console.log(`Admin ${req.user.email} accessed all questionnaire responses`);
+            const searchInfo = searchQuery ? ` (Search: "${searchQuery}")` : '';
+            console.log(`Admin ${req.user.email} accessed questionnaire responses - Page ${page}${searchInfo}`);
         }
 
         res.json({
             success: true,
             responses: responses,
-            total: responses.length,
+            pagination: {
+                total: parseInt(countResult.count),
+                page,
+                pageSize: limit,
+                totalPages: Math.ceil(countResult.count / limit),
+                hasNextPage: (page + 1) * limit < countResult.count,
+                hasPrevPage: page > 0
+            },
+            search: searchQuery || null,
             timestamp: new Date().toISOString()
         });
     } catch (error) {
-        console.error('Error fetching all questionnaire responses:', error);
+        console.error('Error fetching questionnaire responses:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch questionnaire responses',
@@ -99,7 +125,6 @@ export const getAllResponses = async (req, res) => {
         });
     }
 };
-
 // Update questionnaire response
 export const updateResponse = async (req, res) => {
     try {

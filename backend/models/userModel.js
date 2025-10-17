@@ -187,6 +187,53 @@ export const getQuestionnaireResponsesByUser = async (userId) => {
     return result.rows;
 };
 
+export const getAllQuestionnaireResponsesPaginated = async (offset, limit, searchQuery = '') => {
+  let query = `
+    SELECT id, user_id, response_data, created_at, updated_at 
+    FROM questionnaire_responses
+  `;
+  
+  const params = [];
+  let paramIndex = 1;
+  
+  // Add search filter if search query exists
+  if (searchQuery && searchQuery.trim()) {
+    query += ` WHERE 
+      response_data->>'hospital_id' ILIKE $${paramIndex} OR
+      response_data->>'name' ILIKE $${paramIndex} OR
+      response_data->>'email' ILIKE $${paramIndex} OR
+      response_data->>'phone' ILIKE $${paramIndex}
+    `;
+    params.push(`%${searchQuery.trim()}%`);
+    paramIndex++;
+  }
+  
+  query += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+  params.push(limit, offset);
+  
+  const result = await pool.query(query, params);
+  return result.rows;
+};
+
+export const getTotalResponseCount = async (searchQuery = '') => {
+  let query = 'SELECT COUNT(*) as count FROM questionnaire_responses';
+  const params = [];
+  
+  // Add search filter if search query exists
+  if (searchQuery && searchQuery.trim()) {
+    query += ` WHERE 
+      response_data->>'hospital_id' ILIKE $1 OR
+      response_data->>'name' ILIKE $1 OR
+      response_data->>'email' ILIKE $1 OR
+      response_data->>'phone' ILIKE $1
+    `;
+    params.push(`%${searchQuery.trim()}%`);
+  }
+  
+  const result = await pool.query(query, params);
+  return result.rows[0];
+};
+
 export const getAllQuestionnaireResponses = async () => {
     try {
         console.log('🔍 getAllQuestionnaireResponses function called');

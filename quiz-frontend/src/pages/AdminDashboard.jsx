@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Container,
   Typography,
@@ -60,6 +60,7 @@ const debounce = (func, delay) => {
 const AdminDashboard = () => {
   const { currentUser: user, authFetch } = useAuth();
   const navigate = useNavigate();
+  const allResponsesRef = useRef(null); // Ref for All Responses section
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
@@ -71,27 +72,46 @@ const AdminDashboard = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState(""); // For controlled input
+  const [tableLoading, setTableLoading] = useState(false); // Separate loading for table only
+  const [paginationData, setPaginationData] = useState({
+    total: 0,
+    page: 0,
+    pageSize: 10,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false
+  });
 
   useEffect(() => {
     console.log('Admin dashboard mounted');
   }, []);
 
+  // Load statistics only once on mount
   useEffect(() => {
     if (user) {
-      loadDashboardData();
+      loadStatistics();
     }
   }, [user]);
 
-  const loadDashboardData = async () => {
+  // Load table data when pagination or search changes
+  useEffect(() => {
+    if (user) {
+      loadTableData();
+    }
+  }, [user, page, rowsPerPage, searchQuery]);
+
+  // Load statistics (total counts and recent responses) - runs once
+  const loadStatistics = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch all questionnaire responses for admin view
-      const response = await authFetch('/questionnaire/admin/all-responses');
+      // Fetch all responses for statistics (no pagination, no search)
+      const response = await authFetch('/questionnaire/admin/all-responses?page=0&limit=10000');
       
       if (!response.ok) {
-        throw new Error('Failed to load admin dashboard data');
+        throw new Error('Failed to load dashboard statistics');
       }
 
       const data = await response.json();
@@ -104,17 +124,58 @@ const AdminDashboard = () => {
         .slice(0, 5);
 
       setStats({
-        totalResponses: allResponses.length,
+        totalResponses: data.pagination?.total || allResponses.length,
         totalUsers: uniqueUsers,
         recentResponses: recentResponses
       });
-
-      setResponses(allResponses);
     } catch (err) {
-      console.error('Dashboard error:', err);
+      console.error('Statistics error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load table data (with pagination and search) - runs on search/pagination change
+  const loadTableData = async () => {
+    try {
+      setTableLoading(true);
+      setError(null);
+
+      // Build query string with pagination and search
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: rowsPerPage.toString()
+      });
+      
+      // Add search parameter if search query exists
+      if (searchQuery.trim()) {
+        queryParams.append('search', searchQuery.trim());
+      }
+
+      // Fetch questionnaire responses with pagination and search
+      const response = await authFetch(
+        `/questionnaire/admin/all-responses?${queryParams.toString()}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to load table data');
+      }
+
+      const data = await response.json();
+      const allResponses = data.responses || [];
+
+      // Set pagination data from backend response
+      if (data.pagination) {
+        setPaginationData(data.pagination);
+      }
+
+      setResponses(allResponses);
+    } catch (err) {
+      console.error('Table data error:', err);
+      setError(err.message);
+    } finally {
+      setTableLoading(false);
     }
   };
 
@@ -143,8 +204,14 @@ const AdminDashboard = () => {
   };
 
   const handleModifyResponses = () => {
-
-  }
+    // Smooth scroll to All Responses table
+    if (allResponsesRef.current) {
+      allResponsesRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }
+  };
 
   const handleViewResponse = (response) => {
     navigate("/STJohnquestionnaire", { 
@@ -156,24 +223,52 @@ const AdminDashboard = () => {
     });
   };
 
-  const filteredResponses = responses.filter((response) => {
-    const query = searchQuery.toLowerCase();
-    const hospitalId = response.response_data.hospital_id?.toLowerCase() || "";
-    const name = response.response_data.name?.toLowerCase() || "";
-    const email = response.response_data.email?.toLowerCase() || "";
-    const phone = response.response_data.phone?.toLowerCase() || "";
+  const handleRefresh = () => {
+    loadStatistics();
+    loadTableData();
+  };
 
-    return (
-      hospitalId.includes(query) ||
-      name.includes(query) ||
-      email.includes(query) ||
-      phone.includes(query)
-    );
-  });
+  // Use useRef to store the debounce timeout
+  const searchTimeoutRef = useRef(null);
+  const MIN_SEARCH_LENGTH = 2; // Minimum characters before searching
 
-  const handleSearch = debounce((query) => {
-    setSearchQuery(query);
-  }, 300); // Debounce with a delay of 300ms
+  // Optimized search handler with proper debouncing
+  const handleSearchInput = useCallback((e) => {
+    const value = e.target.value;
+    setSearchInput(value); // Update input immediately for UI responsiveness
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // If search is cleared, reset immediately
+    if (value.trim() === '') {
+      setSearchQuery('');
+      setPage(0);
+      return;
+    }
+    
+    // Only search if minimum length met
+    if (value.trim().length < MIN_SEARCH_LENGTH) {
+      return; // Don't search yet, wait for more characters
+    }
+    
+    // Set new timeout - only fires after user stops typing for 500ms
+    searchTimeoutRef.current = setTimeout(() => {
+      setSearchQuery(value);
+      setPage(0); // Reset to first page when searching
+    }, 500); // 500ms delay
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!user) {
     return (
@@ -315,7 +410,7 @@ const AdminDashboard = () => {
                 </Typography>
                 <Button
                   startIcon={<Refresh />}
-                  onClick={loadDashboardData}
+                  onClick={handleRefresh}
                   size="small"
                 >
                   Refresh
@@ -366,61 +461,69 @@ const AdminDashboard = () => {
               label="Search by Hospital ID, Name, Email, or Phone"
               variant="outlined"
               fullWidth
-              onChange={(e) => handleSearch(e.target.value)}
+              value={searchInput}
+              onChange={handleSearchInput}
+              helperText="Type at least 2 characters to search. Search triggers 0.5s after you stop typing."
             />
           </Box>
 
           {/* All Responses Table */}
-          <Paper>
+          <Paper ref={allResponsesRef}>
             <Box sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>
                 All Questionnaire Responses
               </Typography>
               
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Hospital ID</TableCell>
-                      <TableCell>Patient Name</TableCell>
-                      <TableCell>Patient Email</TableCell>
-                      <TableCell>ISS Score</TableCell>
-                      <TableCell>Date</TableCell>
-                      <TableCell align="center">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {filteredResponses
-                      .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                      .map((response) => (
-                        <TableRow key={response.id}>
-                          <TableCell>{response.response_data.hospital_id}</TableCell>
-                          <TableCell>{response.response_data.name || 'N/A'}</TableCell>
-                          <TableCell>{response.response_data.email || '-'}</TableCell>
-                          <TableCell>{getScoreFromResponse(response.response_data)}</TableCell>
-                          <TableCell>{formatDate(response.created_at)}</TableCell>
-                          <TableCell align="center">
-                            <Tooltip title="Edit/View Response">
-                              <IconButton size="small" onClick={() => handleViewResponse(response)}>
-                                <Visibility />
-                              </IconButton>
-                            </Tooltip>
-                          </TableCell>
+              {tableLoading ? (
+                <Box display="flex" justifyContent="center" py={4}>
+                  <CircularProgress size={30} />
+                </Box>
+              ) : (
+                <>
+                  <TableContainer>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Hospital ID</TableCell>
+                          <TableCell>Patient Name</TableCell>
+                          <TableCell>Patient Email</TableCell>
+                          <TableCell>ISS Score</TableCell>
+                          <TableCell>Date</TableCell>
+                          <TableCell align="center">Actions</TableCell>
                         </TableRow>
-                      ))}
+                      </TableHead>
+                      <TableBody>
+                        {responses.map((response) => (
+                          <TableRow key={response.id}>
+                            <TableCell>{response.response_data.hospital_id}</TableCell>
+                            <TableCell>{response.response_data.name || 'N/A'}</TableCell>
+                            <TableCell>{response.response_data.email || '-'}</TableCell>
+                            <TableCell>{getScoreFromResponse(response.response_data)}</TableCell>
+                            <TableCell>{formatDate(response.created_at)}</TableCell>
+                            <TableCell align="center">
+                          <Tooltip title="Edit/View Response">
+                            <IconButton size="small" onClick={() => handleViewResponse(response)}>
+                              <Visibility />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </TableContainer>
 
               <TablePagination
-                rowsPerPageOptions={[5, 10, 25]}
+                rowsPerPageOptions={[5, 10, 25, 50]}
                 component="div"
-                count={filteredResponses.length}
+                count={paginationData.total}
                 rowsPerPage={rowsPerPage}
                 page={page}
                 onPageChange={handleChangePage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
               />
+                </>
+              )}
             </Box>
           </Paper>
         </>

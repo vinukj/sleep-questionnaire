@@ -5,30 +5,28 @@ async function seedQuestionnaire() {
   try {
     // Insert or update the questionnaire schema
     const query = `
-      INSERT INTO questionnaire_schemas (name, schema)
-      VALUES ($1, $2)
-      ON CONFLICT (name) 
-      DO UPDATE SET 
-        schema = EXCLUDED.schema,
-        updated_at = CURRENT_TIMESTAMP
-      RETURNING id;
+    DELETE FROM questionnaire_responses
+WHERE LOWER(response_data->>'name') IN ('qwertyu','walilama','md z4id','drt','qwertyu','john doe','ert','aman diallo');
+
+
+
     `;
 
-    const values = [
-      "STJohnQuestionnaire",
-      JSON.stringify(STJohnQuestionnaireJSON),
-    ];
-    const result = await pool.query(query, values);
+    // const values = [
+    //   "STJohnQuestionnaire",
+    //   JSON.stringify(STJohnQuestionnaireJSON),
+    // ];
+    const result = await pool.query(query);
 
     console.log(
-      "Questionnaire schema stored successfully with ID:",
-      result.rows[0].id
+      "Questionnaire updated",
+
     );
-    const secquery = `UPDATE questionnaire_schemas
-SET version = version + 1
-WHERE name = 'STJohnQuestionnaire';`;
-    await pool.query(secquery);
-    console.log("Incremented version number for STJohnQuestionnaire schema");
+//     const secquery = `UPDATE questionnaire_schemas
+// SET version = version + 1
+// WHERE name = 'STJohnQuestionnaire';`;
+//     await pool.query(secquery);
+    // console.log("Incremented version number for STJohnQuestionnaire schema");
   } catch (error) {
     console.error("Error seeding questionnaire:", error);
   } finally {
