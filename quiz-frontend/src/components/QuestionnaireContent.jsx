@@ -60,43 +60,27 @@ export const FIELD_VALIDATION = {
 };
 
 const isPageValid = (questions, values) => {
-  console.log("Current page values:", values); // Log all field values for debugging
+  console.log("Validating current page fields:", questions.map((q) => q.id)); // Log current page fields
 
-  for (let q of questions) {
-    if (q.required === false) continue;
-
+  return questions.every((q) => {
+    // Skip validation if the field has a dependsOn condition that is not satisfied
     if (q.dependsOn) {
       const depValue = values[q.dependsOn.id];
       const matched = Array.isArray(depValue)
         ? depValue.includes(q.dependsOn.value)
         : depValue === q.dependsOn.value;
-      if (!matched) continue;
+      if (!matched) return true; // Skip validation for this field
     }
 
-    const val = values[q.id];
-    if (!val || (Array.isArray(val) && val.length === 0)) {
-      console.warn(`Validation failed for question ID: ${q.id}, value: ${val}`);
-      return true; // Temporarily bypass validation
-    }
-
-    if (q.type === "tel" && !PHONE_REGEX.test(val.trim())) {
-      console.warn(`Phone validation failed for question ID: ${q.id}, value: ${val}`);
-      return true; // Temporarily bypass validation
-    }
-    if (q.type === "email" && !EMAIL_REGEX.test(val.trim())) {
-      console.warn(`Email validation failed for question ID: ${q.id}, value: ${val}`);
-      return true; // Temporarily bypass validation
-    }
-
-    if (FIELD_VALIDATION[q.id]) {
-      const result = FIELD_VALIDATION[q.id].validate?.(val);
-      if (result !== true) {
-        console.warn(`Custom validation failed for question ID: ${q.id}, value: ${val}, error: ${result}`);
-        return true; // Temporarily bypass validation
+    if (q.required) {
+      const value = values[q.id];
+      if (q.type === "checkbox") {
+        return Array.isArray(value) && value.length > 0;
       }
+      return value !== undefined && value !== null && value !== "";
     }
-  }
-  return true; // Temporarily bypass validation
+    return true;
+  });
 };
 
 const QuestionnaireContent = ({
@@ -127,7 +111,7 @@ useEffect(() => {
     const bmi = w / ((h / 100) ** 2);
     methods.setValue("bmi", Number.isFinite(bmi) ? bmi.toFixed(2) : "");
   } else {
-    methods.setValue("bmi", "");
+    methods.setValue("bmi", "N/A"); // Set default value if calculation is not possible
   }
 }, [height, weight, methods]);
 
@@ -139,9 +123,25 @@ useEffect(() => {
     const ratio = wst / hp;
     methods.setValue("waist_hip_ratio", Number.isFinite(ratio) ? ratio.toFixed(2) : "");
   } else {
-    methods.setValue("waist_hip_ratio", "");
+    methods.setValue("waist_hip_ratio", "N/A"); // Set default value if calculation is not possible
   }
 }, [waist, hip, methods]);
+
+  // Reset dependent fields when their dependsOn condition is not satisfied
+useEffect(() => {
+  currentPage?.questions.forEach((q) => {
+    if (q.dependsOn) {
+      const depValue = watchAllFields[q.dependsOn.id];
+      const matched = Array.isArray(depValue)
+        ? depValue.includes(q.dependsOn.value)
+        : depValue === q.dependsOn.value;
+
+      if (!matched) {
+        methods.setValue(q.id, q.type === "checkbox" ? [] : ""); // Reset the dependent field
+      }
+    }
+  });
+}, [watchAllFields, currentPage, methods]);
 
   return (
     <FormProvider {...methods}>
@@ -163,7 +163,9 @@ useEffect(() => {
               control={methods.control}
               defaultValue={q.type === "checkbox" ? [] : ""}
               rules={{
-                required: q.required !== false ? { value: true, message: "This field is required" } : false,
+                required: q.required
+                  ? { value: true, message: `${q.label} is required` }
+                  : false,
                 ...(FIELD_VALIDATION[q.id] || {}),
               }}
               render={({ field }) => (
