@@ -32,13 +32,27 @@ import {
   Visibility,
   Refresh
 } from '@mui/icons-material';
-import { debounce } from 'lodash';
 import { useAuth } from '../context/AuthContext';
 import ExcelExportButton from '../components/ExcelExportButton';
 import { useNavigate } from "react-router-dom";
 
 
 import Navbar from '../components/Navbar.jsx';
+
+/**
+ * Simple debounce function to limit function calls
+ * @param {Function} func - Function to debounce
+ * @param {number} delay - Delay in milliseconds
+ * @returns {Function} Debounced function
+ */
+const debounce = (func, delay) => {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+};
+
 /**
  * Admin Dashboard Component
  * Provides admin functionality including data export and response management
