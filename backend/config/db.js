@@ -15,7 +15,7 @@ const pool = new Pool({
   max: 20,                    // Max connections in pool
   min: 2,                     // Min connections to maintain
   idleTimeoutMillis: 30000,   // Close idle connections after 30s
-  connectionTimeoutMillis: 2000, // Connection timeout
+  connectionTimeoutMillis: 10000, // Connection timeout (increased to 10s)
   statement_timeout: 30000,   // Query timeout 30s
   
   ssl: {

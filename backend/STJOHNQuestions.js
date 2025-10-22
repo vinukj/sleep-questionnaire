@@ -238,8 +238,9 @@ export const STJohnQuestionnaire = [
   },
   {
     page: 2,
-    title: "Sleep Habits",
+    title: "Sleep History and Habits",
     questions: [
+      {id:"presenting_complaints", type: "text", label: "Presenting Complaints"},
       { id: "bedtime", type: "time", label: "Bedtime", required: false },
       {
         id: "sleep_latency",
@@ -304,11 +305,19 @@ export const STJohnQuestionnaire = [
         required: true,
       },
       {
+        id: "is_snoring",
+        type: "radio",
+        label: "Do you snore?",
+        options: ["Yes", "No"],
+        required: true,
+      },  
+      {
         id: "snoring",
         type: "radio",
         label: "Loud or intrusive snoring for more than 3 nights a week.",
         options: ["Yes", "No"],
         required: true,
+        dependsOn: { id: "is_snoring", value: "Yes" },
       },
       {
         id: "witnessed_apneas",
@@ -316,6 +325,7 @@ export const STJohnQuestionnaire = [
         label: "Witnessed apneas",
         options: ["Yes", "No"],
         required: true,
+        dependsOn: { id: "is_snoring", value: "Yes" },
       },
       {
         id: "nocturnal_choking",
@@ -323,6 +333,7 @@ export const STJohnQuestionnaire = [
         label: "Nocturnal choking episodes",
         options: ["Yes", "No"],
         required: true,
+        dependsOn: { id: "is_snoring", value: "Yes" },
       },
       {
         id: "restless_legs",
@@ -346,7 +357,7 @@ export const STJohnQuestionnaire = [
           "Sleep walking",
           "Sleep talking",
           "Sleep eating",
-          "Nightmares can appear",
+          "Nightmares",
         ],
         label: "If yes, specify",
         dependsOn: { id: "parasomnias", value: "Yes" },
@@ -365,7 +376,10 @@ export const STJohnQuestionnaire = [
         options: [
           "Sleep attacks",
           "Sleep paralysis",
-          "Cataplexy",
+          { 
+            label: "Cataplexy (sudden physical collapse while laughing, crying or in emotional situations)", 
+            value: "Cataplexy" 
+          },
           "Hallucinations",
         ],
         label: "If yes, specify",
@@ -452,6 +466,16 @@ export const STJohnQuestionnaire = [
         label: "Surgery for Sleep Apnea",
         options: ["Yes", "No"],
         required: true,
+      },
+      {
+        id:"surgery_type",
+        type :"radio",
+        options:[
+          "Upper airway surgery",
+          "Bariatric surgery",
+        ],
+        label:"If yes, type of surgery",
+        dependsOn:{id:"surgery_sleep_apnea",value:"Yes"}
       },
       {
         id: "medications",
@@ -566,7 +590,7 @@ export const STJohnQuestionnaire = [
       {
         id: "iss_q3",
         type: "radio",
-        label: "Do your knees give way during emotional situations?",
+        label: "Do your knees buckle/give way while laughing/crying or in intense emotional situations?",
         options: ["Yes", "No"],
         required: true,
       },
@@ -587,7 +611,7 @@ export const STJohnQuestionnaire = [
       {
         id: "iss_q6",
         type: "radio",
-        label: "Do you feel drowsy / sleepy  while doing household work?",
+        label: "Do you feel drowsy / sleepy while doing household work?",
         options: ["Yes", "No"],
         required: true,
       },
@@ -608,7 +632,7 @@ export const STJohnQuestionnaire = [
       {
         id: "iss_q8b",
         type: "radio",
-        label: "Nodded off / Felt sleepy  while driving?",
+        label: "Nodded off / Felt sleepy while driving?",
         options: ["Yes", "No"],
         required: true,
       },
@@ -622,14 +646,14 @@ export const STJohnQuestionnaire = [
       {
         id: "iss_q8d",
         type: "radio",
-        label: "Nodded off / Felt sleepy  while office work?",
+        label: "Nodded off / Felt sleepy while doing office work?",
         options: ["Yes", "No"],
         required: true,
       },
       {
         id: "iss_q8e",
         type: "radio",
-        label: "Nodded off / Felt sleepy  while operating heavy machinery?",
+        label: "Nodded off / Felt sleepy while operating heavy machinery?",
         options: ["Yes", "No"],
         required: true,
       },
