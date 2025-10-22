@@ -14,6 +14,7 @@ import {
   Divider,
 } from "@mui/material";
 import { clearQuestionnaireCache } from "../service/quizCacheService.js";
+import logger from "../utils/logger";
 
 const API_URL =  import.meta.env.VITE_API_URL
 
@@ -31,12 +32,12 @@ export default function AuthScreen() {
   useEffect(() => {
     if (currentUser) {
       navigate("/home", { replace: true });
-      console.log("User is already logged in:", currentUser);
+      logger.info("User is already logged in:", currentUser);
     }
   }, [currentUser, navigate]);
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    console.log("Google credential response:", credentialResponse);
+    logger.debug("Google credential response:", credentialResponse);
     try {
       const googleToken = credentialResponse?.credential;
       if (!googleToken) {
@@ -66,7 +67,7 @@ export default function AuthScreen() {
       // Expect backend to return { accessToken, refreshToken }
       const { accessToken, refreshToken } = data;
       if (!accessToken || !refreshToken) {
-        console.warn('Google login did not return tokens:', data);
+        logger.warn('Google login did not return tokens:', data);
       }
 
       // Persist tokens where AuthContext expects them and re-validate session
@@ -74,16 +75,16 @@ export default function AuthScreen() {
         localStorage.setItem('auth_tokens', JSON.stringify({ accessToken, refreshToken }));
         clearQuestionnaireCache(currentUser?.user?.id || currentUser?.id);
       } catch (e) {
-        console.warn('Failed to store auth tokens in localStorage:', e);
+        logger.warn('Failed to store auth tokens in localStorage:', e);
       }
 
       // Trigger AuthContext to verify and load profile
       try {
         await verifySession();
-        console.log(currentUser);
+        logger.debug(currentUser);
         clearQuestionnaireCache(currentUser?.user?.id || currentUser?.id);
       } catch (e) {
-        console.warn('verifySession after Google login failed:', e);
+        logger.warn('verifySession after Google login failed:', e);
       }
 
       navigate("/home", { replace: true });

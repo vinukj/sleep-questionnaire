@@ -2,7 +2,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute({ children }) {
-  const { currentUser, loading, authReady } = useAuth();
+  const { currentUser, authReady } = useAuth();
   const location = useLocation();
 
   // Show loading state only if auth is not ready

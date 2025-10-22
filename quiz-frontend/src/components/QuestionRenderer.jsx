@@ -15,6 +15,7 @@ import {
   Typography,
   FormHelperText,
 } from "@mui/material";
+import logger from "../utils/logger";
 
 const QuestionBox = ({ children }) => <Box sx={{ mb: 3 }}>{children}</Box>;
 
@@ -24,7 +25,7 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
 
   // Log the value being rendered for debugging
   useEffect(() => {
-    console.log(`Rendering question ${id} with value:`, value);
+    logger.debug(`Rendering question ${id} with value:`, value);
   }, [id, value]);
 
   // Checkbox handler for regular + "Other" option
@@ -51,8 +52,6 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
       onChange(updated);
     };
 
-    const otherEntry = currentAnswers.find((v) => v.startsWith("Other:"));
-    const otherValue = otherEntry ? otherEntry.replace("Other: ", "") : "";
     const otherChecked = otherOpt && currentAnswers.includes(otherOpt);
 
     return (

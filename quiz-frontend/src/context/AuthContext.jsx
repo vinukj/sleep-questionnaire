@@ -21,6 +21,7 @@ const AuthContext = createContext(null);
 export { AuthContext };
 
 // Exported hook - keep as a stable named export for Fast Refresh
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -62,7 +63,6 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const [authReady, setAuthReady] = useState(false);
-  const [tokens, setTokens] = useState(getStoredTokens());
 
   // ---------------- HANDLE LOGOUT ----------------
   const handleLogout = useCallback(() => {
@@ -79,13 +79,12 @@ export function AuthProvider({ children }) {
     }
 
     setCurrentUser(null);
-    setTokens({ accessToken: null, refreshToken: null });
     setStoredTokens(null);
     localStorage.removeItem("lastRoute");
     // mark auth as ready (we know user is logged out) and stop loading
     setAuthReady(true);
     setLoading(false);
-  }, []);
+  }, [currentUser?.user?.id, currentUser?.id]);
 
   // ---------------- LOGIN ----------------
   const login = async (email, password) => {
@@ -111,7 +110,6 @@ export function AuthProvider({ children }) {
       };
 
       // Store tokens
-      setTokens(newTokens);
       setStoredTokens(newTokens);
 
       // Fetch profile with new access token
@@ -249,7 +247,6 @@ export function AuthProvider({ children }) {
           refreshToken: data.refreshToken,
         };
 
-        setTokens(newTokens);
         setStoredTokens(newTokens);
 
         authChannel.postMessage({
@@ -348,7 +345,6 @@ export function AuthProvider({ children }) {
         const incomingUser = data?.user;
         const incomingTokens = data?.tokens;
         if (incomingTokens) {
-          setTokens(incomingTokens);
           setStoredTokens(incomingTokens);
         } else {
           // If no tokens provided, ignore the login broadcast to avoid mixing users without tokens

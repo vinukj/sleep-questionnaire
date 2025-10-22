@@ -6,7 +6,6 @@ import AuthScreen from "./pages/authScreen.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import HomeScreen from "./pages/HomeScreen.jsx";
-import QuestionnairePage from "./pages/questionnairePage.jsx";
 
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import Questionnaire from "./components/Questionnaire.jsx";
@@ -34,23 +33,12 @@ export default function App() {
         path="/STJohnquestionnaire"
         element={
           <ProtectedRoute>
-            {" "}
             <Questionnaire />
           </ProtectedRoute>
         }
       ></Route>
 
-    
-
-      <Route
-        path="/questionnaire"
-        element={
-          <ProtectedRoute>
-            <QuestionnairePage />
-          </ProtectedRoute>
-        }
-      />
-
+  
       {/* Admin Dashboard Route */}
       <Route
         path="/admin"

@@ -1,4 +1,4 @@
- import { useAuth } from "../context/AuthContext";
+import logger from "../utils/logger";
 
 const CACHE_EXPIRATION_MS = 60 * 60 * 1000; // 1 hou
 
@@ -22,7 +22,7 @@ export const setQuestionnaireInCache = (questionnaire, version, userId) => {
    }
     localStorage.setItem(key, JSON.stringify(payload));
   } catch (err) {
-    console.warn('Failed to write questionnaire cache:', err);
+    logger.warn('Failed to write questionnaire cache:', err);
   }
 };
 
@@ -39,7 +39,7 @@ export const getQuestionnaireFromCache = (userId) => {
     const parsed = JSON.parse(raw);
     return parsed;
   } catch (err) {
-    console.warn('Failed to read questionnaire cache:', err);
+    logger.warn('Failed to read questionnaire cache:', err);
     return null;
   }
 };
@@ -49,7 +49,7 @@ export const clearQuestionnaireCache = (userId) => {
     const key = getQuestionnaireKey(userId);
     localStorage.removeItem(key);
   } catch (err) {
-    console.warn('Failed to clear questionnaire cache for', userId, err);
+    logger.warn('Failed to clear questionnaire cache for', userId, err);
   }
 };
 
@@ -59,7 +59,7 @@ export const setQuestionnaireCache = (schema, userId) => {
     const payload = { schema, timestamp: Date.now() };
     localStorage.setItem(key, JSON.stringify(payload));
   } catch (error) {
-    console.warn('Failed to write questionnaire cache:', error);
+    logger.warn('Failed to write questionnaire cache:', error);
   }};
 
   export const clearUserCache = (userId) => {
@@ -67,6 +67,6 @@ export const setQuestionnaireCache = (schema, userId) => {
     const key = getQuestionnaireKey(userId);
     localStorage.removeItem(key);
   } catch (err) {
-    console.warn('Failed to clear questionnaire cache for', userId, err);
+    logger.warn('Failed to clear questionnaire cache for', userId, err);
   }
 };

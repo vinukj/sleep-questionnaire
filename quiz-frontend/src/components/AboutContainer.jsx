@@ -30,6 +30,7 @@ const AboutContainer = () => {
       setLoading(false);
     };
     fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChange = (e) => {

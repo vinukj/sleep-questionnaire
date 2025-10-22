@@ -1,5 +1,5 @@
 // QuestionnaireContent.jsx
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { FormProvider, Controller } from "react-hook-form";
 import { Box, Button, Alert, useTheme, useMediaQuery } from "@mui/material";
 import QuestionRenderer from "./QuestionRenderer";
@@ -7,6 +7,7 @@ import QuestionRenderer from "./QuestionRenderer";
 const PHONE_REGEX = /^\+91[-\s]?[6-9]\d{9}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const FIELD_VALIDATION = {
   spo2: {
     validate: (value) => {
@@ -111,7 +112,7 @@ const QuestionnaireContent = ({
   // Initial sync of previous values on mount or when currentPage changes
   useEffect(() => {
     previousValuesRef.current = { ...watchAllFields };
-  }, [currentPage]);
+  }, [currentPage, watchAllFields]);
 
   // Debounced reset of dependent fields to avoid performance issues
   useEffect(() => {

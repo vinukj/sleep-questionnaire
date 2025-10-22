@@ -1,6 +1,5 @@
 import React from 'react';
 import { Container, Box, Typography, Button } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -51,7 +50,7 @@ class ErrorBoundary extends React.Component {
                 Refresh Page
               </Button>
             </Box>
-            {process.env.NODE_ENV === 'development' && (
+            {import.meta.env.DEV && (
               <Box sx={{ mt: 4, p: 2, backgroundColor: '#f5f5f5', textAlign: 'left' }}>
                 <Typography variant="code" component="pre" sx={{ fontSize: '0.75rem' }}>
                   {this.state.error?.toString()}

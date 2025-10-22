@@ -271,3 +271,32 @@ export const updateQuestionnaireResponse = async (id, responseData) => {
     );
     return result.rows[0];
 };
+
+export const deleteQuestionnaireResponsesByName = async (name) => {
+    try {
+        const result = await pool.query(
+            `DELETE FROM questionnaire_responses 
+             WHERE response_data->>'name' = $1
+             RETURNING id, response_data->>'name' as name, created_at`,
+            [name]
+        );
+        
+        if (result.rows.length === 0) {
+            return { 
+                success: false, 
+                message: `No questionnaire responses found for name: '${name}'`,
+                deletedCount: 0 
+            };
+        }
+        
+        return { 
+            success: true, 
+            message: `Successfully deleted ${result.rows.length} questionnaire response(s) for '${name}'`,
+            deletedCount: result.rows.length,
+            deletedRecords: result.rows
+        };
+    } catch (error) {
+        console.error('Error deleting questionnaire responses by name:', error);
+        throw error;
+    }
+};

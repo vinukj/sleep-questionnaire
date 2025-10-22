@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { useQuestionnaire } from "../hooks/useQuestionnaire.js";
+import logger from "../utils/logger";
 import {
   Box,
   Snackbar,
@@ -155,15 +156,15 @@ export default function Questionnaire() {
     const editingState = location.state?.isEditing || false;
     const id = location.state?.responseId || null;
     
-    console.log("Received responseData in Questionnaire:", responseData);
-    console.log("Editing mode:", editingState, "Response ID:", id);
+    logger.info("Received responseData in Questionnaire:", responseData);
+    logger.info("Editing mode:", editingState, "Response ID:", id);
     
     setIsEditing(editingState);
     setResponseId(id);
     
     if (responseData && Object.keys(responseData).length > 0) {
       Object.keys(responseData).forEach((key) => {
-        console.log(`Setting field ${key} with value:`, responseData[key]);
+        logger.debug(`Setting field ${key} with value:`, responseData[key]);
         methods.setValue(key, responseData[key]);
       });
     }

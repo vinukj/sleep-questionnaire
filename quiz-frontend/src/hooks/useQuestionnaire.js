@@ -4,7 +4,6 @@ import { STJohnQuestionnaire } from '../STJOHNQuestions';
 import {
   getQuestionnaireFromCache,
   setQuestionnaireInCache,
-  clearQuestionnaireCache,
 } from '../service/quizCacheService';
 
 export const useQuestionnaire = () => {

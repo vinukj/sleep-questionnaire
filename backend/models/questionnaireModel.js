@@ -76,8 +76,48 @@ const updateQuestionnaireSchema = async (name, schema) => {
   }
 };
 
+// Function to delete questionnaire schema by name
+const deleteQuestionnaireSchema = async (name) => {
+  try {
+    const query = `
+      DELETE FROM questionnaire_schemas 
+      WHERE name = $1
+      RETURNING id, name
+    `;
+    const result = await pool.query(query, [name]);
+    
+    if (result.rows.length === 0) {
+      return { success: false, message: `Questionnaire schema '${name}' not found` };
+    }
+    
+    return { 
+      success: true, 
+      message: `Questionnaire schema '${name}' deleted successfully`,
+      deletedId: result.rows[0].id 
+    };
+  } catch (error) {
+    console.error('Error deleting questionnaire schema:', error);
+    throw error;
+  }
+};
+
+// Function to get all questionnaire schema names
+const getAllQuestionnaireSchemaNames = async () => {
+  try {
+    const query = 'SELECT id, name, created_at, updated_at FROM questionnaire_schemas ORDER BY name';
+    const result = await pool.query(query);
+    return result.rows;
+  } catch (error) {
+    console.error('Error fetching questionnaire schema names:', error);
+    throw error;
+  }
+};
+
+
 export {
   initializeTables,
   getQuestionnaireSchema,
-  updateQuestionnaireSchema
+  updateQuestionnaireSchema,
+  deleteQuestionnaireSchema,
+  getAllQuestionnaireSchemaNames
 };

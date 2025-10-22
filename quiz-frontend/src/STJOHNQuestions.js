@@ -1,6 +1,7 @@
 
 
 import { fetchQuestionnaireSchema } from './service/questionnaireSchemaService';
+import logger from './utils/logger';
 
 // This is kept as a fallback in case the API fails
 const defaultQuestionnaireJSON = [
@@ -511,7 +512,7 @@ export const loadQuestionnaire = async () => {
     const data = await fetchQuestionnaireSchema();
     questionnaire = data;
   } catch (error) {
-    console.warn('Failed to fetch questionnaire from API, using default:', error);
+    logger.warn('Failed to fetch questionnaire from API, using default:', error);
     // Fall back to default if API fails
     questionnaire = defaultQuestionnaireJSON.map(page => ({
       ...page,

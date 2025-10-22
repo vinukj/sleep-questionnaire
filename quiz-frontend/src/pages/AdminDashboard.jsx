@@ -24,6 +24,7 @@ import {
   Tooltip,
   TextField
 } from '@mui/material';
+import logger from '../utils/logger';
 import {
   Dashboard,
   People,
@@ -45,13 +46,7 @@ import Navbar from '../components/Navbar.jsx';
  * @param {number} delay - Delay in milliseconds
  * @returns {Function} Debounced function
  */
-const debounce = (func, delay) => {
-  let timeoutId;
-  return (...args) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func(...args), delay);
-  };
-};
+// Removed: unused debounce function
 
 /**
  * Admin Dashboard Component
@@ -84,7 +79,7 @@ const AdminDashboard = () => {
   });
 
   useEffect(() => {
-    console.log('Admin dashboard mounted');
+    logger.info('Admin dashboard mounted');
   }, []);
 
   // Load statistics only once on mount
@@ -92,6 +87,7 @@ const AdminDashboard = () => {
     if (user) {
       loadStatistics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Load table data when pagination or search changes
@@ -99,6 +95,7 @@ const AdminDashboard = () => {
     if (user) {
       loadTableData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, page, rowsPerPage, searchQuery]);
 
   // Load statistics (total counts and recent responses) - runs once
@@ -360,9 +357,9 @@ const AdminDashboard = () => {
                         fileName="questionnaire_responses_admin"
                         size="small"
                         variant="outlined"
-                        onExportStart={(format) => console.log(`Admin export started: ${format}`)}
+                        onExportStart={(format) => logger.info(`Admin export started: ${format}`)}
                         onExportComplete={(format, fileName) => {
-                          console.log(`Admin export completed: ${fileName}`);
+                          logger.success(`Admin export completed: ${fileName}`);
                         }}
                         onExportError={(error) => {
                           setError(`Export failed: ${error}`);
