@@ -453,7 +453,7 @@ const AdminDashboard = () => {
           </Paper>
 
           {/* Search Bar */}
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: 2 }} ref={allResponsesRef}>
             <TextField
               label="Search by Hospital ID, Name, Email, or Phone"
               variant="outlined"
@@ -465,7 +465,7 @@ const AdminDashboard = () => {
           </Box>
 
           {/* All Responses Table */}
-          <Paper ref={allResponsesRef}>
+          <Paper >
             <Box sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>
                 All Questionnaire Responses
