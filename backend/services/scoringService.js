@@ -10,21 +10,22 @@ export const calculateSleepScore = async (responseData) => {
         : null;
 
     // ISS (simple tally example; adjust weights if needed)
-    let iss = 0;
-    if (responseData.iss_q1 === "Yes") iss += 2;
-    if (responseData.iss_q5 === "Yes") iss += 2;
-    if (responseData.iss_q6 === "Yes") iss += 2;
-    if (responseData.iss_q7 === "Yes") iss += 2;
-    if (
-      responseData.iss_q2a === "Yes" ||
-      responseData.iss_q8a === "Yes" ||
-      responseData.iss_q8b === "Yes" ||
-      responseData.iss_q8c === "Yes" ||
-      responseData.iss_q8d === "Yes" ||
-      responseData.iss_q8e === "Yes"
-    ) {
-      iss += 10;
-    }
+  let iss = 0;
+if (responseData.iss_q1 === "Yes") iss += 2;
+if (responseData.iss_q2b === "Yes") iss += 2; // Added missing scoring
+if (responseData.iss_q5 === "Yes") iss += 2;
+if (responseData.iss_q6 === "Yes") iss += 2;
+if (responseData.iss_q7 === "Yes") iss += 2;
+
+if (
+  responseData.iss_q8a === "Yes" ||
+  responseData.iss_q8b === "Yes" ||
+  responseData.iss_q8c === "Yes" ||
+  responseData.iss_q8d === "Yes" ||
+  responseData.iss_q8e === "Yes"
+) {
+  iss += 10;
+}
 
     // BMI category
     let bmiCategory = null;
