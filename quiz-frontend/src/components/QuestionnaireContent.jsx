@@ -106,22 +106,17 @@ const QuestionnaireContent = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const watchAllFields = methods.watch();
-  const previousValuesRef = useRef({});
+  const previousValuesRef = useRef(watchAllFields);
   const resetTimeoutRef = useRef(null);
 
-  // Initial sync of previous values on mount or when currentPage changes
-  useEffect(() => {
-    previousValuesRef.current = { ...watchAllFields };
-  }, [currentPage, watchAllFields]);
-
-  // Debounced reset of dependent fields to avoid performance issues
+  // Reset dependent fields when parent field changes
   useEffect(() => {
     // Clear previous timeout
     if (resetTimeoutRef.current) {
       clearTimeout(resetTimeoutRef.current);
     }
 
-    // Set new timeout for dependency check
+    // Set new timeout for dependency check (no debounce needed for clearing)
     resetTimeoutRef.current = setTimeout(() => {
       currentPage?.questions.forEach((q) => {
         if (q.dependsOn) {
@@ -150,8 +145,18 @@ const QuestionnaireContent = ({
               matched = depValue === dependsOnValue;
             }
 
-            if (!matched && watchAllFields[q.id] !== "") {
-              methods.setValue(q.id, q.type === "checkbox" ? [] : "");
+            // Clear dependent field if condition is not met
+            if (!matched) {
+              const currentValue = watchAllFields[q.id];
+              const hasValue = q.type === "checkbox" 
+                ? (Array.isArray(currentValue) && currentValue.length > 0)
+                : (currentValue !== "" && currentValue !== null && currentValue !== undefined);
+              
+              if (hasValue) {
+                const emptyValue = q.type === "checkbox" ? [] : "";
+                methods.setValue(q.id, emptyValue, { shouldValidate: false, shouldDirty: true });
+                console.log(`Cleared dependent field: ${q.id} (parent: ${q.dependsOn.id} = ${depValue})`);
+              }
             }
           }
         }
@@ -159,7 +164,7 @@ const QuestionnaireContent = ({
 
       // Update previous values ref
       previousValuesRef.current = { ...watchAllFields };
-    }, 100); // 100ms debounce
+    }, 0); // No debounce - clear immediately
 
     return () => {
       if (resetTimeoutRef.current) {

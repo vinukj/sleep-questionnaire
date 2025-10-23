@@ -194,7 +194,10 @@ const AdminDashboard = () => {
       const data = typeof responseData === 'string' 
         ? JSON.parse(responseData) 
         : responseData;
-      return data.issScore || data.scores.issScore || 'N/A';
+      
+      // Check for issScore, handle 0 as valid value
+      const score = data.issScore ?? data.scores?.issScore ?? null;
+      return score !== null && score !== undefined ? score : 'N/A';
     } catch {
       return 'N/A';
     }

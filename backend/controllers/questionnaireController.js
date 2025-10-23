@@ -138,7 +138,22 @@ export const updateResponse = async (req, res) => {
             });
         }
 
-        const updatedResponse = await updateQuestionnaireResponse(id, responseData);
+        // Sanitize and normalize the data
+        const sanitized = { ...responseData };
+
+        // Recalculate scores with the updated data
+        const flatScores = await calculateSleepScore(sanitized);
+
+        // Remove any nested scores object from incoming payload
+        if ('scores' in sanitized) {
+            delete sanitized.scores;
+        }
+
+        // Merge recalculated scores into the updated data
+        Object.assign(sanitized, flatScores);
+
+        // Update the response in the database with recalculated scores
+        const updatedResponse = await updateQuestionnaireResponse(id, sanitized);
 
         if (!updatedResponse) {
             return res.status(404).json({
@@ -150,7 +165,8 @@ export const updateResponse = async (req, res) => {
         res.json({
             success: true,
             message: 'Questionnaire response updated successfully',
-            data: updatedResponse
+            data: updatedResponse,
+            scores: flatScores // Echo of recalculated scores
         });
     } catch (error) {
         console.error('Error updating questionnaire response:', error);

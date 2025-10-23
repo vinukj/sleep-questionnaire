@@ -5,7 +5,7 @@ import rateLimit from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
 import authRoute from "./routes/authRoute.js";
-import quizRoute from "./routes/quizRoute.js";
+
 import userRoutes from "./routes/userRoute.js";
 import exportRoute from "./routes/exportRoute.js";
 import questionnaireRoute from "./routes/questionnaireRoute.js";
