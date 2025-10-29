@@ -19,6 +19,7 @@ export const FIELD_VALIDATION = {
       return true;
     },
   },
+
   age: {
     validate: (value) => {
       if (!value) return true;
@@ -27,22 +28,57 @@ export const FIELD_VALIDATION = {
       return true;
     },
   },
+
   height: {
     validate: (value) => {
       if (!value) return true;
       const num = Number(value);
       if (isNaN(num) || num <= 0) return "Enter a valid height";
+      if (!/^\d{1,3}$/.test(value)) return "Height must be max 3 digits";
       return true;
     },
   },
+
   weight: {
     validate: (value) => {
       if (!value) return true;
       const num = Number(value);
       if (isNaN(num) || num <= 0) return "Enter a valid weight";
+      if (!/^\d{1,3}$/.test(value)) return "Weight must be max 3 digits";
       return true;
     },
   },
+
+  waist: {
+    validate: (value) => {
+      if (!value) return true;
+      const num = Number(value);
+      if (isNaN(num) || num <= 0) return "Enter a valid waist circumference";
+      if (!/^\d{1,3}$/.test(value)) return "Waist circumference must be max 3 digits";
+      return true;
+    },
+  },
+
+  hip: {
+    validate: (value) => {
+      if (!value) return true;
+      const num = Number(value);
+      if (isNaN(num) || num <= 0) return "Enter a valid hip circumference";
+      if (!/^\d{1,3}$/.test(value)) return "Hip circumference must be max 3 digits";
+      return true;
+    },
+  },
+
+  neck: {
+    validate: (value) => {
+      if (!value) return true;
+      const num = Number(value);
+      if (isNaN(num) || num <= 0) return "Enter a valid neck circumference";
+      if (!/^\d{1,2}$/.test(value)) return "Neck circumference must be max 2 digits";
+      return true;
+    },
+  },
+
   bmi: {
     validate: (value) => {
       if (!value) return true;
@@ -51,18 +87,21 @@ export const FIELD_VALIDATION = {
       return true;
     },
   },
+
   bp: {
     pattern: {
-      value: /^\d{2,3}\/\d{2,3}$/,
-      message: "BP must be in the format systolic/diastolic (e.g., 120/80)",
+      value: /^\d{1,3}\/\d{1,3}$/,
+      message: "BP must be in the format systolic/diastolic (e.g., 120/80), max 3 digits each",
     },
   },
+
   phone: {
     pattern: {
       value: PHONE_REGEX,
       message: "Phone number must be a valid Indian number starting with +91",
     },
   },
+
   email: {
     pattern: {
       value: EMAIL_REGEX,
@@ -70,6 +109,7 @@ export const FIELD_VALIDATION = {
     },
   },
 };
+
 
 const isPageValid = (questions, values) => {
   return questions.every((q) => {
