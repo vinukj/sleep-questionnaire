@@ -42,7 +42,7 @@ let refreshRequestPromise = null;
 const getStoredTokens = () => {
   try {
     const tokens = JSON.parse(localStorage.getItem("auth_tokens"));
-    console.log("Stored tokens:", tokens);
+    
     return tokens || { accessToken: null, refreshToken: null };
   } catch {
     return { accessToken: null, refreshToken: null };
