@@ -50,7 +50,6 @@ if (
       iss,
       issScore: iss,
       bmiCategory,
-      riskLevel,
     };
   } catch (error) {
     console.error("Error calculating sleep score:", error);
