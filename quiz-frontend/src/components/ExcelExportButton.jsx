@@ -184,17 +184,7 @@ const ExcelExportButton = ({
               </Typography>
             </Box>
           </MenuItem>
-          <MenuItem onClick={() => handleExport('csv')}>
-            <Description sx={{ mr: 1, color: 'info.main' }} />
-            <Box>
-              <Typography variant="body2" fontWeight={600}>
-                CSV (.csv)
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Simple text format
-              </Typography>
-            </Box>
-          </MenuItem>
+          
         </Menu>
       )}
 
