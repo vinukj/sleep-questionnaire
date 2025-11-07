@@ -223,6 +223,13 @@ export function AuthProvider({ children }) {
         });
 
         if (!res.ok) {
+          // Try to read JSON response first to check for sessionExpired flag
+          const errorData = await res.json().catch(() => null);
+          if (errorData?.sessionExpired) {
+            handleLogout();
+            return false;
+          }
+
           if (res.status === 401 || res.status === 409) {
             const latestTokens = getStoredTokens();
             if (
@@ -397,6 +404,18 @@ export function AuthProvider({ children }) {
       headers,
       credentials: "include",
     });
+
+    // Try to read response body to check for accessExpired flag
+    const clone = res.clone();
+    let body = null;
+    try { body = await clone.json(); } catch {}
+    
+    if (body?.accessExpired === true && retry) {
+      const refreshed = await refreshTokens();
+      if (refreshed) return authFetch(url, options, false);
+      handleLogout();
+      navigate("/login", { replace: true });
+    }
 
     if ((res.status === 403 || res.status === 401) && retry) {
       const refreshed = await refreshTokens();

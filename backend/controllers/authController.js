@@ -238,8 +238,8 @@ export const refreshTokens = async (req, res) => {
             const updateResult = await client.query(
                 `UPDATE user_sessions
                  SET refresh_token = $1, token_id = $2, expires_at = $3, created_at = NOW()
-                 WHERE token_id = $4`,
-                [newRefreshToken, newTokenId, newExpiresAt, session.token_id]
+                 WHERE refresh_token = $4`,
+                [newRefreshToken, newTokenId, newExpiresAt, incomingRefresh]
             );
 
             if (updateResult.rowCount !== 1) {
@@ -310,4 +310,14 @@ export const getProfile = async (req, res) => {
         console.error('[AUTH] Get profile error:', err);
         res.status(401).json({ error: "Invalid or expired token" });
     }
+};
+
+// DEBUG: Force expire access token
+export const forceExpireAccess = async (req, res) => {
+  return res.status(401).json({ accessExpired: true });
+};
+
+// DEBUG: Force expire refresh token
+export const forceExpireRefresh = async (req, res) => {
+  return res.status(401).json({ sessionExpired: true });
 };

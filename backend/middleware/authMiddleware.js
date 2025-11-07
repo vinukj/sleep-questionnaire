@@ -76,10 +76,19 @@ export const verifyTokens = async (req, res, next) => {
     next();
   } catch (err) {
     console.error("JWT Verification Failed:", err);
+
+    // Special handling for expired tokens
+    if (err instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({
+        message: "Access token expired",
+        accessExpired: true
+      });
+    }
+
+    // All other JWT errors
     return res.status(403).json({
-      message: "Invalid or expired token",
-      errorName: err.name,
-      errorMessage: err.message,
+      message: "Invalid token",
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
 };
