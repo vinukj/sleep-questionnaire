@@ -3,19 +3,20 @@ name: Deploy to Linux Server
 on:
   push:
     branches:
-      -master
+      - master
+
 jobs:
   deploy:
     runs-on: self-hosted
 
     steps:
-      -name: Update backend on server
-      shell: bash
-      run: |
-        cd /var/www/StJohn-WebApp/backend
+      - name: Update backend on server
+        shell: bash
+        run: |
+          cd /var/www/StJohn-WebApp/backend
 
-        echo "Pulling latest code .."
-        git pull origin main
+          echo "Pulling latest code .."
+          git pull origin main
 
-        echo "Installing dependencies"
-        npm install
+          echo "Installing dependencies"
+          npm install
