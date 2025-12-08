@@ -16,7 +16,7 @@ jobs:
           cd /var/www/StJohn-WebApp/backend
 
           echo "Pulling latest code .."
-          git pull origin main
+          git pull origin master
 
           echo "Installing dependencies"
           npm install
