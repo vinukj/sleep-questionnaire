@@ -24,7 +24,21 @@ dist-ssr
 *.sln
 *.sw?
 
-
+# Environment files
 /backend/.env
 /quiz-frontend/.env
 
+# Document files
+*.txt
+*.docx
+*.pdf
+*.doc
+
+# Test documents and sample reports
+reannotatedsleepstudyreportsforsplitnightandtitrat/
+uploads/
+test-*.js
+*_original.txt
+*_redacted.txt
+*_pii.json
+*_medical_data.json

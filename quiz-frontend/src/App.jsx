@@ -9,6 +9,7 @@ import HomeScreen from "./pages/HomeScreen.jsx";
 
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import Questionnaire from "./components/Questionnaire.jsx";
+import OCRUploadPage from "./pages/OCRUploadPage.jsx";
 
 export default function App() {
   // Set up auth redirect handling
@@ -47,6 +48,16 @@ export default function App() {
             {" "}
             <AdminDashboard />
           </AdminRoute>
+        }
+      />
+
+      {/* OCR Upload Route */}
+      <Route
+        path="/ocr-upload"
+        element={
+          <ProtectedRoute>
+            <OCRUploadPage />
+          </ProtectedRoute>
         }
       />
 

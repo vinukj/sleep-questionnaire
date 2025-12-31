@@ -60,7 +60,22 @@ function HomeScreen() {
                   Start Questionnaire
                 </Link>
               </CardContent>
-            </Card>        
+            </Card>
+
+            {/* OCR Upload Section */}
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Medical Report OCR
+                </Typography>
+                <Typography variant="body2" color="text.secondary" paragraph>
+                  Upload sleep study reports to extract structured medical data using AI
+                </Typography>
+                <Link to="/ocr-upload" className="start-quiz-button">
+                  Upload Report
+                </Link>
+              </CardContent>
+            </Card>
 
           </Box>
         </main>
