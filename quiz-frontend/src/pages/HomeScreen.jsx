@@ -1,14 +1,19 @@
 // file: frontend/src/pages/HomeScreen.jsx
 import React, { useEffect } from 'react';
 import Navbar from '../components/Navbar.jsx';
+import ExcelExportButton from '../components/ExcelExportButton.jsx';
 import '../styles/HomeScreen.css';
-import { fetchAndCacheAllQuizzes } from '../service/quizCacheService.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Box, Typography, Card, CardContent, Alert, Button, CircularProgress } from '@mui/material';
+import { BugReport } from '@mui/icons-material';
 
 function HomeScreen() {
-  const { currentUser, loading, authFetch,authReady } = useAuth();
+  const { currentUser, authReady } = useAuth();
   const navigate = useNavigate();
+
+  // Sample patient data for testing export - removed unused handlers and test functions
+
 
   useEffect(() => {
     // Redirect to login if auth check finished and user is not authenticated
@@ -16,13 +21,6 @@ function HomeScreen() {
       navigate('/login', { replace: true });
     }
   }, [currentUser, authReady, navigate]);
-
-  useEffect(() => {
-    // Fetch quizzes once the user is logged in
-    if (currentUser) {
-      fetchAndCacheAllQuizzes(authFetch, currentUser.user.id);
-    }
-  }, [currentUser, authFetch]);
 
   if (!authReady) {
     return (
@@ -39,12 +37,32 @@ function HomeScreen() {
       <Navbar />
       <div className="home-container">
         <main className="home-main">
-          <h2>Welcome {currentUser.user ? currentUser.user.email : currentUser.email}</h2>
-          <p>Track your sleep, answer questionnaires, and monitor your progress.</p>
+          <Typography variant="h4" component="h2" gutterBottom>
+            Welcome {currentUser.user ? currentUser.user.email : currentUser.email}
+          </Typography>
+          <Typography variant="body1" color="text.secondary" paragraph>
+      
+          </Typography>
 
-          <div className="placeholder-content">
-            {/* <p>Questionnaire content will go here.</p> */}
-          </div>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 4 }}>
+            
+            {/* Questionnaire Section */}
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Sleep Questionnaire
+                </Typography>
+                <Typography variant="body2" color="text.secondary" paragraph>
+                  Complete the comprehensive sleep assessment questionnaire
+                </Typography>
+                <Link to="/STJohnquestionnaire" className="start-quiz-button">
+                  Start Questionnaire
+                </Link>
+              </CardContent>
+            </Card>        
+
+          </Box>
         </main>
       </div>
     </>

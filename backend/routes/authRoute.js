@@ -1,5 +1,5 @@
 import express from 'express';
-import { signup, login, googleLogin } from '../controllers/authController.js';
+import { signup, login, googleLogin, refreshTokens } from '../controllers/authController.js';
 import { verifyTokens, verifyTokenBasic } from '../middleware/authMiddleware.js';
 import { invalidateAllUserSessions } from '../models/userModel.js';
 
@@ -71,6 +71,8 @@ router.post('/signup', signup);
  *         description: Invalid credentials
  */
 router.post('/login', login);
+// Refresh token rotation endpoint
+router.post('/refresh', refreshTokens);
 
 /**
  * @swagger
@@ -145,7 +147,23 @@ router.get('/verify', verifyTokenBasic, (req, res) => {
  */
 router.get('/profile', verifyTokens, (req, res) => {
   console.log(`[AUTH] Inline profile route:`, { method: req.method, path: req.originalUrl, user: req.user });
-  res.json({ user: { id: req.user.id, name: req.user.name, email: req.user.email } });
+  
+  // Check if user email is in admin list
+  const adminList = (process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean);
+  
+  const isAdmin = adminList.includes(req.user.email.toLowerCase());
+  
+  res.json({
+    user: {
+      id: req.user.id,
+      name: req.user.name,
+      email: req.user.email,
+      isAdmin: isAdmin
+    }
+  });
 });
 
 /**

@@ -1,9 +1,14 @@
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
-const API_URL =  import.meta.env.VITE_API_URL 
+const API_URL = import.meta.env.VITE_API_URL;
 
-const navigate = useNavigate();
+// Create a custom event for handling auth redirects
+const authEvents = new EventTarget();
+export const AUTH_EVENTS = {
+  UNAUTHORIZED: 'unauthorized',
+  TOKEN_EXPIRED: 'token_expired'
+};
+
 const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
@@ -15,13 +20,14 @@ api.interceptors.response.use(
     const originalRequest = error.config;
     
     // Check for 401 error and ensure it's not a retry request
-    if (error.response.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true; // Mark request to prevent looping
       
-      // ✅ CRITICAL FIX: If the failed request was already for a refresh token, give up.
+      // If the failed request was already for a refresh token, give up
       if (originalRequest.url === '/auth/refresh-token') {
-        console.error("Refresh token is invalid or expired. Redirecting to login.");
-        navigate('/login'); // Use your routing method here
+        console.error("Refresh token is invalid or expired.");
+        // Dispatch token expired event
+        authEvents.dispatchEvent(new Event(AUTH_EVENTS.TOKEN_EXPIRED));
         return Promise.reject(error);
       }
       
@@ -32,10 +38,10 @@ api.interceptors.response.use(
         
         // Retry the original request
         return api(originalRequest);
-
       } catch (refreshError) {
         console.error('Unable to refresh token:', refreshError);
-        navigate('/login');
+        // Dispatch unauthorized event
+        authEvents.dispatchEvent(new Event(AUTH_EVENTS.UNAUTHORIZED));
         return Promise.reject(refreshError);
       }
     }

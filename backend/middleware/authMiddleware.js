@@ -76,10 +76,19 @@ export const verifyTokens = async (req, res, next) => {
     next();
   } catch (err) {
     console.error("JWT Verification Failed:", err);
+
+    // Special handling for expired tokens
+    if (err instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({
+        message: "Access token expired",
+        accessExpired: true
+      });
+    }
+
+    // All other JWT errors
     return res.status(403).json({
-      message: "Invalid or expired token",
-      errorName: err.name,
-      errorMessage: err.message,
+      message: "Invalid token",
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
 };
@@ -106,6 +115,34 @@ export const verifyTokenBasic = (req, res, next) => {
       errorName: err.name,
       errorMessage: err.message,
     });
+  }
+};
+
+
+// Simple admin guard using a list of admin emails in env var ADMIN_EMAILS (comma-separated)
+export const requireAdmin = (req, res, next) => {
+  try {
+    const adminList = (process.env.ADMIN_EMAILS || '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+
+    const userEmail = String(req.user?.email || '').toLowerCase();
+
+    if (adminList.length > 0 && adminList.includes(userEmail)) {
+      return next();
+    }
+
+    // If no admin list configured, block by default in production
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    // In non-production, allow if list is empty (to avoid local lockout)
+    return next();
+  } catch (err) {
+    console.error('Admin check failed:', err);
+    return res.status(403).json({ message: 'Admin access required' });
   }
 };
 

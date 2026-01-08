@@ -9,15 +9,28 @@ const pool = new Pool({
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASS,
-  port: Number(process.env.DB_PORT)|| 5432,
-   ssl: {
-    rejectUnauthorized: false, // required for Render PostgreSQL
-  },
+  port: Number(process.env.DB_PORT) || 5432,
+  
+  // Connection pooling configuration
+  max: 20,                    // Max connections in pool
+  min: 2,                     // Min connections to maintain
+  idleTimeoutMillis: 30000,   // Close idle connections after 30s
+  connectionTimeoutMillis: 10000, // Connection timeout (increased to 10s)
+  statement_timeout: 30000,   // Query timeout 30s
+  
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 pool
   .connect()
   .then(() => console.log("Connected to PostgreSQL"))
   .catch((err) => console.error("Connection error", err.stack));
+
+// Handle pool errors
+pool.on('error', (err) => {
+  console.error('Unexpected pool error:', err);
+});
 
 export default pool;
