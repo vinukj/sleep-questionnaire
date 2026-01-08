@@ -31,8 +31,7 @@ export default function Navbar() {
 
   const menuItems = [
     { text: "Home", path: "/home" },
-    { text: "Questionnaires", path: "/questionnaire" },
-    { text: "Profile", path: "/about" },
+    ...((currentUser?.isAdmin || currentUser?.user?.isAdmin) ? [{ text: "Admin Dashboard", path: "/admin" }] : []),
   ];
 
   return (
@@ -73,7 +72,7 @@ export default function Navbar() {
               cursor: "pointer",
             }}
           >
-            SleepApp
+            St.John's
           </Typography>
 
           {/* Desktop Menu */}

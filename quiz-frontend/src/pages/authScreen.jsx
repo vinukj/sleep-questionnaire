@@ -13,6 +13,8 @@ import {
   CircularProgress,
   Divider,
 } from "@mui/material";
+import { clearQuestionnaireCache } from "../service/quizCacheService.js";
+import logger from "../utils/logger";
 
 const API_URL =  import.meta.env.VITE_API_URL
 
@@ -25,30 +27,70 @@ export default function AuthScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const { currentUser, login, error: contextError } = useAuth();
+  const { currentUser, login, error: contextError, verifySession } = useAuth();
 
   useEffect(() => {
     if (currentUser) {
       navigate("/home", { replace: true });
-      console.log("User is already logged in:", currentUser);
+      logger.info("User is already logged in:", currentUser);
     }
   }, [currentUser, navigate]);
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    setLocalError("");
-    setIsLoading(true);
+    logger.debug("Google credential response:", credentialResponse);
     try {
+      const googleToken = credentialResponse?.credential;
+      if (!googleToken) {
+        setLocalError("No credential returned by Google");
+        return;
+      }
+
+
+
+      setIsLoading(true);
       const response = await fetch(`${API_URL}/auth/google`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ credential: credentialResponse.credential }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: googleToken }),
         credentials: "include",
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Google login failed");
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const msg = data.error || data.message || `Google login failed (${response.status})`;
+        console.error("Google login failed response:", data);
+        setLocalError(msg);
+        return;
+      }
+
+      // Expect backend to return { accessToken, refreshToken }
+      const { accessToken, refreshToken } = data;
+      if (!accessToken || !refreshToken) {
+        logger.warn('Google login did not return tokens:', data);
+      }
+
+      // Persist tokens where AuthContext expects them and re-validate session
+      try {
+        localStorage.setItem('auth_tokens', JSON.stringify({ accessToken, refreshToken }));
+        clearQuestionnaireCache(currentUser?.user?.id || currentUser?.id);
+      } catch (e) {
+        logger.warn('Failed to store auth tokens in localStorage:', e);
+      }
+
+      // Trigger AuthContext to verify and load profile
+      try {
+        await verifySession();
+        logger.debug(currentUser);
+        clearQuestionnaireCache(currentUser?.user?.id || currentUser?.id);
+      } catch (e) {
+        logger.warn('verifySession after Google login failed:', e);
+      }
+
       navigate("/home", { replace: true });
-    } catch (err) {
-      setLocalError(err.message);
+    } catch (error) {
+      console.error("Google login error:", error);
+      setLocalError(error.message || "Google login failed");
     } finally {
       setIsLoading(false);
     }

@@ -52,7 +52,6 @@ import '../styles/QuestionnairePage.css';
 import Navbar from '../components/Navbar';
 
 const QuestionnaireSelectionScreen = () => {
-  // Replace the old useState and useEffect with this single line
   const { quizzes, isLoading, error } = useCachedQuizList();
 
   if (isLoading) return <div className="loading-message">Loading Questionnaires...</div>;

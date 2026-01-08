@@ -23,7 +23,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
+# Test documents
+*.docx
+*.xlsx
+*.txt
+*.json
 
 /backend/.env
 /quiz-frontend/.env
