@@ -5,7 +5,7 @@ import rateLimit from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
 import authRoute from "./routes/authRoute.js";
-
+import ocrRoute from "./routes/ocrRoute.js"
 import userRoutes from "./routes/userRoute.js";
 import exportRoute from "./routes/exportRoute.js";
 import questionnaireRoute from "./routes/questionnaireRoute.js";
@@ -83,6 +83,7 @@ app.use("/auth", authLimiter, authRoute);
 // app.use("/quizzes", quizRoute);
 app.use("/api", exportRoute);
 app.use("/questionnaire", questionnaireRoute);
+app.use("/ocr",ocrRoute)
 
 // Swagger setup
 const swaggerOptions = {
