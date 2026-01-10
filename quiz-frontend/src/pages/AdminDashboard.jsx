@@ -36,6 +36,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import ExcelExportButton from '../components/ExcelExportButton';
 import { useNavigate } from "react-router-dom";
+import InlineOCRUpload from '../components/InlineOCRUpload';
 
 
 import Navbar from '../components/Navbar.jsx';
@@ -496,7 +497,18 @@ const AdminDashboard = () => {
                         {responses.map((response) => (
                           <TableRow key={response.id}>
                             <TableCell>{response.response_data.hospital_id}</TableCell>
-                            <TableCell>{response.response_data.name || 'N/A'}</TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                {response.response_data.name || 'N/A'}
+                                <InlineOCRUpload
+                                  patientId={response.response_data.hospital_id}
+                                  patientName={response.response_data.name || 'N/A'}
+                                  onUploadSuccess={(data) => {
+                                    logger.success(`OCR upload successful for ${data.patientName}`);
+                                  }}
+                                />
+                              </Box>
+                            </TableCell>
                             <TableCell>{response.response_data.email || '-'}</TableCell>
                             <TableCell>{getScoreFromResponse(response.response_data)}</TableCell>
                             <TableCell>{formatDate(response.created_at)}</TableCell>

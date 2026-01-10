@@ -257,7 +257,7 @@ export default function OCRUploadPage() {
         </Alert>
       )}
 
-      {/* Success Result */}
+      {/* Success Result - JSON Only */}
       {result && (
         <>
           <Alert severity="success" icon={<SuccessIcon />} sx={{ mb: 3 }}>
@@ -267,82 +267,23 @@ export default function OCRUploadPage() {
             </Typography>
           </Alert>
 
-          {/* Statistics */}
-          {result.statistics && (
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Processing Statistics
-                </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Text Length
-                    </Typography>
-                    <Typography variant="body1">
-                      {result.statistics.redacted?.textLength.toLocaleString()} chars
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Word Count
-                    </Typography>
-                    <Typography variant="body1">
-                      {result.statistics.redacted?.wordCount.toLocaleString()} words
-                    </Typography>
-                  </Box>
-                  {result.llm?.tokensUsed && (
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Tokens Used
-                      </Typography>
-                      <Typography variant="body1">
-                        {result.llm.tokensUsed.total.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  )}
-                  {result.llm?.model && (
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        AI Model
-                      </Typography>
-                      <Typography variant="body1">{result.llm.model}</Typography>
-                    </Box>
-                  )}
-                </Box>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Extracted Medical Data */}
+          {/* JSON Output Only */}
           {result.medicalData && (
             <Card>
               <CardContent>
-                <Typography variant="h5" gutterBottom>
-                  Extracted Medical Data
-                </Typography>
-                {renderExtractedData(result.medicalData)}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Raw JSON View */}
-          {result.medicalData && (
-            <Card sx={{ mt: 3 }}>
-              <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Raw JSON Output
+                  Extracted Medical Data (JSON)
                 </Typography>
                 <Paper
                   sx={{
                     p: 2,
                     bgcolor: 'grey.900',
                     color: 'grey.100',
-                    maxHeight: '400px',
+                    maxHeight: '600px',
                     overflow: 'auto',
                   }}
                 >
-                  <pre style={{ margin: 0, fontSize: '0.875rem' }}>
+                  <pre style={{ margin: 0, fontSize: '0.875rem', fontFamily: 'monospace' }}>
                     {JSON.stringify(result.medicalData, null, 2)}
                   </pre>
                 </Paper>
