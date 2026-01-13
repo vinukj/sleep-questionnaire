@@ -80,117 +80,73 @@ export async function extractMedicalData(text) {
 Return ONLY valid JSON with no additional text or explanation. Extract all numeric values as numbers, not strings.`;
 
   const prompt = `
-You are a medical data extraction assistant specialized in SOMNOMEDICS polysomnography reports.
+  IMPORTANT:
+- Extract values ONLY from the DIAGNOSTIC portion of the report.
+- Ignore CPAP, titration, or treatment sections unless a field is explicitly under "TITRATION".
+- If multiple values exist for the same field, use the diagnostic value and ignore others.
 
-Extract ALL the fields listed below from the report text and return a SINGLE valid JSON object.
-If a value is not explicitly present in the report, use null.
-DO NOT guess, calculate, or infer values unless explicitly instructed.
-
-IMPORTANT GLOBAL RULES:
-1. CRITICAL:
-- Extract values ONLY from the DIAGNOSTIC column.
-- IGNORE CPAP / titration columns for ALL fields except the TITRATION section.
-- If a value exists only in CPAP/titration, return null.
-
-2. Recording Device Detection:
-- If report mentions "Alice" or "Alice 6 LDx", set recordingDevice to "Alice 6 LDx"
-- If report mentions "SOMNOmedics" or "Somnomedics", set recordingDevice to "SOMNOmedics"
-- Extract the exact device name as it appears in the report
-
-3. Many Somnomedics values appear as: count (index). You MUST extract BOTH.
-4. All indices in parentheses are per-hour indices.
-5. Use numeric values (not strings) for numbers.
-6. Use null if a field is missing or marked as "-" in the report.
-7. Do NOT mix Diagnostic and CPAP columns.
-8. Do NOT average or recompute any values.
-9. Times are in minutes unless explicitly HH:MM:SS.
+  Extract the following fields from the provided polysomnography report tables.
+Return ONE valid JSON object.
+Use null if a field is not explicitly present.
+Use numbers for numeric values.
 
 ========================
 PATIENT / HEADER
 ========================
-Extract exactly as written.
-
-Recording Device:
-- recordingDevice (e.g., "Alice 6 LDx" for Alice reports, "SOMNOmedics" for Somnomedics reports)
-
-Patient Information:
+- recordingDevice
 - firstName
 - lastName
-- patientId (ID / OP-IP number)
-- measurementDate (Somnomedics "Measurement date" or Study date, format YYYY-MM-DD)
-- comments (header comments, if present)
-
-Physical details:
-- sex (M/F)
-- height (cm)
-- weight (kg)
+- patientId
+- measurementDate
+- comments
+- sex
+- height
+- weight
 - bmi
-- dateOfBirth (YYYY-MM-DD)
-- age (CALCULATE from dateOfBirth and measurementDate ONLY if both are present, else null)
+- dateOfBirth
+- age
 
 ========================
 CLINICAL INFORMATION
 ========================
-- indications (complaints / indications)
-- ess (Epworth Sleepiness Scale)
-- iss (Insomnia Severity Scale)
+- indications
+- ess
+- iss
 - comorbidities
-- diagnosis (impression)
-- clinicalComments (narrative comments, if present)
+- diagnosis
+- clinicalComments
 - advice
 
 ========================
 STUDY TIMING (DIAGNOSTIC)
 ========================
-- lightsOffTime (HH:MM:SS)
-- lightsOnTime (HH:MM:SS)
-- totalRecordingTime (minutes)
-- totalSleepTime (minutes)
-- sleepEfficiency (percentage)
-- sleepLatency (minutes)
-- waso (minutes)
-- wakePercent (Wake % of sleep time)
+- lightsOffTime
+- lightsOnTime
+- totalRecordingTime
+- totalSleepTime
+- sleepEfficiency
+- sleepLatency
+- waso
+- wakePercent
 
 ========================
 REM LATENCY
 ========================
-Somnomedics reports two REM latencies.
-If a single REM latency is requested elsewhere, always use "from sleep onset".
-
-
-- remLatencyFromSleepOnset (minutes)
-- remLatencyFromLightsOff (minutes)
-
-If one is missing, set it to null.
+- remLatencyFromSleepOnset
+- remLatencyFromLightsOff
 
 ========================
-SLEEP STAGING (DIAGNOSTIC – minutes ONLY)
+SLEEP STAGING (MINUTES)
 ========================
-Extract durations in minutes, NOT percentages.
-Sleep staging rules:
-- Extract DURATIONS in MINUTES only.
-- Ignore percentages.
-- Ignore latency values.
-- Do NOT use values with a % symbol.
-- If minutes are not explicitly shown, return null.
-
-
 - n1
 - n2
 - n3
 - rem
 
 ========================
-RESPIRATORY EVENTS – COUNTS AND INDICES
+RESPIRATORY EVENTS
+(each as { count, index })
 ========================
-
-Respiratory counts:
-- If an event count is shown as 0, return 0 (not null).
-- Use null ONLY if the event is not listed at all.
-
-Each event MUST be extracted as an object with:
-{ "count": number, "index": number }
-
 - centralApnea
 - obstructiveApnea
 - mixedApnea
@@ -203,25 +159,19 @@ Each event MUST be extracted as an object with:
 ========================
 STATE-SPECIFIC INDICES
 ========================
-CRITICAL: Extract these ONLY if explicitly labeled as "REM RDI" or "NREM RDI" in the report.
-Do NOT extract regular RDI values into these fields.
-If not explicitly present, return null.
-
-- remRdi (extract ONLY if labeled as "REM RDI", "RDI REM", or similar)
-- nremRdi (extract ONLY if labeled as "NREM RDI", "RDI NREM", or similar)
+- remRdi
+- nremRdi
 
 ========================
 POSITIONAL INDICES
 ========================
-Extract ONLY if explicitly provided.
-
 - supineAhi
 - supineRdi
 
 ========================
 AROUSALS
 ========================
-- arousalsTotal (Ar + Aw total)
+- arousalsTotal
 - arousalIndex
 
 ========================
@@ -229,45 +179,29 @@ OXYGENATION
 ========================
 - minimumSpO2
 - meanSpO2
-
-Hypoxic Burden:
-- hypoxicBurden (extract ONLY if explicitly labeled as “HB” or “Hypoxic Burden”, else null)
+- hypoxicBurden
 
 ========================
-CARDIAC (DIAGNOSTIC)
+CARDIAC
 ========================
 - heartRateAverage
 - heartRateHighest
 - heartRateLowest
 
 ========================
-TITRATION (LAST PAGE ONLY – IF PRESENT)
+TITRATION (IF PRESENT)
 ========================
-Extract ONLY if titration information exists.
-
-Pressure values MUST include units exactly as written (e.g., "10 cm H2O").
-
-
-- titrationQuality (Optimal / Good / Adequate / Inadequate)
-- pressureSetting (cm H2O, include unit)
-- maskInterface (Nasal / Oronasal)
-- deviceType (CPAP / BPAP / APAP / ASV)
-- maskSize (S / M / L)
+- titrationQuality
+- pressureSetting
+- maskInterface
+- deviceType
+- maskSize
 
 ========================
-OUTPUT FORMAT
+INPUT
 ========================
-Return ONLY a valid JSON object with this structure.
-Do NOT include explanations or extra text.
-
-Before returning JSON:
-- Verify that sleep stage durations sum approximately to totalSleepTime.
-- Verify that apnea + hypopnea counts equal A+H total if all are present.
-- If inconsistencies exist, do NOT correct them — return values as shown.
-
-
-REPORT TEXT:
 ${text}
+
 `;
 
 
