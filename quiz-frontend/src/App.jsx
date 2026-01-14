@@ -10,6 +10,7 @@ import HomeScreen from "./pages/HomeScreen.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import Questionnaire from "./components/Questionnaire.jsx";
 import OCRUploadPage from "./pages/OCRUploadPage.jsx";
+import ViewResponse from "./pages/ViewResponse.jsx";
 
 export default function App() {
   // Set up auth redirect handling
@@ -47,6 +48,16 @@ export default function App() {
           <AdminRoute>
             {" "}
             <AdminDashboard />
+          </AdminRoute>
+        }
+      />
+
+      {/* View Response Route */}
+      <Route
+        path="/view-response/:id?"
+        element={
+          <AdminRoute>
+            <ViewResponse />
           </AdminRoute>
         }
       />
