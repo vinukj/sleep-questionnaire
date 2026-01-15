@@ -1,11 +1,9 @@
-
-
 import { fetchQuestionnaireSchema } from './service/questionnaireSchemaService';
 import logger from './utils/logger';
 
 // This is kept as a fallback in case the API fails
 const defaultQuestionnaireJSON = [
- {
+   {
     page: 1,
     title: "Patient Information",
     questions: [
@@ -270,7 +268,8 @@ const defaultQuestionnaireJSON = [
           "Bariatric surgery",
         ],
         label:"If yes, type of surgery",
-        dependsOn:{id:"surgery_sleep_apnea",value:"Yes"}
+        dependsOn:{id:"surgery_sleep_apnea",value:"Yes"},
+        required:true
       },
       {
         id: "medications",

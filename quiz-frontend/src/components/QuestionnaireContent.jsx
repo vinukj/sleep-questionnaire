@@ -2,10 +2,134 @@
 import React, { useEffect, useRef } from "react";
 import { FormProvider, Controller } from "react-hook-form";
 import { Box, Button, Alert, useTheme, useMediaQuery } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import QuestionRenderer from "./QuestionRenderer";
 
 const PHONE_REGEX = /^\+91[-\s]?[6-9]\d{9}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+// Section styling
+const SectionContainer = styled(Box)({
+  padding: "1rem",
+  background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+  borderRadius: "0.5rem",
+  marginBottom: "1.25rem",
+});
+
+const SectionHeader = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  gap: "0.5rem",
+  marginBottom: "0.75rem",
+});
+
+const SectionIcon = styled(Box)({
+  fontSize: "1.25rem",
+});
+
+const SectionTitle = styled("h2")({
+  fontSize: "0.938rem",
+  fontWeight: 600,
+  color: "#1F2937",
+  margin: 0,
+});
+
+const QuestionGrid = styled(Box)({
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: "0.75rem",
+  "@media (min-width: 600px)": {
+    gridTemplateColumns: "repeat(2, 1fr)",
+  },
+});
+
+const QuestionWrapper = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "isDependent",
+})(({ isDependent }) => ({
+  gridColumn: isDependent ? "1 / -1" : "auto",
+}));
+
+// Helper function to group questions into sections
+const getQuestionSections = (pageTitle, questions) => {
+  if (pageTitle === "Patient Information") {
+    return [
+      {
+        title: "Identity",
+        icon: "🆔",
+        questions: questions.filter(q => ["hospital_id", "name"].includes(q.id)),
+      },
+      {
+        title: "Demographics",
+        icon: "👤",
+        questions: questions.filter(q => ["gender", "age", "occupation", "phone", "email"].includes(q.id)),
+      },
+    ];
+  }
+  
+  if (pageTitle === "Sleep History and Habits" || pageTitle === "Sleep History & Habits") {
+    return [
+      {
+        title: "Main Complaints",
+        icon: "📝",
+        questions: questions.filter(q => ["presenting_complaints"].includes(q.id)),
+      },
+      {
+        title: "Sleep Schedule",
+        icon: "🌙",
+        questions: questions.filter(q => ["bedtime", "sleep_latency"].includes(q.id)),
+      },
+      {
+        title: null,
+        icon: null,
+        questions: questions.filter(q => ["night_awakenings", "avg_sleep_hours", "shift_worker", "shift_pattern"].includes(q.id)),
+      },
+    ];
+  }
+  
+  if (pageTitle === "Clinical Examination") {
+    return [
+      {
+        title: "Physical Measurements",
+        icon: "📏",
+        questions: questions.filter(q => ["height", "weight", "bmi", "waist", "hip", "waist_hip_ratio", "neck"].includes(q.id)),
+      },
+      {
+        title: "Vital Signs",
+        icon: "❤️",
+        questions: questions.filter(q => ["bp", "pulse", "spo2", "mallampati"].includes(q.id)),
+      },
+    ];
+  }
+
+  if (pageTitle === "Co-morbidities and Medications") {
+    return [
+      {
+        title: "Required",
+        icon: "🩺",
+        questions: questions.filter(q => ["hypertension", "diabetes", "ihd", "stroke", "hypothyroidism"].includes(q.id)),
+      },
+      {
+        title: "General Health Conditions",
+        icon: "🏥",
+        questions: questions.filter(q => ["neurological_disorder", "respiratory_disorder"].includes(q.id)),
+      },
+      {
+        title: "Surgery & Medications",
+        icon: "💊",
+        questions: questions.filter(q => ["surgery_sleep_apnea", "surgery_type", "medications", "medications_other"].includes(q.id)),
+      },
+    ];
+  }
+  
+  // For other pages, return all questions without section containers
+  return [
+    {
+      title: null,
+      icon: null,
+      questions: questions,
+    },
+  ];
+};
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const FIELD_VALIDATION = {
@@ -246,64 +370,127 @@ const QuestionnaireContent = ({
   return (
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(onSubmit)}>
-        {currentPage?.questions.map((q) => {
-          // Skip if dependency not satisfied
-          if (q.dependsOn) {
-            const depValue = watchAllFields[q.dependsOn.id];
-            const dependsOnValue = q.dependsOn.value;
-            
-            // Handle both array and non-array values
-            let matched = false;
-            if (Array.isArray(depValue)) {
-              // Check for the main value or any alternative values
-              matched = depValue.includes(dependsOnValue);
-              
-              // Special handling for "Others" / "Other Diagnosis" mapping
-              if (!matched && dependsOnValue === "Others") {
-                matched = depValue.includes("Other Diagnosis");
-              }
-              if (!matched && dependsOnValue === "Other Diagnosis") {
-                matched = depValue.includes("Others");
-              }
-            } else {
-              matched = depValue === dependsOnValue;
-            }
-            
-            if (!matched) return null;
-          }
+        {getQuestionSections(currentPage?.title, currentPage?.questions || []).map((section, sectionIdx) => (
+          <React.Fragment key={sectionIdx}>
+            {section.title ? (
+              <SectionContainer>
+                <SectionHeader>
+                  <SectionIcon>{section.icon}</SectionIcon>
+                  <SectionTitle>{section.title}</SectionTitle>
+                </SectionHeader>
+                <QuestionGrid>
+                  {section.questions.map((q) => {
+                    // Skip if dependency not satisfied
+                    if (q.dependsOn) {
+                      const depValue = watchAllFields[q.dependsOn.id];
+                      const dependsOnValue = q.dependsOn.value;
+                      
+                      let matched = false;
+                      if (Array.isArray(depValue)) {
+                        matched = depValue.includes(dependsOnValue);
+                        if (!matched && dependsOnValue === "Others") {
+                          matched = depValue.includes("Other Diagnosis");
+                        }
+                        if (!matched && dependsOnValue === "Other Diagnosis") {
+                          matched = depValue.includes("Others");
+                        }
+                      } else {
+                        matched = depValue === dependsOnValue;
+                      }
+                      
+                      if (!matched) return null;
+                    }
 
-          return (
-            <Controller
-              key={q.id}
-              name={q.id}
-              control={methods.control}
-              defaultValue={q.type === "checkbox" ? [] : ""}
-              rules={{
-                required: q.required
-                  ? { value: true, message: `${q.label} is required` }
-                  : false,
-                ...(FIELD_VALIDATION[q.id] || {}),
-              }}
-              render={({ field }) => (
-                <QuestionRenderer
-                  question={q}
-                  value={field.value || ""}
-                  onChange={field.onChange}
-                  setValue={methods.setValue}
-                  error={methods.formState.errors?.[q.id]}
-                />
-              )}
-            />
-          );
-        })}
+                    return (
+                      <QuestionWrapper key={q.id} isDependent={!!q.dependsOn || q.id === "restless_legs" || q.id === "recommended_workup"}>
+                        <Controller
+                          name={q.id}
+                          control={methods.control}
+                          defaultValue={q.type === "checkbox" ? [] : ""}
+                          rules={{
+                            required: q.required
+                              ? { value: true, message: `${q.label} is required` }
+                              : false,
+                            ...(FIELD_VALIDATION[q.id] || {}),
+                          }}
+                          render={({ field }) => (
+                            <QuestionRenderer
+                              question={q}
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              setValue={methods.setValue}
+                              error={methods.formState.errors?.[q.id]}
+                            />
+                          )}
+                        />
+                      </QuestionWrapper>
+                    );
+                  })}
+                </QuestionGrid>
+              </SectionContainer>
+            ) : (
+              // No section container, render questions directly in grid
+              <QuestionGrid>
+                {section.questions.map((q) => {
+                  if (q.dependsOn) {
+                    const depValue = watchAllFields[q.dependsOn.id];
+                    const dependsOnValue = q.dependsOn.value;
+                    
+                    let matched = false;
+                    if (Array.isArray(depValue)) {
+                      matched = depValue.includes(dependsOnValue);
+                      if (!matched && dependsOnValue === "Others") {
+                        matched = depValue.includes("Other Diagnosis");
+                      }
+                      if (!matched && dependsOnValue === "Other Diagnosis") {
+                        matched = depValue.includes("Others");
+                      }
+                    } else {
+                      matched = depValue === dependsOnValue;
+                    }
+                    
+                    if (!matched) return null;
+                  }
+
+                  return (
+                    <QuestionWrapper key={q.id} isDependent={!!q.dependsOn || q.id === "restless_legs" || q.id === "recommended_workup"}>
+                      <Controller
+                        name={q.id}
+                        control={methods.control}
+                        defaultValue={q.type === "checkbox" ? [] : ""}
+                        rules={{
+                          required: q.required
+                            ? { value: true, message: `${q.label} is required` }
+                            : false,
+                          ...(FIELD_VALIDATION[q.id] || {}),
+                        }}
+                        render={({ field }) => (
+                          <QuestionRenderer
+                            question={q}
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            setValue={methods.setValue}
+                            error={methods.formState.errors?.[q.id]}
+                          />
+                        )}
+                      />
+                    </QuestionWrapper>
+                  );
+                })}
+              </QuestionGrid>
+            )}
+          </React.Fragment>
+        ))}
 
         <Box
           sx={{
             display: "flex",
+            justifyContent: "flex-end",
             gap: 2,
-            mt: 3,
-            flexDirection: { xs: "column-reverse", sm: "row" },
-            justifyContent: "space-between",
+            mt: 4,
+            pt: 3,
+            borderTop: "1px solid #E5E7EB",
+            flexDirection: { xs: "column", sm: "row" },
           }}
         >
           {page > 1 && (
@@ -311,8 +498,27 @@ const QuestionnaireContent = ({
               onClick={() => onPageChange(page - 1)}
               variant="outlined"
               fullWidth={isMobile}
-              startIcon={<span aria-hidden="true">←</span>}
-              sx={{ minWidth: 120 }}
+              startIcon={
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="19" y1="12" x2="5" y2="12"></line>
+                  <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+              }
+              sx={{
+                minWidth: 120,
+                height: "38px",
+                padding: "0.625rem 1.25rem",
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                borderRadius: "6px",
+                borderColor: "#E5E7EB",
+                color: "#374151",
+                textTransform: "none",
+                "&:hover": {
+                  borderColor: "#D1D5DB",
+                  backgroundColor: "#F9FAFB",
+                },
+              }}
             >
               Back
             </Button>
@@ -323,11 +529,33 @@ const QuestionnaireContent = ({
               onClick={() => onPageChange(page + 1)}
               variant="contained"
               fullWidth={isMobile}
-              endIcon={<span aria-hidden="true">→</span>}
-              sx={{ minWidth: 120 }}
+              endIcon={
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              }
               disabled={!isPageValid(currentPage.questions, watchAllFields)}
+              sx={{
+                minWidth: 140,
+                height: "38px",
+                padding: "0.625rem 1.5rem",
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                borderRadius: "6px",
+                backgroundColor: "#3B82F6",
+                textTransform: "none",
+                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+                "&:hover": {
+                  backgroundColor: "#2563EB",
+                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+                },
+                "&:disabled": {
+                  backgroundColor: "#9CA3AF",
+                },
+              }}
             >
-              Next
+              Save & Continue
             </Button>
           )}
 
@@ -337,10 +565,28 @@ const QuestionnaireContent = ({
               variant="contained"
               disabled={isSubmitting}
               fullWidth={isMobile}
+              endIcon={
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              }
               sx={{
-                minWidth: 120,
-                background: theme.palette.success.main,
-                "&:hover": { background: theme.palette.success.dark },
+                minWidth: 140,
+                height: "38px",
+                padding: "0.625rem 1.5rem",
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                borderRadius: "6px",
+                backgroundColor: "#10B981",
+                textTransform: "none",
+                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+                "&:hover": {
+                  backgroundColor: "#059669",
+                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+                },
+                "&:disabled": {
+                  backgroundColor: "#9CA3AF",
+                },
               }}
             >
               {isSubmitting ? "Submitting..." : "Submit"}

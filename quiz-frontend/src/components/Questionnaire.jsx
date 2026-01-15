@@ -17,46 +17,65 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 import QuestionnaireContent from "./QuestionnaireContent";
 
+const PageHeader = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: theme.spacing(2),
+  gap: theme.spacing(2),
+  flexWrap: "wrap",
+}));
+
+const PageTitleContainer = styled(Box)({
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.25rem",
+});
+
 const PageTitle = styled("h1")(({ theme }) => ({
   fontSize: "1.5rem",
-  marginBottom: theme.spacing(1),
-  color: theme.palette.text.primary,
+  fontWeight: 700,
+  color: "#1a1a1a",
+  margin: 0,
+  lineHeight: 1.3,
 
   [theme.breakpoints.up("sm")]: {
-    fontSize: "2rem",
-    marginBottom: theme.spacing(2),
+    fontSize: "1.75rem",
   },
 }));
 
-const PageProgress = styled(Box)(({ theme }) => ({
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: theme.spacing(1, 0),
-  color: theme.palette.text.secondary,
+const PatientNameText = styled("p")({
   fontSize: "0.875rem",
+  color: "#6B7280",
+  margin: 0,
+  fontWeight: 500,
+});
 
-  [theme.breakpoints.up("sm")]: {
-    fontSize: "1rem",
-  },
+const ProgressDots = styled(Box)(({ theme }) => ({
+  display: "flex",
+  gap: theme.spacing(1),
+  alignItems: "center",
 }));
 
-// Note: Navigation buttons are handled inside QuestionnaireContent.
+const ProgressDot = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "active" && prop !== "completed",
+})(({ active, completed }) => ({
+  width: 12,
+  height: 12,
+  borderRadius: "50%",
+  backgroundColor: completed ? "#3B82F6" : active ? "#3B82F6" : "transparent",
+  border: `2px solid ${completed || active ? "#3B82F6" : "#D1D5DB"}`,
+  transition: "all 0.3s ease",
+}));
 
 const StyledCard = styled(Card)(({ theme }) => ({
   width: "100%",
-  maxWidth: "100%",
-  margin: theme.spacing(1, "auto"),
-  boxShadow: theme.shadows[2],
-  borderRadius: theme.spacing(1),
+  maxWidth: 1000,
+  margin: "0 auto",
+  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+  borderRadius: 8,
+  border: "1px solid #E5E7EB",
   transition: "all 0.3s ease",
-
-  [theme.breakpoints.up("sm")]: {
-    maxWidth: 800,
-    margin: theme.spacing(2, "auto"),
-    borderRadius: theme.spacing(2),
-    boxShadow: theme.shadows[3],
-  },
 }));
 
 // The main Questionnaire component is defined below and uses QuestionnaireContent for rendering.
@@ -79,6 +98,7 @@ export default function Questionnaire() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [responseId, setResponseId] = useState(null);
+  const [patientName, setPatientName] = useState("");
 
   // Scroll to top when page changes
   useEffect(() => {
@@ -162,6 +182,11 @@ export default function Questionnaire() {
     setIsEditing(editingState);
     setResponseId(id);
     
+    // Extract patient name for display
+    if (responseData.name) {
+      setPatientName(responseData.name);
+    }
+    
     if (responseData && Object.keys(responseData).length > 0) {
       Object.keys(responseData).forEach((key) => {
         logger.debug(`Setting field ${key} with value:`, responseData[key]);
@@ -207,22 +232,32 @@ export default function Questionnaire() {
   return (
     <>
       <Navbar />
-      <Container ref={containerRef} maxWidth="md" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 2 } }}>
+      <Box ref={containerRef} sx={{ maxWidth: 1000, width: "100%", margin: "0 auto", px: { xs: 2, sm: 3 }, py: { xs: 3, sm: 4 } }}>
+        <PageHeader>
+          <PageTitleContainer>
+            <PageTitle>{currentPage?.title || "Questionnaire"}</PageTitle>
+            {patientName && page > 1 && (
+              <PatientNameText>Patient: {patientName}</PatientNameText>
+            )}
+          </PageTitleContainer>
+          <ProgressDots>
+            {questionnaire.map((_, index) => (
+              <ProgressDot 
+                key={index + 1} 
+                active={page === index + 1}
+                completed={page > index + 1}
+              />
+            ))}
+          </ProgressDots>
+        </PageHeader>
+        
         <StyledCard>
-          <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
+          <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
             {isEditing && (
-              <Alert severity="info" sx={{ mb: 2 }}>
+              <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
                 You are editing an existing response. Your changes will update the existing entry.
               </Alert>
             )}
-            <Box component="header" sx={{ mb: { xs: 2, sm: 3 } }}>
-              <PageTitle>{currentPage?.title}</PageTitle>
-              <PageProgress component="nav" aria-label="questionnaire navigation">
-                <span aria-label={`Page ${page} of ${questionnaire.length}`}>
-                  Page {page} of {questionnaire.length}
-                </span>
-              </PageProgress>
-            </Box>
 
             <QuestionnaireContent 
               currentPage={currentPage}
@@ -246,12 +281,12 @@ export default function Questionnaire() {
           <Alert
             onClose={() => setShowSuccess(false)}
             severity="success"
-            sx={{ width: "100%" }}
+            sx={{ width: "100%", borderRadius: 2 }}
           >
             ✅ Questionnaire submitted successfully! Redirecting to home page...
           </Alert>
         </Snackbar>
-      </Container>
+      </Box>
     </>
   );
 }

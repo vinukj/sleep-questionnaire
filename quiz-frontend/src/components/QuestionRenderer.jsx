@@ -1,5 +1,5 @@
 // QuestionRenderer.jsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   TextField,
@@ -14,10 +14,384 @@ import {
   MenuItem,
   Typography,
   FormHelperText,
+  IconButton,
+  Button,
+  ButtonGroup,
 } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import logger from "../utils/logger";
 
-const QuestionBox = ({ children }) => <Box sx={{ mb: 3 }}>{children}</Box>;
+const QuestionBox = ({ children }) => <Box sx={{ mb: 2, width: '100%' }}>{children}</Box>;
+
+const QuestionContainer = styled(Box)({
+  minHeight: "64px",
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "1rem 1.5rem",
+  backgroundColor: "#fff",
+  border: "1px solid #E5E7EB",
+  borderRadius: "8px",
+  gap: "1rem",
+});
+
+const QuestionLabel = styled(FormLabel)({
+  fontSize: "0.938rem",
+  fontWeight: 400,
+  color: "#1F2937",
+  marginBottom: 0,
+  flex: 1,
+  lineHeight: "1.4",
+});
+
+// Individual Button Group for Radio Options
+const RadioButtonGroup = styled(Box)(({ theme }) => ({
+  display: "flex",
+  gap: "0.5rem",
+  justifyContent: "flex-end",
+  alignItems: "center",
+}));
+
+const RadioButton = styled(Button, {
+  shouldForwardProp: (prop) => prop !== "isActive",
+})(({ isActive }) => ({
+  padding: "0.5rem 1.5rem",
+  fontSize: "0.875rem",
+  fontWeight: 500,
+  border: `2px solid ${isActive ? "#3B82F6" : "#E5E7EB"}`,
+  borderRadius: "8px",
+  textTransform: "none",
+  minWidth: "80px",
+  height: "38px",
+  backgroundColor: isActive ? "#3B82F6" : "#fff",
+  color: isActive ? "#fff" : "#374151",
+  "&:hover": {
+    backgroundColor: isActive ? "#2563EB" : "#F9FAFB",
+    borderColor: isActive ? "#2563EB" : "#D1D5DB",
+  },
+}));
+
+// Number Stepper
+const NumberStepperContainer = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  border: "1px solid #E5E7EB",
+  borderRadius: "6px",
+  overflow: "hidden",
+  backgroundColor: "#fff",
+  height: "38px",
+});
+
+const StepperButton = styled(IconButton)({
+  width: "38px",
+  height: "38px",
+  borderRadius: 0,
+  fontSize: "1.125rem",
+  color: "#6B7280",
+  "&:hover": {
+    backgroundColor: "#F3F4F6",
+  },
+});
+
+const StepperInput = styled("input")({
+  width: "60px",
+  textAlign: "center",
+  border: "none",
+  outline: "none",
+  fontSize: "0.875rem",
+  fontWeight: 500,
+  color: "#1F2937",
+  "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
+    WebkitAppearance: "none",
+    margin: 0,
+  },
+  "&[type=number]": {
+    MozAppearance: "textfield",
+  },
+});
+
+// Card Selection Button
+const CardSelectionButton = styled(Button, {
+  shouldForwardProp: (prop) => prop !== "isSelected",
+})(({ isSelected }) => ({
+  padding: "0.5rem",
+  fontSize: "0.813rem",
+  minHeight: "38px",
+  fontWeight: 600,
+  position: "relative",
+  backgroundColor: isSelected ? "#EFF6FF" : "#fff",
+  border: `2px solid ${isSelected ? "#3B82F6" : "#E5E7EB"}`,
+  color: isSelected ? "#3B82F6" : "#374151",
+  borderRadius: "6px",
+  textTransform: "none",
+  "&:hover": {
+    backgroundColor: isSelected ? "#DBEAFE" : "#F9FAFB",
+    borderColor: isSelected ? "#2563EB" : "#D1D5DB",
+  },
+}));
+
+// Checkmark Icon
+const CheckIcon = styled(Box)({
+  position: "absolute",
+  top: "4px",
+  right: "4px",
+  width: "14px",
+  height: "14px",
+});
+
+// Pill Button
+const PillButton = styled(Button, {
+  shouldForwardProp: (prop) => prop !== "isSelected",
+})(({ isSelected }) => ({
+  padding: "0.5rem",
+  fontSize: "0.813rem",
+  fontWeight: 500,
+  border: `2px solid ${isSelected ? "#3B82F6" : "#E5E7EB"}`,
+  backgroundColor: isSelected ? "#3B82F6" : "transparent",
+  color: isSelected ? "#fff" : "#6B7280",
+  borderRadius: "9999px",
+  textTransform: "none",
+  minWidth: "auto",
+  "&:hover": {
+    backgroundColor: isSelected ? "#2563EB" : "#F3F4F6",
+    borderColor: isSelected ? "#2563EB" : "#D1D5DB",
+  },
+}));
+
+// Range Slider Container
+const SliderContainer = styled(Box)({
+  paddingTop: "0.25rem",
+});
+
+const StyledSlider = styled("input")({
+  width: "100%",
+  height: "6px",
+  borderRadius: "3px",
+  background: "linear-gradient(to right, #3B82F6 0%, #3B82F6 50%, #E5E7EB 50%, #E5E7EB 100%)",
+  outline: "none",
+  WebkitAppearance: "none",
+  appearance: "none",
+  "&::-webkit-slider-thumb": {
+    WebkitAppearance: "none",
+    appearance: "none",
+    width: "18px",
+    height: "18px",
+    borderRadius: "50%",
+    background: "#3B82F6",
+    cursor: "pointer",
+    border: "2px solid #fff",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+  },
+  "&::-moz-range-thumb": {
+    width: "18px",
+    height: "18px",
+    borderRadius: "50%",
+    background: "#3B82F6",
+    cursor: "pointer",
+    border: "2px solid #fff",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+  },
+});
+
+const SliderLabels = styled(Box)({
+  display: "flex",
+  justifyContent: "space-between",
+  marginTop: "0.25rem",
+  fontSize: "0.75rem",
+  color: "#9CA3AF",
+});
+
+// Time Input with Icon
+const TimeInputContainer = styled(Box)({
+  height: "38px",
+  padding: "0.5rem 0.75rem",
+  display: "flex",
+  alignItems: "center",
+  gap: "0.5rem",
+  border: "2px solid #E5E7EB",
+  borderRadius: "6px",
+  background: "#ffffff",
+  cursor: "pointer",
+  "&:hover": {
+    borderColor: "#D1D5DB",
+  },
+  "&:focus-within": {
+    borderColor: "#3B82F6",
+    boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.1)",
+  },
+});
+
+// Large Multi-Select Card Button
+const MultiSelectCard = styled(Button, {
+  shouldForwardProp: (prop) => prop !== "isSelected",
+})(({ isSelected, theme }) => ({
+  padding: "0.875rem 1rem",
+  fontSize: "0.875rem",
+  fontWeight: 500,
+  minHeight: "56px",
+  justifyContent: "flex-start",
+  textAlign: "left",
+  position: "relative",
+  backgroundColor: isSelected ? "#3B82F6" : "#fff",
+  border: `2px solid ${isSelected ? "#3B82F6" : "#E5E7EB"}`,
+  color: isSelected ? "#fff" : "#1F2937",
+  borderRadius: "8px",
+  textTransform: "none",
+  transition: "all 0.2s ease",
+  wordBreak: "break-word",
+  whiteSpace: "normal",
+  lineHeight: "1.4",
+  "&:hover": {
+    backgroundColor: isSelected ? "#2563EB" : "#F9FAFB",
+    borderColor: isSelected ? "#2563EB" : "#D1D5DB",
+  },
+  [theme.breakpoints.up("sm")]: {
+    padding: "1rem 1.5rem",
+    fontSize: "0.938rem",
+    minHeight: "60px",
+  },
+}));
+
+// Toggle Switch Container
+const ToggleSwitchContainer = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  gap: "0.75rem",
+  padding: "0.5rem 0",
+});
+
+const ToggleSwitch = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "checked",
+})(({ checked }) => ({
+  width: "48px",
+  height: "28px",
+  backgroundColor: checked ? "#3B82F6" : "#E5E7EB",
+  borderRadius: "14px",
+  position: "relative",
+  cursor: "pointer",
+  transition: "background-color 0.2s ease",
+  "&:hover": {
+    backgroundColor: checked ? "#2563EB" : "#D1D5DB",
+  },
+}));
+
+const ToggleKnob = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "checked",
+})(({ checked }) => ({
+  width: "24px",
+  height: "24px",
+  backgroundColor: "#fff",
+  borderRadius: "50%",
+  position: "absolute",
+  top: "2px",
+  left: checked ? "22px" : "2px",
+  transition: "left 0.2s ease",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+}));
+
+// Multi-Select Pill with Remove Button
+const SelectablePill = styled(Button, {
+  shouldForwardProp: (prop) => prop !== "isSelected",
+})(({ isSelected }) => ({
+  padding: "0.5rem 1rem",
+  fontSize: "0.875rem",
+  fontWeight: 500,
+  border: `2px solid ${isSelected ? "#3B82F6" : "#E5E7EB"}`,
+  backgroundColor: isSelected ? "#3B82F6" : "transparent",
+  color: isSelected ? "#fff" : "#6B7280",
+  borderRadius: "9999px",
+  textTransform: "none",
+  minWidth: "auto",
+  display: "flex",
+  alignItems: "center",
+  gap: "0.5rem",
+  "&:hover": {
+    backgroundColor: isSelected ? "#2563EB" : "#F3F4F6",
+    borderColor: isSelected ? "#2563EB" : "#D1D5DB",
+  },
+}));
+
+// Mallampati Grade Card
+const MallampatiCard = styled(Button, {
+  shouldForwardProp: (prop) => prop !== "isSelected",
+})(({ isSelected, theme }) => ({
+  padding: "1rem 0.75rem",
+  minHeight: "auto",
+  aspectRatio: "1 / 1",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "0.375rem",
+  position: "relative",
+  backgroundColor: "#fff",
+  border: `2px solid ${isSelected ? "#3B82F6" : "#E5E7EB"}`,
+  borderRadius: "8px",
+  textTransform: "none",
+  transition: "all 0.2s ease",
+  "&:hover": {
+    backgroundColor: "#F9FAFB",
+    borderColor: isSelected ? "#2563EB" : "#D1D5DB",
+  },
+  [theme.breakpoints.down("sm")]: {
+    padding: "0.75rem 0.5rem",
+    gap: "0.25rem",
+  },
+}));
+
+const MallampatiCircle = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "isSelected",
+})(({ isSelected }) => ({
+  width: "56px",
+  height: "56px",
+  borderRadius: "50%",
+  backgroundColor: "#F1F5F9",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "1.5rem",
+  fontWeight: 700,
+  color: "#3B82F6",
+  border: `2px solid ${isSelected ? "#3B82F6" : "#E5E7EB"}`,
+  transition: "all 0.2s ease",
+  marginBottom: "0.375rem",
+}));
+
+const MallampatiCheckmark = styled(Box)(() => ({
+  position: "absolute",
+  top: "8px",
+  right: "8px",
+  width: "24px",
+  height: "24px",
+  borderRadius: "50%",
+  backgroundColor: "#3B82F6",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#fff",
+}));
+
+const StyledTextField = styled(TextField)({
+  "& .MuiOutlinedInput-root": {
+    borderRadius: "6px",
+    fontSize: "0.875rem",
+    "& fieldset": {
+      borderColor: "#E5E7EB",
+    },
+    "&:hover fieldset": {
+      borderColor: "#D1D5DB",
+    },
+    "&.Mui-focused fieldset": {
+      borderColor: "#3B82F6",
+    },
+  },
+  "& .MuiInputLabel-root": {
+    fontSize: "0.813rem",
+    fontWeight: 500,
+    color: "#374151",
+  },
+});
 
 const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
   const { id, type, label, options, otherOption, required } = question;
@@ -28,50 +402,235 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
     logger.debug(`Rendering question ${id} with value:`, value);
   }, [id, value]);
 
+  // Number stepper handlers
+  const handleIncrement = () => {
+    const currentValue = parseInt(value) || 0;
+    onChange((currentValue + 1).toString());
+  };
+
+  const handleDecrement = () => {
+    const currentValue = parseInt(value) || 0;
+    if (currentValue > 0) {
+      onChange((currentValue - 1).toString());
+    }
+  };
+
   // Checkbox handler for regular + "Other" option
   const renderCheckboxes = () => {
     const currentAnswers = value || [];
     const otherOpt = otherOption?.option;
-    const regularOptions = options?.filter((opt) => opt !== otherOpt) || [];
+    const regularOptions = options?.filter((opt) => {
+      const optValue = typeof opt === 'object' ? opt.value : opt;
+      return optValue !== otherOpt;
+    }) || [];
 
-    const handleCheckboxChange = (opt, checked) => {
+    const handleCheckboxChange = (optValue, checked) => {
       let updated = [...currentAnswers];
 
       if (checked) {
-        if (!updated.includes(opt) && opt !== otherOpt) updated.push(opt);
+        if (!updated.includes(optValue) && optValue !== otherOpt) updated.push(optValue);
 
-        if (opt === otherOpt && !updated.some((v) => v.startsWith("Other:"))) {
+        if (optValue === otherOpt && !updated.some((v) => v.startsWith("Other:"))) {
           updated.push(otherOpt);
           updated.push("Other: ");
         }
       } else {
         updated = updated.filter(
-          (v) => v !== opt && !(opt === otherOpt && v.startsWith("Other:"))
+          (v) => v !== optValue && !(optValue === otherOpt && v.startsWith("Other:"))
         );
       }
       onChange(updated);
     };
 
+    
+
+    // Use multi-select card UI for optional comorbidity questions and recommended_workup
+    const isComorbidityOptional = id === "neurological_disorder" || id === "respiratory_disorder";
+    const isRecommendedWorkup = id === "recommended_workup";
+    
+    // Use pill button UI for medications
+    const isMedications = id === "medications";
+
+    if (isComorbidityOptional) {
+      return (
+        <FormControl fullWidth error={!!error}>
+          <FormLabel sx={{ fontSize: { xs: "0.813rem", sm: "0.875rem" }, fontWeight: 500, color: "#374151", mb: 1.5 }}>
+            {label} {required === false ? "(Optional)" : ""}
+          </FormLabel>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+              gap: { xs: "0.625rem", sm: "0.75rem" },
+            }}
+          >
+            {regularOptions.map((opt) => {
+              const optValue = typeof opt === 'object' ? opt.value : opt;
+              const optLabel = typeof opt === 'object' ? opt.label : opt;
+              const isSelected = currentAnswers.includes(optValue);
+              return (
+                <MultiSelectCard
+                  key={optValue}
+                  isSelected={isSelected}
+                  onClick={() => handleCheckboxChange(optValue, !isSelected)}
+                >
+                  {optLabel}
+                  {isSelected && (
+                    <CheckIcon
+                      style={{
+                        position: "absolute",
+                        right: "1rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#fff",
+                      }}
+                    />
+                  )}
+                </MultiSelectCard>
+              );
+            })}
+          </Box>
+          {!!error && <FormHelperText>{helperText}</FormHelperText>}
+        </FormControl>
+      );
+    }
+
+    if (isMedications) {
+      return (
+        <FormControl fullWidth error={!!error}>
+          <FormLabel sx={{ fontSize: { xs: "0.813rem", sm: "0.875rem" }, fontWeight: 500, color: "#374151", mb: 1.5 }}>
+            {label} {required === false ? "(Optional)" : ""}
+          </FormLabel>
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: { xs: "0.5rem", sm: "0.625rem" },
+            }}
+          >
+            {regularOptions.map((opt) => {
+              const optValue = typeof opt === 'object' ? opt.value : opt;
+              const optLabel = typeof opt === 'object' ? opt.label : opt;
+              const isSelected = currentAnswers.includes(optValue);
+              return (
+                <SelectablePill
+                  key={optValue}
+                  isSelected={isSelected}
+                  onClick={() => handleCheckboxChange(optValue, !isSelected)}
+                >
+                  {optLabel}
+                  {isSelected && (
+                    <span style={{ fontSize: "1rem", marginLeft: "0.25rem" }}>×</span>
+                  )}
+                </SelectablePill>
+              );
+            })}
+            {otherOpt && (
+              <SelectablePill
+                isSelected={otherChecked}
+                onClick={() => handleCheckboxChange(otherOpt, !otherChecked)}
+              >
+                {otherOpt}
+                {otherChecked && (
+                  <span style={{ fontSize: "1rem", marginLeft: "0.25rem" }}>×</span>
+                )}
+              </SelectablePill>
+            )}
+          </Box>
+
+          {otherOpt && otherChecked && (
+            <StyledTextField
+              fullWidth
+              label="Please specify"
+              value={question.otherOption?.id || ""}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                setValue(question.otherOption.id, newValue);
+              }}
+              sx={{ mt: 1.5 }}
+              placeholder="Type..."
+              size="small"
+            />
+          )}
+
+          {!!error && <FormHelperText>{helperText}</FormHelperText>}
+        </FormControl>
+      );
+    }
+
+    if (isRecommendedWorkup) {
+      return (
+        <FormControl fullWidth error={!!error}>
+          <FormLabel sx={{ fontSize: { xs: "0.813rem", sm: "0.875rem" }, fontWeight: 500, color: "#374151", mb: 1.5 }}>
+            {label} {required === false ? "(Optional)" : ""}
+          </FormLabel>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+              gap: { xs: "0.625rem", sm: "0.75rem" },
+            }}
+          >
+            {regularOptions.map((opt) => {
+              const optValue = typeof opt === 'object' ? opt.value : opt;
+              const optLabel = typeof opt === 'object' ? opt.label : opt;
+              const isSelected = currentAnswers.includes(optValue);
+              return (
+                <MultiSelectCard
+                  key={optValue}
+                  isSelected={isSelected}
+                  onClick={() => handleCheckboxChange(optValue, !isSelected)}
+                >
+                  {optLabel}
+                  {isSelected && (
+                    <CheckIcon
+                      style={{
+                        position: "absolute",
+                        right: "1rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#fff",
+                      }}
+                    />
+                  )}
+                </MultiSelectCard>
+              );
+            })}
+          </Box>
+          {!!error && <FormHelperText>{helperText}</FormHelperText>}
+        </FormControl>
+      );
+    }
+
+    // Default checkbox rendering for other questions
     const otherChecked = otherOpt && currentAnswers.includes(otherOpt);
 
     return (
       <FormControl fullWidth error={!!error}>
-        <FormLabel>
+        <FormLabel sx={{ fontSize: "0.813rem", fontWeight: 500, color: "#374151", mb: 1 }}>
           {label} {required === false ? "(Optional)" : ""}
         </FormLabel>
         <FormGroup>
-          {regularOptions.map((opt) => (
-            <FormControlLabel
-              key={opt}
-              control={
-                <Checkbox
-                  checked={currentAnswers.includes(opt)}
-                  onChange={(e) => handleCheckboxChange(opt, e.target.checked)}
+          {regularOptions.map((opt) => {
+            const optValue = typeof opt === 'object' ? opt.value : opt;
+            const optLabel = typeof opt === 'object' ? opt.label : opt;
+            return (
+              <FormControlLabel
+                key={optValue}
+                control={
+                  <Checkbox
+                    checked={currentAnswers.includes(optValue)}
+                    onChange={(e) => handleCheckboxChange(optValue, e.target.checked)}
+                  sx={{
+                    color: "#9CA3AF",
+                    "&.Mui-checked": { color: "#3B82F6" },
+                  }}
                 />
               }
-              label={opt}
+              label={<Typography sx={{ fontSize: "0.875rem" }}>{optLabel}</Typography>}
             />
-          ))}
+          );
+          })}
           {otherOpt && (
             <FormControlLabel
               control={
@@ -80,26 +639,30 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
                   onChange={(e) =>
                     handleCheckboxChange(otherOpt, e.target.checked)
                   }
+                  sx={{
+                    color: "#9CA3AF",
+                    "&.Mui-checked": { color: "#3B82F6" },
+                  }}
                 />
               }
-              label={otherOpt}
+              label={<Typography sx={{ fontSize: "0.875rem" }}>{otherOpt}</Typography>}
             />
           )}
         </FormGroup>
 
         {otherOpt && otherChecked && (
-          
-          <TextField
+          <StyledTextField
             fullWidth
             label="Please specify"
-            value={ question.otherOption.id|| ""} // Use the current value from the parent state
+            value={question.otherOption.id || ""}
             onChange={(e) => {
               const newValue = e.target.value.split("Other: ")[1] || "";
-              setValue(question.otherOption.id, newValue); // Update the parent state
-              onChange(newValue); // Notify parent of the change
+              setValue(question.otherOption.id, newValue);
+              onChange(newValue);
             }}
             sx={{ mt: 1 }}
-            placeholder="Type...  "
+            placeholder="Type..."
+            size="small"
           />
         )}
 
@@ -108,16 +671,339 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
     );
   };
 
+  // Render radio as segmented control if options <= 2, cards for 3 options, pills for 4 options
+  const renderRadio = () => {
+    const shouldUseSegmented = options && options.length <= 2;
+    const shouldUseCards = options && options.length === 3;
+    const shouldUsePills = options && options.length === 4;
+
+    // Special rendering for Mallampati Grade
+    if (id === "mallampati") {
+      const mallampatiLabels = {
+        "1": { class: "Class I", description: "FULL VISIBILITY" },
+        "2": { class: "Class II", description: "PARTIAL UVULA" },
+        "3": { class: "Class III", description: "UVULA BASE ONLY" },
+        "4": { class: "Class IV", description: "HARD PALATE ONLY" },
+      };
+
+      return (
+        <FormControl fullWidth error={!!error}>
+          <Box sx={{ 
+            padding: "1rem", 
+            background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)", 
+            borderRadius: "0.5rem",
+            mb: 1.5 
+          }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: "0.5rem", mb: 0.75 }}>
+              <Typography sx={{ fontSize: "1.25rem" }}>👄</Typography>
+              <FormLabel sx={{ fontSize: "0.938rem", fontWeight: 600, color: "#1F2937", mb: 0 }}>
+                {label}
+              </FormLabel>
+            </Box>
+            <Typography sx={{ fontSize: "0.75rem", color: "#6B7280", mb: 0.75 }}>
+              Choose the anatomical class that best matches the patient's oral cavity visibility.
+            </Typography>
+            <Box sx={{ 
+              display: "grid", 
+              gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)" },
+              gap: { xs: "0.75rem", sm: "1rem" },
+            }}>
+              {options.map((opt) => {
+                const optValue = typeof opt === 'object' ? opt.value : opt;
+                const optLabel = typeof opt === 'object' ? opt.label : opt;
+                const isSelected = value === optValue;
+                const labels = mallampatiLabels[optValue] || { class: `Class ${optLabel}`, description: "" };
+                
+                return (
+                  <MallampatiCard
+                    key={optValue}
+                    isSelected={isSelected}
+                    onClick={() => onChange(optValue)}
+                  >
+                    {isSelected && (
+                      <MallampatiCheckmark>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </MallampatiCheckmark>
+                    )}
+                    <MallampatiCircle isSelected={isSelected}>
+                      {optLabel}
+                    </MallampatiCircle>
+                    <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, mb: 0.25, textAlign: "center", color: "#1F2937" }}>
+                      {labels.class}
+                    </Typography>
+                    <Typography sx={{ 
+                      fontSize: "0.688rem", 
+                      color: "#6B7280", 
+                      textAlign: "center", 
+                      textTransform: "uppercase", 
+                      letterSpacing: "0.05em",
+                      lineHeight: 1.2
+                    }}>
+                      {labels.description}
+                    </Typography>
+                  </MallampatiCard>
+                );
+              })}
+            </Box>
+          </Box>
+          {!!error && <FormHelperText>{helperText}</FormHelperText>}
+        </FormControl>
+      );
+    }
+
+    // Use toggle switch for surgery_sleep_apnea question
+    if (id === "surgery_sleep_apnea") {
+      const isYes = value === "Yes";
+      return (
+        <FormControl fullWidth error={!!error}>
+          <ToggleSwitchContainer>
+            <FormLabel sx={{ fontSize: "0.875rem", fontWeight: 500, color: "#374151", flex: 1 }}>
+              {label}
+            </FormLabel>
+            <ToggleSwitch
+              checked={isYes}
+              onClick={() => onChange(isYes ? "No" : "Yes")}
+            >
+              <ToggleKnob checked={isYes} />
+            </ToggleSwitch>
+          </ToggleSwitchContainer>
+          {!!error && <FormHelperText>{helperText}</FormHelperText>}
+        </FormControl>
+      );
+    }
+
+    if (shouldUseSegmented) {
+      return (
+        <FormControl fullWidth error={!!error}>
+          <QuestionContainer>
+            <QuestionLabel>
+              {label}
+            </QuestionLabel>
+            <RadioButtonGroup>
+              {options.map((opt) => {
+                const optValue = typeof opt === 'object' ? opt.value : opt;
+                const optLabel = typeof opt === 'object' ? opt.label : opt;
+                return (
+                  <RadioButton
+                    key={optValue}
+                    isActive={value === optValue}
+                    onClick={() => onChange(optValue)}
+                  >
+                    {optLabel}
+                  </RadioButton>
+                );
+              })}
+            </RadioButtonGroup>
+          </QuestionContainer>
+          {!!error && <FormHelperText sx={{ ml: 1.5 }}>{helperText}</FormHelperText>}
+        </FormControl>
+      );
+    }
+
+    if (shouldUseCards) {
+      return (
+        <FormControl fullWidth error={!!error}>
+          <FormLabel sx={{ fontSize: "0.813rem", fontWeight: 500, color: "#374151", mb: 1 }}>
+            {label}
+          </FormLabel>
+          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem" }}>
+            {options.map((opt) => {
+              const optValue = typeof opt === 'object' ? opt.value : opt;
+              const optLabel = typeof opt === 'object' ? opt.label : opt;
+              return (
+                <CardSelectionButton
+                  key={optValue}
+                  isSelected={value === optValue}
+                  onClick={() => onChange(optValue)}
+                >
+                  {optLabel}
+                  {value === optValue && (
+                    <CheckIcon>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </CheckIcon>
+                  )}
+                </CardSelectionButton>
+              );
+            })}
+          </Box>
+          {!!error && <FormHelperText>{helperText}</FormHelperText>}
+        </FormControl>
+      );
+    }
+
+    if (shouldUsePills) {
+      return (
+        <FormControl fullWidth error={!!error}>
+          <FormLabel sx={{ fontSize: "0.813rem", fontWeight: 500, color: "#374151", mb: 1 }}>
+            {label}
+          </FormLabel>
+          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.5rem" }}>
+            {options.map((opt) => {
+              const optValue = typeof opt === 'object' ? opt.value : opt;
+              const optLabel = typeof opt === 'object' ? opt.label : opt;
+              return (
+                <PillButton
+                  key={optValue}
+                  isSelected={value === optValue}
+                  onClick={() => onChange(optValue)}
+                >
+                  {optLabel}
+                </PillButton>
+              );
+            })}
+          </Box>
+          {!!error && <FormHelperText>{helperText}</FormHelperText>}
+        </FormControl>
+      );
+    }
+
+    // Default radio buttons for more than 4 options
+    return (
+      <FormControl error={!!error}>
+        <FormLabel sx={{ fontSize: "0.813rem", fontWeight: 500, color: "#374151" }}>
+          {label}
+        </FormLabel>
+        <RadioGroup
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          sx={{ mt: 1 }}
+        >
+          {options?.map((opt) => {
+            const optValue = typeof opt === 'object' ? opt.value : opt;
+            const optLabel = typeof opt === 'object' ? opt.label : opt;
+            return (
+              <FormControlLabel
+                key={optValue}
+                value={optValue}
+                control={
+                  <Radio
+                    sx={{
+                      color: "#9CA3AF",
+                      "&.Mui-checked": { color: "#3B82F6" },
+                    }}
+                  />
+                }
+                label={<Typography sx={{ fontSize: "0.875rem" }}>{optLabel}</Typography>}
+              />
+            );
+          })}
+        </RadioGroup>
+        {!!error && <FormHelperText>{helperText}</FormHelperText>}
+      </FormControl>
+    );
+  };
+
+  // Special handling for age field - use number stepper
+  if (id === "age" && type === "number") {
+    return (
+      <QuestionBox>
+        <FormControl fullWidth error={!!error}>
+          <FormLabel sx={{ fontSize: "0.813rem", fontWeight: 500, color: "#374151", mb: 1 }}>
+            {label}
+          </FormLabel>
+          <NumberStepperContainer>
+            <StepperButton onClick={handleDecrement} size="small">
+              −
+            </StepperButton>
+            <StepperInput
+              type="number"
+              value={value || ""}
+              onChange={(e) => onChange(e.target.value)}
+              min="1"
+              max="120"
+            />
+            <StepperButton onClick={handleIncrement} size="small">
+              +
+            </StepperButton>
+          </NumberStepperContainer>
+          {!!error && <FormHelperText>{helperText}</FormHelperText>}
+        </FormControl>
+      </QuestionBox>
+    );
+  }
+
+  // Special handling for time input
+  if (type === "time") {
+    return (
+      <QuestionBox>
+        <FormControl fullWidth error={!!error}>
+          <FormLabel sx={{ fontSize: "0.813rem", fontWeight: 500, color: "#374151", mb: 1 }}>
+            {label}
+          </FormLabel>
+          <TimeInputContainer>
+            <svg style={{ width: "16px", height: "16px", flexShrink: 0 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <input
+              type="time"
+              value={value || ""}
+              onChange={(e) => onChange(e.target.value)}
+              style={{
+                border: "none",
+                outline: "none",
+                fontSize: "0.875rem",
+                color: "#1F2937",
+                background: "transparent",
+                flex: 1,
+              }}
+            />
+          </TimeInputContainer>
+          {!!error && <FormHelperText>{helperText}</FormHelperText>}
+        </FormControl>
+      </QuestionBox>
+    );
+  }
+
+  // Special handling for range slider (for sleep hours, etc.)
+  if (id === "avg_sleep_hours" && type === "number") {
+    const [sliderValue, setSliderValue] = useState(value || "7.5");
+    
+    return (
+      <QuestionBox>
+        <FormControl fullWidth error={!!error}>
+          <FormLabel sx={{ fontSize: "0.813rem", fontWeight: 500, color: "#374151", mb: 1 }}>
+            Average sleep hours: <span style={{ fontWeight: 700, color: "#3B82F6" }}>{sliderValue}</span>h
+          </FormLabel>
+          <SliderContainer>
+            <StyledSlider
+              type="range"
+              min="3"
+              max="12"
+              step="0.5"
+              value={sliderValue}
+              onChange={(e) => {
+                setSliderValue(e.target.value);
+                onChange(e.target.value);
+              }}
+              style={{
+                background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${((sliderValue - 3) / (12 - 3)) * 100}%, #E5E7EB ${((sliderValue - 3) / (12 - 3)) * 100}%, #E5E7EB 100%)`,
+              }}
+            />
+            <SliderLabels>
+              <span>3h</span>
+              <span>12h</span>
+            </SliderLabels>
+          </SliderContainer>
+          {!!error && <FormHelperText>{helperText}</FormHelperText>}
+        </FormControl>
+      </QuestionBox>
+    );
+  }
+
   switch (type) {
     case "text":
     case "email":
     case "tel":
     case "number":
     case "date":
-    case "time":
       return (
         <QuestionBox>
-          <TextField
+          <StyledTextField
             fullWidth
             type={type}
             label={label}
@@ -125,11 +1011,12 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
             onChange={(e) => onChange(e.target.value)}
             onWheel={(e) => e.target.blur()}
             InputLabelProps={
-              type === "date" || type === "time" ? { shrink: true } : undefined
+              type === "date" ? { shrink: true } : undefined
             }
             InputProps={{ readOnly: id === "bmi" || id === "waist_hip_ratio" }}
             error={!!error}
             helperText={helperText}
+            size="small"
           />
         </QuestionBox>
       );
@@ -137,7 +1024,7 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
     case "textarea":
       return (
         <QuestionBox>
-          <TextField
+          <StyledTextField
             fullWidth
             multiline
             rows={4}
@@ -152,27 +1039,7 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
       );
 
     case "radio":
-      return (
-        <QuestionBox>
-          <FormControl error={!!error}>
-            <FormLabel>{label}</FormLabel>
-            <RadioGroup
-              value={value || ""}
-              onChange={(e) => onChange(e.target.value)}
-            >
-              {options?.map((opt) => (
-                <FormControlLabel
-                  key={opt}
-                  value={opt}
-                  control={<Radio />}
-                  label={opt}
-                />
-              ))}
-            </RadioGroup>
-            {!!error && <FormHelperText>{helperText}</FormHelperText>}
-          </FormControl>
-        </QuestionBox>
-      );
+      return <QuestionBox>{renderRadio()}</QuestionBox>;
 
     case "checkbox":
       return <QuestionBox>{renderCheckboxes()}</QuestionBox>;
@@ -181,19 +1048,33 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
       return (
         <QuestionBox>
           <FormControl fullWidth error={!!error}>
-            <FormLabel>{label}</FormLabel>
+            <FormLabel sx={{ fontSize: "0.813rem", fontWeight: 500, color: "#374151", mb: 1 }}>
+              {label}
+            </FormLabel>
             <Select
               value={value || ""}
               onChange={(e) => onChange(e.target.value)}
+              size="small"
+              sx={{
+                borderRadius: "6px",
+                fontSize: "0.875rem",
+                "& fieldset": {
+                  borderColor: "#E5E7EB",
+                },
+              }}
             >
               <MenuItem value="" disabled>
                 Select an option
               </MenuItem>
-              {options?.map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {opt}
-                </MenuItem>
-              ))}
+              {options?.map((opt) => {
+                const optValue = typeof opt === 'object' ? opt.value : opt;
+                const optLabel = typeof opt === 'object' ? opt.label : opt;
+                return (
+                  <MenuItem key={optValue} value={optValue} sx={{ fontSize: "0.875rem" }}>
+                    {optLabel}
+                  </MenuItem>
+                );
+              })}
             </Select>
             {!!error && <FormHelperText>{helperText}</FormHelperText>}
           </FormControl>
