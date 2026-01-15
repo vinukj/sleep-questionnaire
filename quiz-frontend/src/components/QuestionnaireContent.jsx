@@ -402,7 +402,7 @@ const QuestionnaireContent = ({
                     }
 
                     return (
-                      <QuestionWrapper key={q.id} isDependent={!!q.dependsOn || q.id === "restless_legs" || q.id === "recommended_workup"}>
+                      <QuestionWrapper key={q.id} isDependent={!!q.dependsOn || q.id === "restless_legs" || q.id === "recommended_workup" || q.id === "mallampati"}>
                         <Controller
                           name={q.id}
                           control={methods.control}
@@ -453,7 +453,7 @@ const QuestionnaireContent = ({
                   }
 
                   return (
-                    <QuestionWrapper key={q.id} isDependent={!!q.dependsOn || q.id === "restless_legs" || q.id === "recommended_workup"}>
+                    <QuestionWrapper key={q.id} isDependent={!!q.dependsOn || q.id === "restless_legs" || q.id === "recommended_workup" || q.id === "mallampati"}>
                       <Controller
                         name={q.id}
                         control={methods.control}
