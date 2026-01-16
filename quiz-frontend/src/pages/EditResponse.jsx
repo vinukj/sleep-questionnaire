@@ -29,7 +29,7 @@ export default function EditResponse() {
   const { id: responseId } = useParams();
   const { authFetch } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('tab1');
+  const [activeStep, setActiveStep] = useState(1);
   const [formData, setFormData] = useState({});
   const [questionnaire, setQuestionnaire] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -124,6 +124,10 @@ export default function EditResponse() {
         }
       });
     }
+  };
+
+  const toggleAccordion = (step) => {
+    setActiveStep(activeStep === step ? null : step);
   };
 
   const shouldShowQuestion = (question) => {
@@ -357,34 +361,37 @@ export default function EditResponse() {
             </div>
           </div>
 
-          {/* Two-Column Layout */}
-          <div className="two-column-layout">
-            {/* Left Sidebar Navigation */}
-            <div className="step-nav-sidebar">
-              <h3>Questionnaire Sections</h3>
-              <div className="step-nav">
-                {questionnaire.map((page) => (
-                  <button 
-                    key={`tab${page.page}`}
-                    className={`step-nav-item ${activeTab === `tab${page.page}` ? 'active' : ''}`}
-                    onClick={() => setActiveTab(`tab${page.page}`)}
-                  >
-                    <span className="step-number">{page.page}</span>
-                    <span className="step-label">{page.title}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Right Content Area */}
-            <div className="content-area">
-              {questionnaire.map((page) => (
+          {/* Accordion Sections */}
+          <div className="accordion">
+            {questionnaire.map((page) => (
+              <div 
+                key={page.page}
+                className={`accordion-item ${activeStep === page.page ? 'active' : ''}`}
+              >
                 <div 
-                  key={`content${page.page}`}
-                  className={`tab-content ${activeTab === `tab${page.page}` ? 'active' : ''}`}
+                  className="accordion-header"
+                  onClick={() => toggleAccordion(page.page)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleAccordion(page.page);
+                    }
+                  }}
                 >
-                  <div className="response-section">
-                    <h3>{page.title}</h3>
+                  <div className="accordion-title">
+                    <span className="step-number">{page.page}</span>
+                    <span>{page.title}</span>
+                  </div>
+                  <div className="accordion-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
+                </div>
+                <div className="accordion-content">
+                  <div className="accordion-body">
                     <div className="response-grid">
                       {page.questions
                         .filter(question => shouldShowQuestion(question))
@@ -402,8 +409,8 @@ export default function EditResponse() {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </main>
       </div>
