@@ -109,11 +109,20 @@ const ViewResponse = () => {
   };
 
   const handleEdit = () => {
-    navigate("/STJohnquestionnaire", { 
+    const responseId = location.state?.responseId;
+    if (!responseId) {
+      alert('Unable to edit: Response ID not found');
+      return;
+    }
+    
+    navigate(`/edit-response/${responseId}`, { 
       state: { 
-        responseData: location.state?.responseData,
-        responseId: location.state?.responseId,
-        isEditing: true 
+        responseData: responseData,
+        responseId: responseId,
+        patientName: responseData.name || 'Unknown Patient',
+        patientId: responseData.hospital_id || responseId,
+        hospitalId: responseData.hospital_id,
+        lastModified: location.state?.created_at || new Date().toISOString()
       } 
     });
   };

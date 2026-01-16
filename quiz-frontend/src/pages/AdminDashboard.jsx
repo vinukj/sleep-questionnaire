@@ -249,11 +249,14 @@ const AdminDashboard = () => {
   };
 
   const handleEditResponse = (response) => {
-    navigate("/STJohnquestionnaire", { 
+    navigate(`/edit-response/${response.id}`, { 
       state: { 
         responseData: response.response_data,
         responseId: response.id,
-        isEditing: true 
+        patientName: response.response_data.name || 'Unknown Patient',
+        patientId: response.response_data.hospital_id || response.id,
+        hospitalId: response.response_data.hospital_id,
+        lastModified: response.updated_at || response.created_at
       } 
     });
   };

@@ -11,6 +11,7 @@ import AdminDashboard from "./pages/AdminDashboard.jsx";
 import Questionnaire from "./components/Questionnaire.jsx";
 import OCRUploadPage from "./pages/OCRUploadPage.jsx";
 import ViewResponse from "./pages/ViewResponse.jsx";
+import EditResponse from "./pages/EditResponse.jsx";
 
 export default function App() {
   // Set up auth redirect handling
@@ -58,6 +59,16 @@ export default function App() {
         element={
           <AdminRoute>
             <ViewResponse />
+          </AdminRoute>
+        }
+      />
+
+      {/* Edit Response Route */}
+      <Route
+        path="/edit-response/:id"
+        element={
+          <AdminRoute>
+            <EditResponse />
           </AdminRoute>
         }
       />

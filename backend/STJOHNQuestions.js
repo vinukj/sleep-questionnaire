@@ -563,6 +563,7 @@ export const STJohnQuestionnaire = [
         type: "number",
         label: "Epworth Sleepiness Scale Score",
         required: true,
+        subsection: "Basic Assessment",
       },
       {
         id: "iss_q1",
@@ -570,6 +571,7 @@ export const STJohnQuestionnaire = [
         label: "On waking, do you feel drowsy/unrefreshing sleep?",
         options: ["Yes", "No"],
         required: true,
+        subsection: "Basic Assessment",
       },
       {
         id: "iss_q2a",
@@ -577,6 +579,7 @@ export const STJohnQuestionnaire = [
         label: "Do you snore?",
         options: ["Yes", "No"],
         required: true,
+        subsection: "Basic Assessment",
       },
       {
         id: "iss_q2b",
@@ -586,6 +589,7 @@ export const STJohnQuestionnaire = [
         options: ["Yes", "No"],
         dependsOn: { id: "iss_q2a", value: "Yes" },
         required: true,
+        subsection: "Basic Assessment",
       },
       {
         id: "iss_q3",
@@ -593,6 +597,7 @@ export const STJohnQuestionnaire = [
         label: "Do your knees buckle/give way while laughing/crying or in intense emotional situations?",
         options: ["Yes", "No"],
         required: true,
+        subsection: "Basic Assessment",
       },
       {
         id: "iss_q4",
@@ -600,6 +605,7 @@ export const STJohnQuestionnaire = [
         label: "Do you kick your bed partner/bed sheets away in sleep?",
         options: ["Yes", "No"],
         required: true,
+        subsection: "Basic Assessment",
       },
       {
         id: "iss_q5",
@@ -607,6 +613,7 @@ export const STJohnQuestionnaire = [
         label: "Do you feel drowsy while watching TV or leisure activities?",
         options: ["Yes", "No"],
         required: true,
+        subsection: "Daytime Drowsiness",
       },
       {
         id: "iss_q6",
@@ -614,6 +621,7 @@ export const STJohnQuestionnaire = [
         label: "Do you feel drowsy / sleepy while doing household work?",
         options: ["Yes", "No"],
         required: true,
+        subsection: "Daytime Drowsiness",
       },
       {
         id: "iss_q7",
@@ -621,6 +629,7 @@ export const STJohnQuestionnaire = [
         label: "Have you ever experienced sleep attacks?",
         options: ["Yes", "No"],
         required: true,
+        subsection: "Daytime Drowsiness",
       },
       {
         id: "iss_q8a",
@@ -628,6 +637,7 @@ export const STJohnQuestionnaire = [
         label: "Nodded off / Felt sleepy while conversing?",
         options: ["Yes", "No"],
         required: true,
+        subsection: "Sleep Episodes During Activities",
       },
       {
         id: "iss_q8b",
@@ -635,6 +645,7 @@ export const STJohnQuestionnaire = [
         label: "Nodded off / Felt sleepy while driving?",
         options: ["Yes", "No"],
         required: true,
+        subsection: "Sleep Episodes During Activities",
       },
       {
         id: "iss_q8c",
@@ -642,6 +653,7 @@ export const STJohnQuestionnaire = [
         label: "Nodded off / Felt sleepy while cooking?",
         options: ["Yes", "No"],
         required: true,
+        subsection: "Sleep Episodes During Activities",
       },
       {
         id: "iss_q8d",
@@ -649,6 +661,7 @@ export const STJohnQuestionnaire = [
         label: "Nodded off / Felt sleepy while doing office work?",
         options: ["Yes", "No"],
         required: true,
+        subsection: "Sleep Episodes During Activities",
       },
       {
         id: "iss_q8e",
@@ -656,6 +669,7 @@ export const STJohnQuestionnaire = [
         label: "Nodded off / Felt sleepy while operating heavy machinery?",
         options: ["Yes", "No"],
         required: true,
+        subsection: "Sleep Episodes During Activities",
       },
     ],
   },
