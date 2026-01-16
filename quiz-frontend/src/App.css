@@ -19,7 +19,6 @@ html {
   flex-direction: column;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
 }
 
 /* Global Container Class */

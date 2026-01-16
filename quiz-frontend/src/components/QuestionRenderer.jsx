@@ -23,7 +23,7 @@ import logger from "../utils/logger";
 
 const QuestionBox = ({ children }) => <Box sx={{ mb: 2, width: '100%' }}>{children}</Box>;
 
-const QuestionContainer = styled(Box)({
+const QuestionContainer = styled(Box)(({ theme }) => ({
   minHeight: "64px",
   display: "flex",
   flexDirection: "row",
@@ -34,16 +34,33 @@ const QuestionContainer = styled(Box)({
   border: "1px solid #E5E7EB",
   borderRadius: "8px",
   gap: "1rem",
-});
+  width: "100%",
+  boxSizing: "border-box",
+  [theme.breakpoints.down('sm')]: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    padding: "0.875rem 1rem",
+    gap: "0.75rem",
+  },
+}));
 
-const QuestionLabel = styled(FormLabel)({
+const QuestionLabel = styled(FormLabel)(({ theme }) => ({
   fontSize: "0.938rem",
   fontWeight: 400,
   color: "#1F2937",
   marginBottom: 0,
-  flex: 1,
+  flex: "1 1 auto",
+  minWidth: 0,
   lineHeight: "1.4",
-});
+  maxWidth: "70%",
+  [theme.breakpoints.down('sm')]: {
+    fontSize: "0.875rem",
+    width: "100%",
+    maxWidth: "100%",
+    wordWrap: "break-word",
+    overflowWrap: "break-word",
+  },
+}));
 
 // Individual Button Group for Radio Options
 const RadioButtonGroup = styled(Box)(({ theme }) => ({
@@ -51,11 +68,19 @@ const RadioButtonGroup = styled(Box)(({ theme }) => ({
   gap: "0.5rem",
   justifyContent: "flex-end",
   alignItems: "center",
+  flexWrap: "nowrap",
+  flexShrink: 0,
+  [theme.breakpoints.down('sm')]: {
+    justifyContent: "stretch",
+    gap: "0.375rem",
+    width: "100%",
+    flexWrap: "wrap",
+  },
 }));
 
 const RadioButton = styled(Button, {
   shouldForwardProp: (prop) => prop !== "isActive",
-})(({ isActive }) => ({
+})(({ isActive, theme }) => ({
   padding: "0.5rem 1.5rem",
   fontSize: "0.875rem",
   fontWeight: 500,
@@ -63,12 +88,24 @@ const RadioButton = styled(Button, {
   borderRadius: "8px",
   textTransform: "none",
   minWidth: "80px",
-  height: "38px",
+  height: "auto",
+  minHeight: "38px",
   backgroundColor: isActive ? "#3B82F6" : "#fff",
   color: isActive ? "#fff" : "#374151",
+  whiteSpace: "normal",
+  wordBreak: "break-word",
+  lineHeight: 1.3,
+  textAlign: "center",
   "&:hover": {
     backgroundColor: isActive ? "#2563EB" : "#F9FAFB",
     borderColor: isActive ? "#2563EB" : "#D1D5DB",
+  },
+  [theme.breakpoints.down('sm')]: {
+    flex: 1,
+    minWidth: "0",
+    padding: "0.5rem 0.75rem",
+    fontSize: "0.813rem",
+    minHeight: "36px",
   },
 }));
 
@@ -114,7 +151,7 @@ const StepperInput = styled("input")({
 // Card Selection Button
 const CardSelectionButton = styled(Button, {
   shouldForwardProp: (prop) => prop !== "isSelected",
-})(({ isSelected }) => ({
+})(({ isSelected, theme }) => ({
   padding: "0.5rem",
   fontSize: "0.813rem",
   minHeight: "38px",
@@ -125,9 +162,21 @@ const CardSelectionButton = styled(Button, {
   color: isSelected ? "#3B82F6" : "#374151",
   borderRadius: "6px",
   textTransform: "none",
+  lineHeight: 1.3,
+  textAlign: "center",
+  width: "100%",
+  boxSizing: "border-box",
+  whiteSpace: "normal",
+  wordBreak: "break-word",
+  height: "auto",
   "&:hover": {
     backgroundColor: isSelected ? "#DBEAFE" : "#F9FAFB",
     borderColor: isSelected ? "#2563EB" : "#D1D5DB",
+  },
+  [theme.breakpoints.down('sm')]: {
+    fontSize: "0.75rem",
+    padding: "0.5rem 0.375rem",
+    minHeight: "36px",
   },
 }));
 
@@ -143,8 +192,8 @@ const CheckIcon = styled(Box)({
 // Pill Button
 const PillButton = styled(Button, {
   shouldForwardProp: (prop) => prop !== "isSelected",
-})(({ isSelected }) => ({
-  padding: "0.5rem",
+})(({ isSelected, theme }) => ({
+  padding: "0.5rem 1rem",
   fontSize: "0.813rem",
   fontWeight: 500,
   border: `2px solid ${isSelected ? "#3B82F6" : "#E5E7EB"}`,
@@ -153,9 +202,21 @@ const PillButton = styled(Button, {
   borderRadius: "9999px",
   textTransform: "none",
   minWidth: "auto",
+  maxWidth: "100%",
+  whiteSpace: "normal",
+  wordBreak: "break-word",
+  lineHeight: 1.3,
+  height: "auto",
+  minHeight: "38px",
+  boxSizing: "border-box",
   "&:hover": {
     backgroundColor: isSelected ? "#2563EB" : "#F3F4F6",
     borderColor: isSelected ? "#2563EB" : "#D1D5DB",
+  },
+  [theme.breakpoints.down('sm')]: {
+    fontSize: "0.75rem",
+    padding: "0.5rem 0.75rem",
+    minHeight: "36px",
   },
 }));
 
