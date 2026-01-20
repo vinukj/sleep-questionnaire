@@ -18,7 +18,7 @@ const REFRESH_TOKEN_EXPIRE = '7d'; // Refresh token lifespan
 export const signup = async (req, res) => {
     // Signup endpoint: create a new user with hashed password
     console.log(`[AUTH] Signup request:`, { method: req.method, path: req.originalUrl, body: req.body });
-    const { email, password } = req.body;
+    const { email, password,name } = req.body;
     const existingUser = await findUserbyEmail(email);
     if (existingUser) {
         return res.status(400).json({ error: "User already exists" });
