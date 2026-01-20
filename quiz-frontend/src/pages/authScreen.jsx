@@ -334,7 +334,7 @@ export default function AuthScreen() {
             </div> */}
 
             {/* Toggle View */}
-            <div className="auth-toggle">
+            {/* <div className="auth-toggle">
               {isLoginView ? "Don't have an account?" : "Already have an account?"}{" "}
               <button
                 type="button"
@@ -346,7 +346,7 @@ export default function AuthScreen() {
               >
                 {isLoginView ? "Request Access" : "Login"}
               </button>
-            </div>
+            </div> */}
           </form>
         </div>
       </main>
