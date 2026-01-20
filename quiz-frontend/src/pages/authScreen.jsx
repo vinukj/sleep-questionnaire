@@ -322,7 +322,7 @@ export default function AuthScreen() {
             <div className="divider">or</div>
 
             {/* Google Login */}
-            <div className="auth-google">
+            {/* <div className="auth-google">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={() => setLocalError("Google login failed")}
@@ -331,7 +331,7 @@ export default function AuthScreen() {
                 size="large"
                 width="100%"
               />
-            </div>
+            </div> */}
 
             {/* Toggle View */}
             <div className="auth-toggle">
