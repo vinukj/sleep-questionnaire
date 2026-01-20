@@ -70,6 +70,20 @@ const DeleteIcon = () => (
   </svg>
 );
 
+const UserPlusIcon = () => (
+  <svg className="icon icon--btn" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M8.5 11C10.7091 11 12.5 9.20914 12.5 7C12.5 4.79086 10.7091 3 8.5 3C6.29086 3 4.5 4.79086 4.5 7C4.5 9.20914 6.29086 11 8.5 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M20 8V14M23 11H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg className="icon icon--btn" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const SortIcon = () => (
   <svg className="table__sort-icon" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M6 2V10M6 2L3 5M6 2L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -100,6 +114,16 @@ const AdminDashboard = () => {
 
   const searchTimeoutRef = useRef(null);
   const MIN_SEARCH_LENGTH = 2;
+
+  // Add User Modal State
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [addUserForm, setAddUserForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'user'
+  });
+  const [addUserLoading, setAddUserLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -288,6 +312,46 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    
+    if (!addUserForm.name || !addUserForm.email || !addUserForm.password) {
+      setError('All fields are required');
+      return;
+    }
+    
+    try {
+      setAddUserLoading(true);
+      setError(null);
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(addUserForm)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create user');
+      }
+      
+      logger.success(`User created successfully with role: ${addUserForm.role}`);
+      setShowAddUserModal(false);
+      setAddUserForm({ name: '', email: '', password: '', role: 'user' });
+    } catch (err) {
+      console.error('Add user error:', err);
+      setError(err.message);
+    } finally {
+      setAddUserLoading(false);
+    }
+  };
+
+  const handleAddUserFormChange = (field, value) => {
+    setAddUserForm(prev => ({ ...prev, [field]: value }));
+  };
+
   if (!user) {
     return (
       <div className="admin-loading">
@@ -385,6 +449,18 @@ const AdminDashboard = () => {
                     </div>
                   </ExcelExportButton>
                 </div>
+
+                {/* Add User Button Card */}
+                <button 
+                  className="card card--clickable card--success"
+                  onClick={() => setShowAddUserModal(true)}
+                  style={{ border: 'none', cursor: 'pointer' }}
+                >
+                  <div className="card__content card__content--icon">
+                    <UserPlusIcon />
+                    <h3 className="card__title">Add New User</h3>
+                  </div>
+                </button>
               </div>
 
               {/* Recent Responses Section */}
@@ -522,6 +598,114 @@ const AdminDashboard = () => {
           )}
         </div>
       </main>
+
+      {/* Add User Modal */}
+      {showAddUserModal && (
+        <div className="modal-overlay" onClick={() => setShowAddUserModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <h2 className="modal__title">Add New User</h2>
+              <button 
+                className="modal__close"
+                onClick={() => setShowAddUserModal(false)}
+                aria-label="Close modal"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAddUser} className="modal__form">
+              <div className="form-group">
+                <label htmlFor="userName" className="form-label">
+                  Full Name <span className="form-required">*</span>
+                </label>
+                <input
+                  id="userName"
+                  type="text"
+                  className="input"
+                  placeholder="Enter full name"
+                  value={addUserForm.name}
+                  onChange={(e) => handleAddUserFormChange('name', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="userEmail" className="form-label">
+                  Email <span className="form-required">*</span>
+                </label>
+                <input
+                  id="userEmail"
+                  type="email"
+                  className="input"
+                  placeholder="Enter email address"
+                  value={addUserForm.email}
+                  onChange={(e) => handleAddUserFormChange('email', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="userPassword" className="form-label">
+                  Password <span className="form-required">*</span>
+                </label>
+                <input
+                  id="userPassword"
+                  type="password"
+                  className="input"
+                  placeholder="Enter password"
+                  value={addUserForm.password}
+                  onChange={(e) => handleAddUserFormChange('password', e.target.value)}
+                  required
+                  minLength="6"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="userRole" className="form-label">
+                  Role <span className="form-required">*</span>
+                </label>
+                <select
+                  id="userRole"
+                  className="input"
+                  value={addUserForm.role}
+                  onChange={(e) => handleAddUserFormChange('role', e.target.value)}
+                  required
+                >
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <p className="form-hint">Select the access level for this user</p>
+              </div>
+
+              <div className="modal__actions">
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  onClick={() => setShowAddUserModal(false)}
+                  disabled={addUserLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn--primary"
+                  disabled={addUserLoading}
+                >
+                  {addUserLoading ? (
+                    <>
+                      <span className="spinner" style={{ width: '16px', height: '16px', marginRight: '0.5rem' }}></span>
+                      Creating...
+                    </>
+                  ) : (
+                    <>Create User</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="admin-footer">
