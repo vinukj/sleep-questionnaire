@@ -297,6 +297,60 @@ export const getProfile = async (req, res) => {
 };
 
 
+// Admin: Update user role
+export const updateUserRole = async (req, res) => {
+  try {
+    const { userId, role } = req.body;
+
+    if (!userId || !role) {
+      return res.status(400).json({ error: 'User ID and role are required' });
+    }
+
+    // Validate role
+    const validRoles = ['user', 'physician', 'admin'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ error: 'Invalid role. Must be: user, physician, or admin' });
+    }
+
+    // Update user role
+    const result = await pool.query(
+      'UPDATE users SET role = $1 WHERE id = $2 RETURNING id, email, name, role',
+      [role, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    console.log(`[AUTH] Admin ${req.user.email} updated user ${result.rows[0].email} role to ${role}`);
+
+    res.json({
+      message: 'User role updated successfully',
+      user: result.rows[0]
+    });
+  } catch (err) {
+    console.error('[AUTH] Update user role error:', err);
+    res.status(500).json({ error: 'Failed to update user role' });
+  }
+};
+
+// Admin: Get all users
+export const getAllUsers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, email, name, role, created_at FROM users ORDER BY created_at DESC'
+    );
+
+    res.json({
+      users: result.rows
+    });
+  } catch (err) {
+    console.error('[AUTH] Get all users error:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+};
+
+
 // DEBUG: Force expire access token
 export const forceExpireAccess = async (req, res) => {
   return res.status(401).json({ accessExpired: true });

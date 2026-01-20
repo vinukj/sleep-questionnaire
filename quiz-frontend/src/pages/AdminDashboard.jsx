@@ -84,6 +84,15 @@ const CloseIcon = () => (
   </svg>
 );
 
+const UsersIcon = () => (
+  <svg className="icon icon--btn" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45768C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const SortIcon = () => (
   <svg className="table__sort-icon" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M6 2V10M6 2L3 5M6 2L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -124,6 +133,13 @@ const AdminDashboard = () => {
     role: 'user'
   });
   const [addUserLoading, setAddUserLoading] = useState(false);
+
+  // Edit User Roles Modal State
+  const [showEditRolesModal, setShowEditRolesModal] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [newRole, setNewRole] = useState('');
+  const [editRolesLoading, setEditRolesLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -352,6 +368,77 @@ const AdminDashboard = () => {
     setAddUserForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const loadAllUsers = async () => {
+    try {
+      setEditRolesLoading(true);
+      const response = await authFetch('/auth/admin/users');
+      
+      if (!response.ok) {
+        throw new Error('Failed to load users');
+      }
+      
+      const data = await response.json();
+      setAllUsers(data.users || []);
+    } catch (err) {
+      console.error('Load users error:', err);
+      setError(err.message);
+    } finally {
+      setEditRolesLoading(false);
+    }
+  };
+
+  const handleOpenEditRoles = async () => {
+    setShowEditRolesModal(true);
+    await loadAllUsers();
+  };
+
+  const handleSelectUser = (userId) => {
+    const user = allUsers.find(u => u.id === parseInt(userId));
+    setSelectedUser(user);
+    setNewRole(user?.role || 'user');
+  };
+
+  const handleUpdateUserRole = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedUser) {
+      setError('Please select a user');
+      return;
+    }
+    
+    try {
+      setEditRolesLoading(true);
+      setError(null);
+      
+      const response = await authFetch('/auth/admin/users/role', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: selectedUser.id,
+          role: newRole
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update user role');
+      }
+      
+      logger.success(`User role updated to ${newRole}`);
+      setShowEditRolesModal(false);
+      setSelectedUser(null);
+      setNewRole('');
+      await loadAllUsers(); // Refresh user list
+    } catch (err) {
+      console.error('Update role error:', err);
+      setError(err.message);
+    } finally {
+      setEditRolesLoading(false);
+    }
+  };
+
   if (!user) {
     return (
       <div className="admin-loading">
@@ -460,6 +547,20 @@ const AdminDashboard = () => {
                     <div className="card__content card__content--icon">
                       <UserPlusIcon />
                       <h3 className="card__title">Add New User</h3>
+                    </div>
+                  </button>
+                )}
+
+                {/* Edit User Roles Button Card - Only for Super Admins */}
+                {(user?.role === 'admin' || user?.user?.role === 'admin') && (
+                  <button 
+                    className="card card--clickable card--warning"
+                    onClick={handleOpenEditRoles}
+                    style={{ border: 'none', cursor: 'pointer' }}
+                  >
+                    <div className="card__content card__content--icon">
+                      <UsersIcon />
+                      <h3 className="card__title">Edit User Roles</h3>
                     </div>
                   </button>
                 )}
@@ -600,6 +701,198 @@ const AdminDashboard = () => {
           )}
         </div>
       </main>
+
+      {/* Edit User Roles Modal */}
+      {showEditRolesModal && (
+        <div className="modal-overlay" onClick={() => setShowEditRolesModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <h2 className="modal__title">Edit User Roles</h2>
+              <button 
+                className="modal__close"
+                onClick={() => setShowEditRolesModal(false)}
+                aria-label="Close modal"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateUserRole} className="modal__form">
+              <div className="form-group">
+                <label htmlFor="selectUser" className="form-label">
+                  Select User <span className="form-required">*</span>
+                </label>
+                <select
+                  id="selectUser"
+                  className="input"
+                  onChange={(e) => handleSelectUser(e.target.value)}
+                  value={selectedUser?.id || ''}
+                  required
+                  disabled={editRolesLoading}
+                >
+                  <option value="">-- Select a user --</option>
+                  {allUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name || user.email} - Current Role: {user.role}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedUser && (
+                <>
+                  <div className="form-group">
+                    <label className="form-label">User Details</label>
+                    <div style={{ padding: '0.75rem', background: 'var(--color-bg-secondary)', borderRadius: '8px', fontSize: '0.875rem' }}>
+                      <p style={{ margin: '0 0 0.5rem 0' }}><strong>Email:</strong> {selectedUser.email}</p>
+                      <p style={{ margin: '0' }}><strong>Current Role:</strong> <span className="badge badge--secondary">{selectedUser.role}</span></p>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="newRole" className="form-label">
+                      New Role <span className="form-required">*</span>
+                    </label>
+                    <select
+                      id="newRole"
+                      className="input"
+                      value={newRole}
+                      onChange={(e) => setNewRole(e.target.value)}
+                      required
+                    >
+                      <option value="user">User</option>
+                      <option value="physician">Physician</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <p className="form-hint">Select the new role for this user</p>
+                  </div>
+                </>
+              )}
+
+              <div className="modal__actions">
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  onClick={() => setShowEditRolesModal(false)}
+                  disabled={editRolesLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn--primary"
+                  disabled={editRolesLoading || !selectedUser}
+                >
+                  {editRolesLoading ? (
+                    <>
+                      <span className="spinner" style={{ width: '16px', height: '16px', marginRight: '0.5rem' }}></span>
+                      Updating...
+                    </>
+                  ) : (
+                    <>Update Role</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Roles Modal */}
+      {showEditRolesModal && (
+        <div className="modal-overlay" onClick={() => setShowEditRolesModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <h2 className="modal__title">Edit User Roles</h2>
+              <button 
+                className="modal__close"
+                onClick={() => setShowEditRolesModal(false)}
+                aria-label="Close modal"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateUserRole} className="modal__form">
+              <div className="form-group">
+                <label htmlFor="selectUser" className="form-label">
+                  Select User <span className="form-required">*</span>
+                </label>
+                <select
+                  id="selectUser"
+                  className="input"
+                  onChange={(e) => handleSelectUser(e.target.value)}
+                  value={selectedUser?.id || ''}
+                  required
+                  disabled={editRolesLoading}
+                >
+                  <option value="">-- Select a user --</option>
+                  {allUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name || user.email} - Current Role: {user.role}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedUser && (
+                <>
+                  <div className="form-group">
+                    <label className="form-label">User Details</label>
+                    <div style={{ padding: '0.75rem', background: 'var(--color-bg-secondary)', borderRadius: '8px', fontSize: '0.875rem' }}>
+                      <p style={{ margin: '0 0 0.5rem 0' }}><strong>Email:</strong> {selectedUser.email}</p>
+                      <p style={{ margin: '0' }}><strong>Current Role:</strong> <span className="badge badge--secondary">{selectedUser.role}</span></p>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="newRole" className="form-label">
+                      New Role <span className="form-required">*</span>
+                    </label>
+                    <select
+                      id="newRole"
+                      className="input"
+                      value={newRole}
+                      onChange={(e) => setNewRole(e.target.value)}
+                      required
+                    >
+                      <option value="user">User</option>
+                      <option value="physician">Physician</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <p className="form-hint">Select the new role for this user</p>
+                  </div>
+                </>
+              )}
+
+              <div className="modal__actions">
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  onClick={() => setShowEditRolesModal(false)}
+                  disabled={editRolesLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn--primary"
+                  disabled={editRolesLoading || !selectedUser}
+                >
+                  {editRolesLoading ? (
+                    <>
+                      <span className="spinner" style={{ width: '16px', height: '16px', marginRight: '0.5rem' }}></span>
+                      Updating...
+                    </>
+                  ) : (
+                    <>Update Role</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Add User Modal */}
       {showAddUserModal && (

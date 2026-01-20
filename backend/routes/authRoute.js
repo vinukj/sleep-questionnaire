@@ -1,6 +1,6 @@
 import express from 'express';
-import { signup, login, googleLogin, refreshTokens } from '../controllers/authController.js';
-import { verifyTokens, verifyTokenBasic } from '../middleware/authMiddleware.js';
+import { signup, login, googleLogin, refreshTokens, updateUserRole, getAllUsers } from '../controllers/authController.js';
+import { verifyTokens, verifyTokenBasic, requireSuperAdmin } from '../middleware/authMiddleware.js';
 import { invalidateAllUserSessions } from '../models/userModel.js';
 
 const router = express.Router();
@@ -162,6 +162,12 @@ router.get('/profile', verifyTokens, (req, res) => {
     }
   });
 });
+
+// Admin: Get all users
+router.get('/admin/users', verifyTokens, requireSuperAdmin, getAllUsers);
+
+// Admin: Update user role
+router.put('/admin/users/role', verifyTokens, requireSuperAdmin, updateUserRole);
 
 
 /**
