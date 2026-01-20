@@ -146,25 +146,23 @@ router.get('/verify', verifyTokenBasic, (req, res) => {
  *         description: Forbidden, invalid or expired token
  */
 router.get('/profile', verifyTokens, (req, res) => {
-  console.log(`[AUTH] Inline profile route:`, { method: req.method, path: req.originalUrl, user: req.user });
-  
-  // Check if user email is in admin list
-  const adminList = (process.env.ADMIN_EMAILS || '')
-    .split(',')
-    .map(e => e.trim().toLowerCase())
-    .filter(Boolean);
-  
-  const isAdmin = adminList.includes(req.user.email.toLowerCase());
-  
+  console.log('[AUTH] Profile route:', {
+    method: req.method,
+    path: req.originalUrl,
+    user: req.user
+  });
+
   res.json({
     user: {
       id: req.user.id,
       name: req.user.name,
       email: req.user.email,
-      isAdmin: isAdmin
+      role: req.user.role,
+      isAdmin: req.user.role === 'admin'
     }
   });
 });
+
 
 /**
  * @swagger

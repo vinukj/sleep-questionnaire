@@ -277,40 +277,25 @@ export const refreshTokens = async (req, res) => {
 
 // ---------------- GET PROFILE ----------------
 export const getProfile = async (req, res) => {
-    // Get profile endpoint: requires Authorization header with Bearer token
-    console.log(`[AUTH] Get profile request:`, { method: req.method, path: req.originalUrl, cookies: req.cookies });
-    try {
-        // Get token from Authorization header
-        const authHeader = req.headers['authorization'];
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: "Not authenticated" });
-        }
-        const token = authHeader.split(' ')[1];
-        // Verify and decode token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // Find user by ID
-        const user = await findUserById(decoded.id);
-        if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        // Check if user's email is in the admin list
-        const adminEmails = process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',') : [];
-        const isAdmin = adminEmails.includes(user.email);
-
-        // Return user profile with admin status
-        res.json({ 
-            id: user.id, 
-            email: user.email, 
-            name: user.name, 
-            picture: user.picture,
-            isAdmin 
-        });
-    } catch (err) {
-        console.error('[AUTH] Get profile error:', err);
-        res.status(401).json({ error: "Invalid or expired token" });
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
+
+    res.json({
+      id: req.user.id,
+      email: req.user.email,
+      name: req.user.name,
+      picture: req.user.picture,
+      role: req.user.role,
+      isAdmin: req.user.role === 'admin'
+    });
+  } catch (err) {
+    console.error('[AUTH] Get profile error:', err);
+    res.status(500).json({ error: 'Failed to fetch profile' });
+  }
 };
+
 
 // DEBUG: Force expire access token
 export const forceExpireAccess = async (req, res) => {

@@ -64,7 +64,7 @@ export const verifyTokens = async (req, res, next) => {
 
     // Fetch user info from DB
     const userResult = await pool.query(
-      "SELECT id, email FROM users WHERE id=$1",
+      "SELECT id, email,role,name FROM users WHERE id=$1",
       [decoded.id]
     );
 
@@ -122,29 +122,21 @@ export const verifyTokenBasic = (req, res, next) => {
 // Simple admin guard using a list of admin emails in env var ADMIN_EMAILS (comma-separated)
 export const requireAdmin = (req, res, next) => {
   try {
-    const adminList = (process.env.ADMIN_EMAILS || '')
-      .split(',')
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-
-    const userEmail = String(req.user?.email || '').toLowerCase();
-
-    if (adminList.length > 0 && adminList.includes(userEmail)) {
-      return next();
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
     }
 
-    // If no admin list configured, block by default in production
-    if (process.env.NODE_ENV === 'production') {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
 
-    // In non-production, allow if list is empty (to avoid local lockout)
-    return next();
+    next();
   } catch (err) {
     console.error('Admin check failed:', err);
     return res.status(403).json({ message: 'Admin access required' });
   }
 };
+
 
 
  
