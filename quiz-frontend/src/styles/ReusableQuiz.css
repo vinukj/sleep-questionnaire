@@ -1,7 +1,7 @@
 /* --- Base Mobile-First Styles --- */
 .quiz-safe-area {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: #ffffff;
+  background-color: var(--color-bg-primary);
   min-height: 100vh;
   min-height: 100dvh; /* For mobile browsers */
   box-sizing: border-box;
@@ -155,7 +155,7 @@
   border-radius: clamp(0.5rem, 1.5vw, 0.75rem);
   padding: clamp(0.75rem, 2vw, 1rem);
   font-size: clamp(0.875rem, 2.5vw, 1rem);
-  background-color: #fff;
+  background-color: var(--color-bg-secondary);
   box-sizing: border-box;
   text-align: center;
   transition: all 0.2s ease-out;
@@ -255,7 +255,7 @@
     border-radius: clamp(1rem, 2vw, 1.25rem);
     padding: clamp(2rem, 4vw, 2.5rem);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    background-color: #ffffff;
+    background-color: var(--color-bg-secondary);
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 transparent;

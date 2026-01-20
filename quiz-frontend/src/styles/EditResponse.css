@@ -240,15 +240,15 @@
   height: 1.125rem;
   border-radius: 50%;
   border: 2px solid #CBD5E1;
-  background: white;
+  background: var(--color-bg-secondary);
   transition: all 0.2s;
   flex-shrink: 0;
   margin-left: 0.5rem;
 }
 
 .pill-option.selected .pill-icon {
-  border-color: white;
-  background: white;
+  border-color: var(--color-bg-secondary);
+  background: var(--color-bg-secondary);
   color: #3B82F6;
 }
 

@@ -28,7 +28,7 @@
 }
 
 .score-card {
-  background-color: white;
+  background-color: var(--color-bg-secondary);
   border-radius: clamp(8px, 2vw, 12px);
   padding: clamp(20px, 4vw, 30px);
   text-align: center;
@@ -38,7 +38,7 @@
 
 .score-label {
   font-size: clamp(1rem, 3vw, 1.25rem);
-  color: #4a5568;
+  color: var(--color-text-secondary);
   margin: 0;
   font-weight: 500;
 }
@@ -46,14 +46,14 @@
 .score-value {
   font-size: clamp(3rem, 10vw, 5rem);
   font-weight: 700;
-  color: #2d3748;
+  color: var(--color-text-primary);
   margin: clamp(8px, 2vw, 10px) 0;
   line-height: 1;
 }
 
 .interpretation {
   font-size: clamp(0.9rem, 2.5vw, 1.1rem);
-  color: #4a5568;
+  color: var(--color-text-secondary);
   line-height: 1.6;
   max-width: 65ch;
   margin: 0 auto;
@@ -61,7 +61,7 @@
 }
 
 .breakdown-container {
-  background-color: white;
+  background-color: var(--color-bg-secondary);
   border-radius: clamp(8px, 2vw, 12px);
   padding: clamp(20px, 4vw, 25px);
   margin-bottom: clamp(20px, 4vw, 30px);
@@ -74,7 +74,7 @@
   margin: 0 0 clamp(12px, 3vw, 15px) 0;
   border-bottom: 1px solid #e2e8f0;
   padding-bottom: clamp(8px, 2vw, 10px);
-  color: #2d3748;
+  color: var(--color-text-primary);
 }
 
 .component-row {
@@ -87,7 +87,7 @@
 }
 
 .component-label {
-  color: #2d3748;
+  color: var(--color-text-primary);
   flex: 1;
   min-width: 0;
   word-wrap: break-word;
@@ -95,7 +95,7 @@
 
 .component-score {
   font-weight: 600;
-  color: #2d3748;
+  color: var(--color-text-primary);
   white-space: nowrap;
 }
 
