@@ -451,7 +451,7 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Add User Button Card - Only for Super Admins */}
-                {user?.role === 'admin' && (
+                {(user?.role === 'admin' || user?.user?.role === 'admin') && (
                   <button 
                     className="card card--clickable card--success"
                     onClick={() => setShowAddUserModal(true)}
