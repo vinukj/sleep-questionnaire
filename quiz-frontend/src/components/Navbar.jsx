@@ -120,6 +120,8 @@ export default function Navbar() {
   const isActive = (path) => location.pathname === path;
 
   const isAdmin = currentUser?.isAdmin || currentUser?.user?.isAdmin;
+  const userRole = currentUser?.user?.role || currentUser?.role;
+  const hasAdminAccess = ['admin', 'physician'].includes(userRole) || isAdmin;
 
   return (
     <>
@@ -146,7 +148,7 @@ export default function Navbar() {
                   Home
                 </button>
               </li>
-              {isAdmin && (
+              {hasAdminAccess && (
                 <li className="nav__item">
                   <button
                     onClick={() => navigate("/admin")}
@@ -216,7 +218,7 @@ export default function Navbar() {
               <HomeIcon />
               Home
             </button>
-            {isAdmin && (
+            {hasAdminAccess && (
               <button
                 onClick={() => { navigate("/admin"); closeDrawer(); }}
                 className={`drawer-menu__link ${isActive("/admin") ? 'drawer-menu__link--active' : ''}`}

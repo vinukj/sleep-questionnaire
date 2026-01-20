@@ -450,17 +450,19 @@ const AdminDashboard = () => {
                   </ExcelExportButton>
                 </div>
 
-                {/* Add User Button Card */}
-                <button 
-                  className="card card--clickable card--success"
-                  onClick={() => setShowAddUserModal(true)}
-                  style={{ border: 'none', cursor: 'pointer' }}
-                >
-                  <div className="card__content card__content--icon">
-                    <UserPlusIcon />
-                    <h3 className="card__title">Add New User</h3>
-                  </div>
-                </button>
+                {/* Add User Button Card - Only for Super Admins */}
+                {user?.role === 'admin' && (
+                  <button 
+                    className="card card--clickable card--success"
+                    onClick={() => setShowAddUserModal(true)}
+                    style={{ border: 'none', cursor: 'pointer' }}
+                  >
+                    <div className="card__content card__content--icon">
+                      <UserPlusIcon />
+                      <h3 className="card__title">Add New User</h3>
+                    </div>
+                  </button>
+                )}
               </div>
 
               {/* Recent Responses Section */}
@@ -673,9 +675,10 @@ const AdminDashboard = () => {
                   required
                 >
                   <option value="user">User</option>
+                  <option value="physician">Physician</option>
                   <option value="admin">Admin</option>
                 </select>
-                <p className="form-hint">Select the access level for this user</p>
+                <p className="form-hint">User: Basic access | Physician: Admin dashboard access | Admin: Full access</p>
               </div>
 
               <div className="modal__actions">

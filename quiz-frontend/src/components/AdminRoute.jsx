@@ -14,11 +14,14 @@ export default function AdminRoute({ children }) {
     );
   }
 
-  // Redirect to home if user is not authenticated or not an admin
-  if (!currentUser || !currentUser.user || !currentUser.user.isAdmin) {
+  // Redirect to home if user is not authenticated or not an admin/physician
+  const allowedRoles = ['admin', 'physician'];
+  const userRole = currentUser?.user?.role;
+  
+  if (!currentUser || !currentUser.user || !allowedRoles.includes(userRole)) {
     return <Navigate to="/home" replace state={{ from: location }} />;
   }
 
-  // Render children if authenticated and is admin
+  // Render children if authenticated and has admin/physician role
   return children;
 }

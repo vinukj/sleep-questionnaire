@@ -119,14 +119,15 @@ export const verifyTokenBasic = (req, res, next) => {
 };
 
 
-// Simple admin guard using a list of admin emails in env var ADMIN_EMAILS (comma-separated)
+// Admin guard - allows admin and physician roles to access admin routes
 export const requireAdmin = (req, res, next) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'Not authenticated' });
     }
 
-    if (req.user.role !== 'admin') {
+    const allowedRoles = ['admin', 'physician'];
+    if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ message: 'Admin access required' });
     }
 
@@ -134,6 +135,24 @@ export const requireAdmin = (req, res, next) => {
   } catch (err) {
     console.error('Admin check failed:', err);
     return res.status(403).json({ message: 'Admin access required' });
+  }
+};
+
+// Super admin guard - only allows admin role (for user management)
+export const requireSuperAdmin = (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Super admin access required' });
+    }
+
+    next();
+  } catch (err) {
+    console.error('Super admin check failed:', err);
+    return res.status(403).json({ message: 'Super admin access required' });
   }
 };
 
