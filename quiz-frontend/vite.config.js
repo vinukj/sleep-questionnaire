@@ -12,11 +12,6 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-        secure: false,
-      },
       '/auth': {
         target: 'http://localhost:5000',
         changeOrigin: true,
@@ -33,6 +28,16 @@ export default defineConfig({
         secure: false,
       },
       '/quizzes': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/ocr': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,

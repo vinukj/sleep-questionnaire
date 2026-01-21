@@ -85,6 +85,18 @@ const getQuestionSections = (pageTitle, questions) => {
       },
     ];
   }
+
+  if(pageTitle==="Sleepiness Scales"){
+    return [{
+      title:"Epworth Sleepiness Scale",
+      questions: questions.filter(q=>["epworth_score"].includes(q.id))
+    },
+    {
+      title:"Indian Sleepiness Scale",
+      questions:questions.filter(q=>["iss_q1","iss_q2a","iss_q2b","iss_q3","iss_q4","iss_q5","iss_q6","iss_q7","iss_q8a","iss_q8b","iss_q8c","iss_q8d","iss_q8e"].includes(q.id))
+    }
+  ]
+  }
   
   if (pageTitle === "Clinical Examination") {
     return [

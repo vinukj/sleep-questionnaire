@@ -20,6 +20,10 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import logger from "../utils/logger";
+import class1Image from "../assets/malampatti/class1.jpg";
+import class2Image from "../assets/malampatti/class2.jpg";
+import class3Image from "../assets/malampatti/class3.jpg";
+import class4Image from "../assets/malampatti/class4.jpg";
 
 const QuestionBox = ({ children }) => <Box sx={{ mb: 2, width: '100%' }}>{children}</Box>;
 
@@ -377,18 +381,17 @@ const SelectablePill = styled(Button, {
 const MallampatiCard = styled(Button, {
   shouldForwardProp: (prop) => prop !== "isSelected",
 })(({ isSelected, theme }) => ({
-  padding: "1rem 0.75rem",
+  padding: "1rem",
   minHeight: "auto",
-  aspectRatio: "1 / 1",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  justifyContent: "center",
-  gap: "0.375rem",
+  justifyContent: "flex-start",
+  gap: "0.75rem",
   position: "relative",
   backgroundColor: "#fff",
   border: `2px solid ${isSelected ? "#3B82F6" : "#E5E7EB"}`,
-  borderRadius: "8px",
+  borderRadius: "12px",
   textTransform: "none",
   transition: "all 0.2s ease",
   "&:hover": {
@@ -396,27 +399,17 @@ const MallampatiCard = styled(Button, {
     borderColor: isSelected ? "#2563EB" : "#D1D5DB",
   },
   [theme.breakpoints.down("sm")]: {
-    padding: "0.75rem 0.5rem",
-    gap: "0.25rem",
+    padding: "0.75rem",
+    gap: "0.5rem",
   },
 }));
 
-const MallampatiCircle = styled(Box, {
-  shouldForwardProp: (prop) => prop !== "isSelected",
-})(({ isSelected }) => ({
-  width: "56px",
-  height: "56px",
-  borderRadius: "50%",
-  backgroundColor: "#F1F5F9",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "1.5rem",
-  fontWeight: 700,
-  color: "#3B82F6",
-  border: `2px solid ${isSelected ? "#3B82F6" : "#E5E7EB"}`,
-  transition: "all 0.2s ease",
-  marginBottom: "0.375rem",
+const MallampatiImage = styled("img")(({ theme }) => ({
+  width: "100%",
+  height: "auto",
+  borderRadius: "8px",
+  objectFit: "cover",
+  aspectRatio: "1 / 1",
 }));
 
 const MallampatiCheckmark = styled(Box)(() => ({
@@ -740,11 +733,18 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
 
     // Special rendering for Mallampati Grade
     if (id === "mallampati") {
+      const mallampatiImages = {
+        "1": class1Image,
+        "2": class2Image,
+        "3": class3Image,
+        "4": class4Image,
+      };
+
       const mallampatiLabels = {
-        "1": { class: "Class I", description: "FULL VISIBILITY" },
-        "2": { class: "Class II", description: "PARTIAL UVULA" },
-        "3": { class: "Class III", description: "UVULA BASE ONLY" },
-        "4": { class: "Class IV", description: "HARD PALATE ONLY" },
+        "1": "Class I",
+        "2": "Class II",
+        "3": "Class III",
+        "4": "Class IV",
       };
 
       return (
@@ -755,15 +755,12 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
             borderRadius: "0.5rem",
             mb: 1.5 
           }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: "0.5rem", mb: 0.75 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: "0.5rem", mb: 1.5 }}>
               <Typography sx={{ fontSize: "1.25rem" }}>👄</Typography>
               <FormLabel sx={{ fontSize: "0.938rem", fontWeight: 600, color: "#1F2937", mb: 0 }}>
                 {label}
               </FormLabel>
             </Box>
-            <Typography sx={{ fontSize: "0.75rem", color: "#6B7280", mb: 0.75 }}>
-              Choose the anatomical class that best matches the patient's oral cavity visibility.
-            </Typography>
             <Box sx={{ 
               display: "grid", 
               gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)" },
@@ -773,7 +770,8 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
                 const optValue = typeof opt === 'object' ? opt.value : opt;
                 const optLabel = typeof opt === 'object' ? opt.label : opt;
                 const isSelected = value === optValue;
-                const labels = mallampatiLabels[optValue] || { class: `Class ${optLabel}`, description: "" };
+                const classLabel = mallampatiLabels[optValue] || `Class ${optLabel}`;
+                const imageSrc = mallampatiImages[optValue];
                 
                 return (
                   <MallampatiCard
@@ -788,21 +786,11 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
                         </svg>
                       </MallampatiCheckmark>
                     )}
-                    <MallampatiCircle isSelected={isSelected}>
-                      {optLabel}
-                    </MallampatiCircle>
-                    <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, mb: 0.25, textAlign: "center", color: "#1F2937" }}>
-                      {labels.class}
-                    </Typography>
-                    <Typography sx={{ 
-                      fontSize: "0.688rem", 
-                      color: "#6B7280", 
-                      textAlign: "center", 
-                      textTransform: "uppercase", 
-                      letterSpacing: "0.05em",
-                      lineHeight: 1.2
-                    }}>
-                      {labels.description}
+                    {imageSrc && (
+                      <MallampatiImage src={imageSrc} alt={classLabel} />
+                    )}
+                    <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, textAlign: "center", color: "#6B7280" }}>
+                      {classLabel}
                     </Typography>
                   </MallampatiCard>
                 );
