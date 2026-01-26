@@ -609,13 +609,13 @@ const AdminDashboard = () => {
                               <td>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                   <span style={{ fontWeight: 600 }}>{response.response_data.name || 'N/A'}</span>
-                                  <InlineOCRUpload
+                                  {/* <InlineOCRUpload
                                     patientId={response.response_data.hospital_id}
                                     patientName={response.response_data.name || 'N/A'}
                                     onUploadSuccess={(data) => {
                                       logger.success(`OCR upload successful for ${data.patientName}`);
                                     }}
-                                  />
+                                  /> */}
                                 </div>
                               </td>
                               <td>{response.response_data.email || '-'}</td>
