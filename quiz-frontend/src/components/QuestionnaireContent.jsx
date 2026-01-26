@@ -116,12 +116,12 @@ const getQuestionSections = (pageTitle, questions) => {
   if (pageTitle === "Co-morbidities and Medications") {
     return [
       {
-        title: "Required",
+        title: "Comorbid Illnesses",
         icon: "🩺",
         questions: questions.filter(q => ["hypertension", "diabetes", "ihd", "stroke", "hypothyroidism"].includes(q.id)),
       },
       {
-        title: "General Health Conditions",
+        title: "Other Illnessses",
         icon: "🏥",
         questions: questions.filter(q => ["neurological_disorder", "respiratory_disorder"].includes(q.id)),
       },
