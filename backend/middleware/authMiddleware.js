@@ -51,7 +51,7 @@ export const verifyTokens = async (req, res, next) => {
 
     // Check if this session is still valid in the database
     const sessionResult = await pool.query(
-      "SELECT * FROM user_sessions WHERE token_id = $1 AND expires_at > NOW()",
+      "SELECT * FROM user_sessions WHERE token_id = $1 AND expires_at > NOW() AND is_active = true",
       [decoded.tokenId]
     );
 

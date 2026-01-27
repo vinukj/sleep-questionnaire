@@ -1,7 +1,7 @@
 
 // --- Auth Controller: Header-based JWT Authentication (No Cookies) ---
 import express from "express";
-import { createUser, findUserbyEmail, createSession, invalidateAllUserSessions, findOrCreateGoogleUser, findUserById, findSessionByToken } from "../models/userModel.js";
+import { createUser, findUserbyEmail, createSession, invalidateAllUserSessions, findOrCreateGoogleUser, findUserById, findSessionByToken, deactivateUser } from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
@@ -68,14 +68,39 @@ export const login = async (req, res) => {
             process.env.REFRESH_TOKEN_SECRET,
             { expiresIn: REFRESH_TOKEN_EXPIRE }
         );
-        // Store refresh session in DB
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-        await createSession(user.id, refreshToken, tokenId, expiresAt);
-        res.json({
-            message: "Login successful",
-            accessToken,
-            refreshToken
-        });
+
+        // Use transaction to ensure atomicity of deactivate and create session
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            
+            // Deactivate all existing sessions
+            await client.query(
+                'UPDATE user_sessions SET is_active = false WHERE user_id = $1 AND is_active = true',
+                [user.id]
+            );
+            
+            // Store refresh session in DB
+            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+            await client.query(
+                'INSERT INTO user_sessions (token_id, user_id, refresh_token, expires_at, is_active) VALUES ($1, $2, $3, $4, true)',
+                [tokenId, user.id, refreshToken, expiresAt]
+            );
+            
+            await client.query('COMMIT');
+            
+            res.json({
+                message: "Login successful",
+                accessToken,
+                refreshToken
+            });
+        } catch (error) {
+            await client.query('ROLLBACK');
+            console.error('[AUTH] Login transaction error:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
     } catch (err) {
         console.error('[AUTH] Login error:', err);
         res.status(500).json({ error: "Internal server error during login" });
@@ -93,7 +118,7 @@ export const logout = async (req, res) => {
             const token = authHeader.split(' ')[1];
             try {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                await invalidateAllUserSessions(decoded.id);
+                await deactivateUser(decoded.id)
             } catch (err) {
                 // Ignore invalid token
             }
@@ -194,7 +219,7 @@ export const refreshTokens = async (req, res) => {
 
             // Lock the session row to avoid concurrent refresh collisions
             const { rows } = await client.query(
-                `SELECT * FROM user_sessions WHERE refresh_token = $1 FOR UPDATE`,
+                `SELECT * FROM user_sessions WHERE refresh_token = $1 AND is_active = true FOR UPDATE`,
                 [incomingRefresh]
             );
 
@@ -218,6 +243,12 @@ export const refreshTokens = async (req, res) => {
                 return res.status(401).json({ error: "Refresh session expired", sessionExpired: true });
             }
 
+            if (!session.is_active) {
+                await client.query('ROLLBACK');
+                transactionStarted = false;
+                return res.status(401).json({ error: "Session has been deactivated", sessionExpired: true });
+            }
+
             const newTokenId = crypto.randomUUID();
             const newAccessToken = jwt.sign(
                 { id: session.user_id, tokenId: newTokenId },
@@ -237,8 +268,8 @@ export const refreshTokens = async (req, res) => {
 
             const updateResult = await client.query(
                 `UPDATE user_sessions
-                 SET refresh_token = $1, token_id = $2, expires_at = $3, created_at = NOW()
-                 WHERE refresh_token = $4`,
+                 SET refresh_token = $1, token_id = $2, expires_at = $3, created_at = NOW(), is_active = true
+                 WHERE refresh_token = $4 AND is_active = true`,
                 [newRefreshToken, newTokenId, newExpiresAt, incomingRefresh]
             );
 
