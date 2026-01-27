@@ -23,7 +23,7 @@ jobs:
             cd /var/www/StJohn-WebApp
             git fetch sleepmaitrix
             git checkout main
-            git pull origin main
+            git pull sleepmaitrix main
 
             echo "🧠 Backend deploy"
             cd backend
