@@ -1,22 +1,43 @@
-name: Deploy to Linux Server
+name: Auto Deploy (Frontend + Backend)
 
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Update backend on server
-        shell: bash
-        run: |
-          cd /var/www/StJohn-WebApp/backend
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
 
-          echo "Pulling latest code .."
-          git pull origin master
+            echo "🔄 Pulling latest code"
+            cd /var/www/StJohn-WebApp
+            git fetch sleepmaitrix
+            git checkout main
+            git pull origin main
 
-          echo "Installing dependencies"
-          npm install
+            echo "🧠 Backend deploy"
+            cd backend
+            npm install --production
+            pm2 restart sleep-backend
+            pm2 save
+
+            echo "🎨 Frontend build"
+            cd quiz-frontend
+            npm install
+            npm run build
+
+            echo "🚀 Deploying frontend"
+            sudo rm -rf /var/www/stjohn-frontend/*
+            sudo cp -r dist/* /var/www/stjohn-frontend/
+
+            echo "✅ Deploy complete"
