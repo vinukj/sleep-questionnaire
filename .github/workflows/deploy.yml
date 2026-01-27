@@ -32,7 +32,7 @@ jobs:
             pm2 save
 
             echo "🎨 Frontend build"
-            cd ../frontend
+            cd ../quiz-frontend
             npm install
             npm run build
 
