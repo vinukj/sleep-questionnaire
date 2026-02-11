@@ -7,9 +7,8 @@ import React, {
 } from "react";
 import { useNavigate } from "react-router-dom";
 
-// ---------------- VERIFY SESSION ----------------
-// Checks if the current access token is valid by calling /auth/profile
-// (moved to correct place below)
+// ---------------- KEYCLOAK-INTEGRATED AUTH CONTEXT ----------------
+// Now uses Keycloak tokens from backend
 import {
   clearUserCache,
   clearQuestionnaireCache,
@@ -156,15 +155,17 @@ export function AuthProvider({ children }) {
     setError("");
     try {
       const currentTokens = getStoredTokens();
-      if (currentTokens.accessToken) {
+      
+      // Call backend logout (which revokes Keycloak refresh token)
+      if (currentTokens.refreshToken) {
         await fetch(`${API_URL}/auth/logout`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${currentTokens.accessToken}`,
             "Content-Type": "application/json",
           },
+          body: JSON.stringify({ refreshToken: currentTokens.refreshToken }),
           credentials: "include",
-        });
+        }).catch(err => console.warn("Logout API call failed:", err));
       }
 
       // Broadcast to other tabs

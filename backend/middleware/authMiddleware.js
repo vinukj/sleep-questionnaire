@@ -1,44 +1,17 @@
-import jwt from 'jsonwebtoken';
+import keycloakService from '../services/keycloakService.js';
 import pool from '../config/db.js';
 import dotenv from 'dotenv';
-import { v4 as uuidv4 } from 'uuid';
 dotenv.config();
 
-// export const verifyTokens = async (req, res, next) => {
-//     const authHeader = req.headers['authorization'];
-//     if (!authHeader) return res.status(401).json({ message: "Token missing" });
-//     const token = authHeader.split(' ')[1];
-//     if (!token) return res.status(401).json({ message: "Access Denied" });
-//     try {
-//          console.log("SECRET AT VERIFICATION:", `"${process.env.JWT_SECRET}"`);
-//         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//         // Fetch user info from DB
-//         const userResult = await pool.query(
-//             "SELECT id,email FROM users WHERE id=$1",
-//             [decoded.id]
-//         );
-//         if (!userResult.rows.length) {
-//             return res.status(404).json({ message: "User not found" });
-//         }
-//         req.user = userResult.rows[0];
-//         next();
-//     } catch (err) {
-//     // MODIFIED PART: Log the full error to see the exact reason for failure
-//     console.error("JWT Verification Failed:", err);
+// ============================================
+// KEYCLOAK AUTHENTICATION MIDDLEWARE
+// ============================================
 
-//     // Optionally, send more specific error info in the response
-//     return res.status(403).json({
-//         message: "Invalid or expired token",
-//         errorName: err.name,
-//         errorMessage: err.message
-//     });
-// }
-// };
-
-
-
+/**
+ * Main authentication middleware using Keycloak
+ * Verifies Bearer token and attaches user info to req.user
+ */
 export const verifyTokens = async (req, res, next) => {
-  // Look for token in Authorization header (Bearer <token>)
   const authHeader = req.headers['authorization'];
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: "Token missing" });
@@ -47,45 +20,73 @@ export const verifyTokens = async (req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify token with Keycloak
+    const tokenData = await keycloakService.verifyToken(token);
 
-    // Check if this session is still valid in the database
-    const sessionResult = await pool.query(
-      "SELECT * FROM user_sessions WHERE token_id = $1 AND expires_at > NOW() AND is_active = true",
-      [decoded.tokenId]
-    );
-
-    if (!sessionResult.rows.length) {
+    if (!tokenData || !tokenData.active) {
       return res.status(401).json({ 
-        message: "Session expired or invalidated",
+        message: "Invalid or expired token",
         sessionExpired: true
       });
     }
 
-    // Fetch user info from DB
-    const userResult = await pool.query(
-      "SELECT id, email,role,name FROM users WHERE id=$1",
-      [decoded.id]
+    // Try to find user in local database by keycloak ID or email
+    let userResult = await pool.query(
+      "SELECT id, email, role, name, keycloak_id FROM users WHERE keycloak_id = $1",
+      [tokenData.userId]
     );
 
+    // Fallback: find by email if keycloak_id not set
     if (!userResult.rows.length) {
-      return res.status(404).json({ message: "User not found" });
+      userResult = await pool.query(
+        "SELECT id, email, role, name, keycloak_id FROM users WHERE email = $1",
+        [tokenData.email]
+      );
     }
 
-    req.user = userResult.rows[0];
+    let user;
+    if (userResult.rows.length) {
+      user = userResult.rows[0];
+      
+      // Update keycloak_id if not set
+      if (!user.keycloak_id) {
+        await pool.query(
+          "UPDATE users SET keycloak_id = $1 WHERE id = $2",
+          [tokenData.userId, user.id]
+        );
+        user.keycloak_id = tokenData.userId;
+      }
+    } else {
+      // User not in local DB - this shouldn't happen but handle gracefully
+      user = {
+        keycloak_id: tokenData.userId,
+        email: tokenData.email,
+        name: tokenData.username,
+        role: null // Will be determined from Keycloak roles
+      };
+    }
+
+    // Determine primary role from Keycloak roles (priority: admin > physician > user)
+    const keycloakRoles = tokenData.roles || [];
+    let primaryRole = 'user'; // default
+    if (keycloakRoles.includes('admin')) {
+      primaryRole = 'admin';
+    } else if (keycloakRoles.includes('physician')) {
+      primaryRole = 'physician';
+    }
+
+    // Attach user info with Keycloak data
+    req.user = {
+      ...user,
+      role: primaryRole,
+      keycloak_id: tokenData.userId,
+      roles: keycloakRoles, // All Keycloak roles
+      email: tokenData.email
+    };
+
     next();
   } catch (err) {
-    console.error("JWT Verification Failed:", err);
-
-    // Special handling for expired tokens
-    if (err instanceof jwt.TokenExpiredError) {
-      return res.status(401).json({
-        message: "Access token expired",
-        accessExpired: true
-      });
-    }
-
-    // All other JWT errors
+    console.error("Keycloak token verification failed:", err);
     return res.status(403).json({
       message: "Invalid token",
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
@@ -93,27 +94,47 @@ export const verifyTokens = async (req, res, next) => {
   }
 };
 
-
-
-export const verifyTokenBasic = (req, res, next) => {
+/**
+ * Basic token verification without database lookup
+ * Useful for lightweight endpoints
+ */
+export const verifyTokenBasic = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
-  if (!authHeader) return res.status(401).json({ message: "Token missing" });
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: "Token missing" });
+  }
 
   const token = authHeader.split(" ")[1];
-  if (!token) return res.status(401).json({ message: "Access Denied" });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const tokenData = await keycloakService.verifyToken(token);
 
-    // attach user info from token (without DB check)
-    req.user = decoded;
+    if (!tokenData || !tokenData.active) {
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
+
+    // Determine primary role
+    const keycloakRoles = tokenData.roles || [];
+    let primaryRole = 'user';
+    if (keycloakRoles.includes('admin')) {
+      primaryRole = 'admin';
+    } else if (keycloakRoles.includes('physician')) {
+      primaryRole = 'physician';
+    }
+
+    req.user = {
+      keycloak_id: tokenData.userId,
+      email: tokenData.email,
+      role: primaryRole,
+      roles: keycloakRoles
+    };
+
     next();
   } catch (err) {
-    console.error("JWT Verification Failed:", err);
+    console.error("Token verification failed:", err);
     return res.status(403).json({
       message: "Invalid or expired token",
-      errorName: err.name,
-      errorMessage: err.message,
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
 };

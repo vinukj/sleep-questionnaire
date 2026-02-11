@@ -12,6 +12,7 @@ const initializeTables = async () => {
         name TEXT,
         google_id TEXT,
         picture TEXT,
+        keycloak_id TEXT UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -46,7 +47,8 @@ const initializeTables = async () => {
           ALTER TABLE users 
             ADD COLUMN IF NOT EXISTS google_id TEXT,
             ADD COLUMN IF NOT EXISTS picture TEXT,
-            ADD COLUMN IF NOT EXISTS name TEXT;
+            ADD COLUMN IF NOT EXISTS name TEXT,
+            ADD COLUMN IF NOT EXISTS keycloak_id TEXT UNIQUE;
         EXCEPTION 
           WHEN undefined_column THEN NULL;
         END;

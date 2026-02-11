@@ -22,14 +22,14 @@ const pool = new Pool({
   }
 });
 
-pool
-  .connect()
-  .then(() => console.log("Connected to PostgreSQL"))
-  .catch((err) => console.error("Connection error", err.stack));
-
 // Handle pool errors
 pool.on('error', (err) => {
   console.error('Unexpected pool error:', err);
+});
+
+// Log successful connections
+pool.on('connect', () => {
+  console.log('✓ PostgreSQL pool connected');
 });
 
 export default pool;

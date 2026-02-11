@@ -1,129 +1,159 @@
 
-// --- Auth Controller: Header-based JWT Authentication (No Cookies) ---
+// --- Auth Controller: Keycloak Authentication ---
 import express from "express";
-import { createUser, findUserbyEmail, createSession, invalidateAllUserSessions, findOrCreateGoogleUser, findUserById, findSessionByToken, deactivateUser } from "../models/userModel.js";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
+import { findUserbyEmail } from "../models/userModel.js";
 import dotenv from "dotenv";
-import crypto from 'crypto';
 import { verifyGoogleToken } from "../config/google.js";
+import keycloakService from "../services/keycloakService.js";
 dotenv.config();
 import pool from "../config/db.js";
 
-// Token expiry durations
-const ACCESS_TOKEN_EXPIRE = '30m'; // Short-lived access token
-const REFRESH_TOKEN_EXPIRE = '7d'; // Refresh token lifespan
-
 // ---------------- SIGNUP ----------------
 export const signup = async (req, res) => {
-    // Signup endpoint: create a new user with hashed password
-    console.log(`[AUTH] Signup request:`, { method: req.method, path: req.originalUrl, body: req.body });
-    const { email, password,name } = req.body;
-    const existingUser = await findUserbyEmail(email);
-    if (existingUser) {
-        return res.status(400).json({ error: "User already exists" });
-    }
-    // Hash password before storing
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await createUser(email, hashedPassword);
-    res.json({ user });
-};
-
-// ---------------- LOGIN ----------------
-export const login = async (req, res) => {
-    // Login endpoint: issues JWT tokens in response body (not cookies)
-    console.log(`[AUTH] Login request`, { method: req.method, path: req.originalUrl });
+    console.log(`[AUTH] Signup request:`, { method: req.method, path: req.originalUrl });
     try {
-        const { email, password } = req.body;
-        if (!(email || password)) {
+        const { email, password, name } = req.body;
+
+        if (!email || !password) {
             return res.status(400).json({ error: "Email and password are required" });
         }
-        // Find user by email
-        const user = await findUserbyEmail(email);
-        if (!user) {
-            return res.status(400).json({ error: "Invalid credentials" });
+
+        // Check if user already exists in Keycloak
+        const existingKeycloakUser = await keycloakService.findUserByEmail(email);
+        if (existingKeycloakUser) {
+            return res.status(400).json({ error: "User already exists" });
         }
-        // Block login if user registered with Google
-        if (user.google_id) {
-            return res.status(401).json({ error: "This account uses Google Sign-In. Please use the Google Sign-In button." });
+
+        // Create user in Keycloak with default 'user' role
+        const keycloakUser = await keycloakService.createUser(email, password, name, ['user']);
+
+        // Create user in local database
+        const localUser = await pool.query(
+            'INSERT INTO users (email, name, keycloak_id, role) VALUES ($1, $2, $3, $4) RETURNING id, email, name, role',
+            [email, name || email.split('@')[0], keycloakUser.id, 'user']
+        );
+
+        console.log(`[AUTH] User created: ${email}`);
+        
+        // Auto-login after signup
+        const tokens = await keycloakService.loginUser(email, password);
+        
+        res.status(201).json({ 
+            message: "User created successfully",
+            user: localUser.rows[0],
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken
+        });
+    } catch (err) {
+        console.error('[AUTH] Signup error:', err);
+        res.status(500).json({ error: "Failed to create user" });
+    }
+};
+
+// ---------------- LOGIN (HYBRID MODE) ----------------
+export const login = async (req, res) => {
+    console.log(`[AUTH] Hybrid login request`, { method: req.method, path: req.originalUrl });
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ error: "Email and password are required" });
         }
-        if (!user.password) {
+
+        // Import bcrypt for old password verification
+        const bcrypt = await import('bcryptjs');
+
+        // Get user from local DB
+        const userResult = await pool.query(
+            'SELECT id, email, name, password, keycloak_id, role FROM users WHERE email = $1',
+            [email]
+        );
+
+        if (userResult.rows.length === 0) {
             return res.status(401).json({ error: "Invalid credentials" });
         }
-        // Compare password
+
+        const user = userResult.rows[0];
+
+        // CASE 1: User already migrated to Keycloak
+        if (user.keycloak_id) {
+            try {
+                const tokens = await keycloakService.loginUser(email, password);
+                console.log(`[AUTH] Keycloak login successful for: ${email}`);
+                
+                return res.json({
+                    message: "Login successful",
+                    accessToken: tokens.accessToken,
+                    refreshToken: tokens.refreshToken
+                });
+            } catch (err) {
+                console.error('[AUTH] Keycloak login failed:', err.message);
+                return res.status(401).json({ error: "Invalid credentials" });
+            }
+        }
+
+        // CASE 2: User NOT migrated yet - use old auth + auto-migrate
+        if (!user.password) {
+            return res.status(401).json({ error: "Please use Google Sign-In or reset your password" });
+        }
+
+        // Verify password using bcrypt (old system)
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) {
             return res.status(401).json({ error: "Invalid credentials" });
         }
-        // Generate unique token ID for session tracking
-        const tokenId = crypto.randomBytes(16).toString('hex');
-        // Create access and refresh tokens
-        const accessToken = jwt.sign(
-            { id: user.id, tokenId },
-            process.env.JWT_SECRET,
-            { expiresIn: ACCESS_TOKEN_EXPIRE }
-        );
-        const refreshToken = jwt.sign(
-            { id: user.id, tokenId },
-            process.env.REFRESH_TOKEN_SECRET,
-            { expiresIn: REFRESH_TOKEN_EXPIRE }
-        );
 
-        // Use transaction to ensure atomicity of deactivate and create session
-        const client = await pool.connect();
+        console.log(`[AUTH] Old auth successful for ${email}, auto-migrating to Keycloak...`);
+
+        // AUTO-MIGRATE: Create user in Keycloak with their ACTUAL password
         try {
-            await client.query('BEGIN');
-            
-            // Deactivate all existing sessions
-            await client.query(
-                'UPDATE user_sessions SET is_active = false WHERE user_id = $1 AND is_active = true',
-                [user.id]
+            const keycloakUser = await keycloakService.createUser(
+                email,
+                password, // Use the actual password they just entered!
+                user.name,
+                [user.role || 'user']
             );
-            
-            // Store refresh session in DB
-            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-            await client.query(
-                'INSERT INTO user_sessions (token_id, user_id, refresh_token, expires_at, is_active) VALUES ($1, $2, $3, $4, true)',
-                [tokenId, user.id, refreshToken, expiresAt]
+
+            // Update local DB with keycloak_id
+            await pool.query(
+                'UPDATE users SET keycloak_id = $1 WHERE id = $2',
+                [keycloakUser.id, user.id]
             );
-            
-            await client.query('COMMIT');
-            
-            res.json({
+
+            console.log(`[AUTH] ✓ User ${email} auto-migrated to Keycloak on login`);
+
+            // Now login with Keycloak
+            const tokens = await keycloakService.loginUser(email, password);
+
+            return res.json({
                 message: "Login successful",
-                accessToken,
-                refreshToken
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken
             });
-        } catch (error) {
-            await client.query('ROLLBACK');
-            console.error('[AUTH] Login transaction error:', error);
-            throw error;
-        } finally {
-            client.release();
+        } catch (migrateErr) {
+            console.error('[AUTH] Auto-migration failed:', migrateErr);
+            return res.status(500).json({ 
+                error: "Migration in progress. Please try again in a moment." 
+            });
         }
+
     } catch (err) {
         console.error('[AUTH] Login error:', err);
-        res.status(500).json({ error: "Internal server error during login" });
+        res.status(500).json({ error: "Login failed" });
     }
 };
 
 // ---------------- LOGOUT ----------------
 export const logout = async (req, res) => {
-    // Logout endpoint: invalidates all user sessions for the given access token
     console.log(`[AUTH] Logout request`, { method: req.method, path: req.originalUrl });
     try {
-        // Get the user ID from the Authorization header (Bearer token)
-        const authHeader = req.headers['authorization'];
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            const token = authHeader.split(' ')[1];
-            try {
-                const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                await deactivateUser(decoded.id)
-            } catch (err) {
-                // Ignore invalid token
-            }
+        const refreshToken = req.body.refreshToken;
+        
+        if (refreshToken) {
+            // Revoke refresh token in Keycloak
+            await keycloakService.logoutUser(refreshToken);
         }
-        // Send instruction to clear cache and broadcast logout
+
         res.json({ 
             message: "Logged out successfully",
             clearCache: true,
@@ -131,24 +161,26 @@ export const logout = async (req, res) => {
         });
     } catch (error) {
         console.error('Logout error:', error);
-        res.status(500).json({ error: "Error during logout" });
+        // Still return success even if logout fails
+        res.json({ 
+            message: "Logged out successfully",
+            clearCache: true,
+            broadcastLogout: true
+        });
     }
 };
 
-
 // ---------------- GOOGLE LOGIN ----------------
 export const googleLogin = async (req, res) => {
-    // Google login endpoint: verifies Google token, issues JWTs, returns in response body
     console.log(`[AUTH] Google login request`, { method: req.method, path: req.originalUrl });
     try {
-        // Accept multiple field names for the incoming Google token to be tolerant
         const token = req.body?.credential || req.body?.id_token || req.body?.token || req.body?.google_token;
         if (!token) {
             console.warn('[AUTH] No Google token provided in request body');
             return res.status(400).json({ error: 'Missing Google token' });
         }
 
-        // Verify the Google token (verifyIdToken will check audience)
+        // Verify the Google token
         let payload;
         try {
             payload = await verifyGoogleToken(token);
@@ -156,36 +188,49 @@ export const googleLogin = async (req, res) => {
             console.error('Google token verification failed:', verifyErr);
             return res.status(401).json({ error: 'Invalid Google token', details: verifyErr.message });
         }
-        // Find or create user with Google data
-        const user = await findOrCreateGoogleUser({
-            email: payload.email,
-            name: payload.name,
-            googleId: payload.sub,
-            picture: payload.picture
-        });
-        // Generate a unique token ID for this session
-        const tokenId = crypto.randomBytes(16).toString('hex');
-        // Create access token (short-lived)
-        const accessToken = jwt.sign(
-            { id: user.id, tokenId },
-            process.env.JWT_SECRET,
-            { expiresIn: ACCESS_TOKEN_EXPIRE }
-        );
-        // Create refresh token (long-lived)
-        const refreshToken = jwt.sign(
-            { id: user.id, tokenId },
-            process.env.REFRESH_TOKEN_SECRET,
-            { expiresIn: REFRESH_TOKEN_EXPIRE }
-        );
-        // Calculate expiration time for the session
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-        // Store the session in the database
-        await createSession(user.id, refreshToken, tokenId, expiresAt);
-        // Return tokens in response body for header-based auth
+
+        // Check if user exists in Keycloak
+        let keycloakUser = await keycloakService.findUserByEmail(payload.email);
+        
+        if (!keycloakUser) {
+            // Create user in Keycloak (without password - Google OAuth)
+            keycloakUser = await keycloakService.createUser(
+                payload.email, 
+                null, // No password for Google users
+                payload.name, 
+                ['user']
+            );
+        }
+
+        // Find or create user in local database
+        let localUser = await findUserbyEmail(payload.email);
+        
+        if (!localUser) {
+            const result = await pool.query(
+                'INSERT INTO users (email, name, google_id, picture, keycloak_id, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, email, name, role',
+                [payload.email, payload.name, payload.sub, payload.picture, keycloakUser.id, 'user']
+            );
+            localUser = result.rows[0];
+        } else if (!localUser.keycloak_id) {
+            // Update existing user with keycloak_id
+            await pool.query(
+                'UPDATE users SET keycloak_id = $1, google_id = $2, picture = $3 WHERE id = $4',
+                [keycloakUser.id, payload.sub, payload.picture, localUser.id]
+            );
+        }
+
+        // For Google OAuth, we need to generate a temporary password or use a service account
+        // For simplicity, we'll return a message asking user to set password via Keycloak
+        // Or implement a custom token exchange flow
+        
+        console.log(`[AUTH] Google login successful for: ${payload.email}`);
+        
+        // TODO: Implement proper Google OAuth federation in Keycloak
+        // For now, return success but inform that Keycloak setup needed
         res.json({
-            message: "Google login successful",
-            accessToken,
-            refreshToken
+            message: "Google user verified. Please set up password or use federated login.",
+            user: localUser,
+            requiresKeycloakSetup: true
         });
     } catch (error) {
         console.error('Google login error:', error);
@@ -194,117 +239,40 @@ export const googleLogin = async (req, res) => {
 };
 
 // ---------------- REFRESH TOKENS ----------------
-
-
-
 export const refreshTokens = async (req, res) => {
-    const REFRESH_TOKEN_EXPIRE_DAYS = 7;
+    console.log(`[AUTH] Refresh token request`, { method: req.method, path: req.originalUrl });
+    
+    // Try to get refresh token from body first, then from Authorization header
+    let refreshToken = req.body.refreshToken;
+    
+    if (!refreshToken) {
+        const authHeader = req.headers["authorization"];
+        if (authHeader?.startsWith("Bearer ")) {
+            refreshToken = authHeader.split(" ")[1];
+        }
+    }
 
-    const authHeader = req.headers["authorization"];
-    if (!authHeader?.startsWith("Bearer ")) {
+    if (!refreshToken) {
         return res.status(401).json({ error: "Refresh token missing" });
     }
 
-    const incomingRefresh = authHeader.split(" ")[1];
-
     try {
-        const decoded = jwt.verify(incomingRefresh, process.env.REFRESH_TOKEN_SECRET);
+        // Use Keycloak to refresh the token
+        const newTokens = await keycloakService.refreshAccessToken(refreshToken);
 
-        const client = await pool.connect();
-        let transactionStarted = false;
-
-        try {
-            await client.query('BEGIN');
-            transactionStarted = true;
-
-            // Lock the session row to avoid concurrent refresh collisions
-            const { rows } = await client.query(
-                `SELECT * FROM user_sessions WHERE refresh_token = $1 AND is_active = true FOR UPDATE`,
-                [incomingRefresh]
-            );
-
-            if (!rows.length) {
-                await client.query('ROLLBACK');
-                transactionStarted = false;
-                return res.status(401).json({ error: "Session not found or already rotated", sessionExpired: true });
-            }
-
-            const session = rows[0];
-
-            if (session.user_id !== decoded.id) {
-                await client.query('ROLLBACK');
-                transactionStarted = false;
-                return res.status(401).json({ error: "Session does not match user", sessionExpired: true });
-            }
-
-            if (new Date(session.expires_at).getTime() <= Date.now()) {
-                await client.query('ROLLBACK');
-                transactionStarted = false;
-                return res.status(401).json({ error: "Refresh session expired", sessionExpired: true });
-            }
-
-            if (!session.is_active) {
-                await client.query('ROLLBACK');
-                transactionStarted = false;
-                return res.status(401).json({ error: "Session has been deactivated", sessionExpired: true });
-            }
-
-            const newTokenId = crypto.randomUUID();
-            const newAccessToken = jwt.sign(
-                { id: session.user_id, tokenId: newTokenId },
-                process.env.JWT_SECRET,
-                { expiresIn: ACCESS_TOKEN_EXPIRE }
-            );
-
-            const newRefreshToken = jwt.sign(
-                { id: session.user_id, tokenId: newTokenId },
-                process.env.REFRESH_TOKEN_SECRET,
-                { expiresIn: `${REFRESH_TOKEN_EXPIRE_DAYS}d` }
-            );
-
-            const newExpiresAt = new Date(
-                Date.now() + REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60 * 1000
-            );
-
-            const updateResult = await client.query(
-                `UPDATE user_sessions
-                 SET refresh_token = $1, token_id = $2, expires_at = $3, created_at = NOW(), is_active = true
-                 WHERE refresh_token = $4 AND is_active = true`,
-                [newRefreshToken, newTokenId, newExpiresAt, incomingRefresh]
-            );
-
-            if (updateResult.rowCount !== 1) {
-                await client.query('ROLLBACK');
-                transactionStarted = false;
-                return res.status(409).json({ error: "Refresh token rotation conflict", sessionExpired: true });
-            }
-
-            await client.query('COMMIT');
-            transactionStarted = false;
-
-            return res.json({
-                accessToken: newAccessToken,
-                refreshToken: newRefreshToken,
-            });
-        } catch (error) {
-            if (transactionStarted) {
-                try {
-                    await client.query('ROLLBACK');
-                } catch (rollbackError) {
-                    console.error('Refresh token rollback failed:', rollbackError);
-                }
-            }
-            console.error("Refresh token error:", error);
-            return res.status(500).json({ error: "Failed to refresh tokens" });
-        } finally {
-            client.release();
-        }
+        console.log(`[AUTH] Token refresh successful`);
+        res.json({
+            accessToken: newTokens.accessToken,
+            refreshToken: newTokens.refreshToken
+        });
     } catch (err) {
-        console.error("Refresh token verification failed:", err);
-        return res.status(401).json({ error: "Invalid or expired refresh token" });
+        console.error("[AUTH] Refresh token error:", err);
+        res.status(401).json({ 
+            error: "Invalid or expired refresh token",
+            sessionExpired: true
+        });
     }
 };
-
 
 // ---------------- GET PROFILE ----------------
 export const getProfile = async (req, res) => {
@@ -327,8 +295,7 @@ export const getProfile = async (req, res) => {
   }
 };
 
-
-// Admin: Update user role
+// ---------------- ADMIN: UPDATE USER ROLE ----------------
 export const updateUserRole = async (req, res) => {
   try {
     const { userId, role } = req.body;
@@ -343,15 +310,28 @@ export const updateUserRole = async (req, res) => {
       return res.status(400).json({ error: 'Invalid role. Must be: user, physician, or admin' });
     }
 
-    // Update user role
+    // Get user from local database
+    const userResult = await pool.query(
+      'SELECT id, email, name, role, keycloak_id FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = userResult.rows[0];
+
+    // Update role in Keycloak
+    if (user.keycloak_id) {
+      await keycloakService.updateUserRoles(user.keycloak_id, [role]);
+    }
+
+    // Update role in local database
     const result = await pool.query(
       'UPDATE users SET role = $1 WHERE id = $2 RETURNING id, email, name, role',
       [role, userId]
     );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
 
     console.log(`[AUTH] Admin ${req.user.email} updated user ${result.rows[0].email} role to ${role}`);
 
@@ -365,11 +345,11 @@ export const updateUserRole = async (req, res) => {
   }
 };
 
-// Admin: Get all users
+// ---------------- ADMIN: GET ALL USERS ----------------
 export const getAllUsers = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, name, role, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, email, name, role, keycloak_id, created_at FROM users ORDER BY created_at DESC'
     );
 
     res.json({
@@ -381,13 +361,11 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-
-// DEBUG: Force expire access token
+// ---------------- DEBUG ENDPOINTS ----------------
 export const forceExpireAccess = async (req, res) => {
   return res.status(401).json({ accessExpired: true });
 };
 
-// DEBUG: Force expire refresh token
 export const forceExpireRefresh = async (req, res) => {
   return res.status(401).json({ sessionExpired: true });
 };
