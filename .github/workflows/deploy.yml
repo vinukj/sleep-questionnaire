@@ -21,9 +21,12 @@ jobs:
 
             echo "🔄 Pulling latest code"
             cd /var/www/StJohn-WebApp
+            
+            # Discard any local changes and reset to remote state
             git fetch sleepmaitrix
             git checkout main
-            git pull sleepmaitrix main
+            git reset --hard sleepmaitrix/main
+            git clean -fd
 
             echo "🧠 Backend deploy"
             cd backend
