@@ -93,6 +93,8 @@ export const login = async (req, res) => {
                     [sessionToken, user.id]
                 );
 
+                console.log(`[AUTH] Generated session token for ${email}:`, sessionToken.substring(0, 10) + '...');
+
                 // Revoke all existing Keycloak sessions
                 const revokedCount = await keycloakService.revokeAllUserSessions(user.keycloak_id);
                 console.log(`[AUTH] Revoked ${revokedCount} previous session(s) for: ${email}`);

@@ -32,14 +32,14 @@ export const verifyTokens = async (req, res, next) => {
 
     // Try to find user in local database by keycloak ID or email
     let userResult = await pool.query(
-      "SELECT id, email, role, name, keycloak_id FROM users WHERE keycloak_id = $1",
+      "SELECT id, email, role, name, keycloak_id, session_token FROM users WHERE keycloak_id = $1",
       [tokenData.userId]
     );
 
     // Fallback: find by email if keycloak_id not set
     if (!userResult.rows.length) {
       userResult = await pool.query(
-        "SELECT id, email, role, name, keycloak_id FROM users WHERE email = $1",
+        "SELECT id, email, role, name, keycloak_id, session_token FROM users WHERE email = $1",
         [tokenData.email]
       );
     }
@@ -50,6 +50,15 @@ export const verifyTokens = async (req, res, next) => {
       
       // CRITICAL: Validate session token to prevent multi-device access
       const clientSessionToken = req.headers['x-session-token'];
+      
+      console.log('[AUTH] Session validation:', {
+        userId: user.id,
+        email: user.email,
+        dbSessionToken: user.session_token?.substring(0, 10) + '...',
+        clientSessionToken: clientSessionToken?.substring(0, 10) + '...',
+        hasDbToken: !!user.session_token,
+        hasClientToken: !!clientSessionToken
+      });
       
       if (!clientSessionToken) {
         return res.status(401).json({ 
