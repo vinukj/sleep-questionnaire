@@ -663,7 +663,7 @@ const AdminDashboard = () => {
                     {showResponses && (
                       <button className="btn btn--secondary" onClick={() => setShowResponses(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <CloseIcon />
-                        Show Recent Only
+                        Close
                       </button>
                     )}
                   </div>
@@ -672,7 +672,7 @@ const AdminDashboard = () => {
                 {/* Search Box - Only show when viewing all responses */}
                 {showResponses && (
                   <div className="admin-search-card" style={{ margin: '1rem 0', padding: '1rem', background: 'var(--color-bg-secondary)', borderRadius: '8px' }}>
-                    <div className="input-wrapper">
+                    <div className="input-wrapper" style={{ gap: '4px' }}>
                       <SearchIcon />
                       <input
                         type="search"
