@@ -390,13 +390,11 @@ export function AuthProvider({ children }) {
     // Run initial session check
     checkUserSession();
 
-    // Periodic session validation (every 30 seconds)
-    // This detects session invalidation even when user is idle
     return () => {
       authChannel.removeEventListener("message", handleAuthMessage);
       window.removeEventListener("storage", handleStorage);
     };
-  }, [checkUserSession, handleLogout, currentUser, navigate]);
+  }, [checkUserSession, handleLogout]);
 
   const authFetch = async (url, options = {}, retry = true) => {
     const currentTokens = getStoredTokens();
@@ -415,21 +413,10 @@ export function AuthProvider({ children }) {
       credentials: "include",
     });
 
-    // Try to read response body to check for session invalidation
+    // Try to read response body to check for accessExpired flag
     const clone = res.clone();
     let body = null;
     try { body = await clone.json(); } catch {}
-    
-    // Check if session was invalidated (logged in from another device)
-    if (body?.reason === "session_token_mismatch" || body?.reason === "missing_session_token") {
-      console.warn("[AUTH] Session invalidated - forcing logout");
-      // Show alert to user
-      alert("Your session has been invalidated because you logged in from another device.");
-      // Force logout
-      handleLogout();
-      navigate("/login", { replace: true });
-      throw new Error("Session invalidated");
-    }
     
     if (body?.accessExpired === true && retry) {
       const refreshed = await refreshTokens();

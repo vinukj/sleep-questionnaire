@@ -154,7 +154,7 @@ const AdminDashboard = () => {
     if (user) {
       loadTableData();
     }
-  }, [user, page, rowsPerPage, searchQuery, responseFilter]);
+  }, [user, page, rowsPerPage, searchQuery, responseFilter, showResponses]);
 
   useEffect(() => {
     return () => {
