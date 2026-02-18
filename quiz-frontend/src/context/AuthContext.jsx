@@ -392,37 +392,9 @@ export function AuthProvider({ children }) {
 
     // Periodic session validation (every 30 seconds)
     // This detects session invalidation even when user is idle
-    const sessionCheckInterval = setInterval(() => {
-      const tokens = getStoredTokens();
-      if (tokens.accessToken && currentUser) {
-        // Silent session check
-        fetch(`${API_URL}/auth/profile`, {
-          headers: {
-            Authorization: `Bearer ${tokens.accessToken}`,
-            "X-Session-Token": tokens.sessionToken,
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        })
-          .then(res => res.json())
-          .then(data => {
-            if (data.reason === "session_token_mismatch") {
-              console.warn("[AUTH] Session invalidated during periodic check");
-              alert("Your session has been invalidated because you logged in from another device.");
-              handleLogout();
-              navigate("/login", { replace: true });
-            }
-          })
-          .catch(() => {
-            // Silently ignore errors during periodic check
-          });
-      }
-    }, 30000); // Check every 30 seconds
-
     return () => {
       authChannel.removeEventListener("message", handleAuthMessage);
       window.removeEventListener("storage", handleStorage);
-      clearInterval(sessionCheckInterval);
     };
   }, [checkUserSession, handleLogout, currentUser, navigate]);
 

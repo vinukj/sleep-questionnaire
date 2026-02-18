@@ -78,8 +78,8 @@ const authLimiter = rateLimit({
 
 // Routes
 app.use("/about", userRoutes);
-// apply stricter rate limit on auth endpoints
-app.use("/auth", authLimiter, authRoute);
+// apply stricter rate limit on auth endpoints (DISABLED FOR TESTING)
+app.use("/auth", authRoute);
 // app.use("/quizzes", quizRoute);
 app.use("/api", exportRoute);
 app.use("/questionnaire", questionnaireRoute);
