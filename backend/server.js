@@ -69,7 +69,7 @@ app.use(generalLimiter);
 // Stricter limiter for auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100, // 100 auth actions per 15 min per IP
+  max: 500, // 500 auth actions per 15 min per IP (increased for testing)
   standardHeaders: true,
   legacyHeaders: false,
 });
