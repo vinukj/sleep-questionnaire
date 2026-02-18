@@ -307,6 +307,39 @@ class KeycloakService {
       return [];
     }
   }
+
+  // Revoke all user sessions (for single device login)
+  async revokeAllUserSessions(keycloakUserId) {
+    await this.initialize();
+
+    try {
+      // Get all active sessions for the user
+      const sessions = await this.adminClient.users.listSessions({
+        id: keycloakUserId,
+        realm: process.env.KEYCLOAK_REALM
+      });
+
+      console.log(`[KEYCLOAK] Found ${sessions.length} active session(s) for user ${keycloakUserId}`);
+
+      // Logout all sessions
+      for (const session of sessions) {
+        try {
+          await this.adminClient.realms.deleteSession({
+            realm: process.env.KEYCLOAK_REALM,
+            session: session.id
+          });
+          console.log(`[KEYCLOAK] Revoked session: ${session.id}`);
+        } catch (sessionErr) {
+          console.error(`[KEYCLOAK] Failed to revoke session ${session.id}:`, sessionErr.message);
+        }
+      }
+
+      return sessions.length;
+    } catch (error) {
+      console.error('[KEYCLOAK] Failed to revoke user sessions:', error.message);
+      return 0;
+    }
+  }
 }
 
 // Export singleton instance

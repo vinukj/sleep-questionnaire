@@ -42,9 +42,9 @@ const getStoredTokens = () => {
   try {
     const tokens = JSON.parse(localStorage.getItem("auth_tokens"));
     
-    return tokens || { accessToken: null, refreshToken: null };
+    return tokens || { accessToken: null, refreshToken: null, sessionToken: null };
   } catch {
-    return { accessToken: null, refreshToken: null };
+    return { accessToken: null, refreshToken: null, sessionToken: null };
   }
 };
 
@@ -106,6 +106,7 @@ export function AuthProvider({ children }) {
       const newTokens = {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
+        sessionToken: data.sessionToken, // Store session token
       };
 
       // Store tokens
@@ -115,6 +116,7 @@ export function AuthProvider({ children }) {
       const profileRes = await fetch(`${API_URL}/auth/profile`, {
         headers: {
           Authorization: `Bearer ${newTokens.accessToken}`,
+          "X-Session-Token": newTokens.sessionToken,
           "Content-Type": "application/json",
         },
         credentials: "include",
@@ -253,6 +255,7 @@ export function AuthProvider({ children }) {
         const newTokens = {
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
+          sessionToken: data.sessionToken || startingTokens.sessionToken, // Preserve session token
         };
 
         setStoredTokens(newTokens);
@@ -303,6 +306,7 @@ export function AuthProvider({ children }) {
       let res = await fetch(`${API_URL}/auth/profile`, {
         headers: {
           Authorization: `Bearer ${storedTokens.accessToken}`,
+          "X-Session-Token": storedTokens.sessionToken,
           "Content-Type": "application/json",
         },
         credentials: "include",
@@ -316,9 +320,11 @@ export function AuthProvider({ children }) {
         }
 
         // Retry with new access token
+        const updatedTokens = getStoredTokens();
         res = await fetch(`${API_URL}/auth/profile`, {
           headers: {
-            Authorization: `Bearer ${getStoredTokens().accessToken}`,
+            Authorization: `Bearer ${updatedTokens.accessToken}`,
+            "X-Session-Token": updatedTokens.sessionToken,
             "Content-Type": "application/json",
           },
           credentials: "include",
@@ -397,6 +403,7 @@ export function AuthProvider({ children }) {
     const headers = {
       ...(options.headers || {}),
       Authorization: `Bearer ${currentTokens.accessToken}`,
+      "X-Session-Token": currentTokens.sessionToken,
       "Content-Type": "application/json",
     };
 

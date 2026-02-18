@@ -48,6 +48,25 @@ export const verifyTokens = async (req, res, next) => {
     if (userResult.rows.length) {
       user = userResult.rows[0];
       
+      // CRITICAL: Validate session token to prevent multi-device access
+      const clientSessionToken = req.headers['x-session-token'];
+      
+      if (!clientSessionToken) {
+        return res.status(401).json({ 
+          message: "Session token missing",
+          sessionExpired: true,
+          reason: "missing_session_token"
+        });
+      }
+      
+      if (user.session_token !== clientSessionToken) {
+        return res.status(401).json({ 
+          message: "Session invalidated - user logged in from another device",
+          sessionExpired: true,
+          reason: "session_token_mismatch"
+        });
+      }
+      
       // Update keycloak_id if not set
       if (!user.keycloak_id) {
         await pool.query(

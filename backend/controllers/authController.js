@@ -27,10 +27,14 @@ export const signup = async (req, res) => {
         // Create user in Keycloak with default 'user' role
         const keycloakUser = await keycloakService.createUser(email, password, name, ['user']);
 
+        // Generate unique session token
+        const crypto = await import('crypto');
+        const sessionToken = crypto.randomBytes(32).toString('hex');
+
         // Create user in local database
         const localUser = await pool.query(
-            'INSERT INTO users (email, name, keycloak_id, role) VALUES ($1, $2, $3, $4) RETURNING id, email, name, role',
-            [email, name || email.split('@')[0], keycloakUser.id, 'user']
+            'INSERT INTO users (email, name, keycloak_id, role, session_token, session_updated_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING id, email, name, role',
+            [email, name || email.split('@')[0], keycloakUser.id, 'user', sessionToken]
         );
 
         console.log(`[AUTH] User created: ${email}`);
@@ -42,7 +46,8 @@ export const signup = async (req, res) => {
             message: "User created successfully",
             user: localUser.rows[0],
             accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken
+            refreshToken: tokens.refreshToken,
+            sessionToken: sessionToken
         });
     } catch (err) {
         console.error('[AUTH] Signup error:', err);
@@ -78,13 +83,29 @@ export const login = async (req, res) => {
         // CASE 1: User already migrated to Keycloak
         if (user.keycloak_id) {
             try {
+                // Generate unique session token
+                const crypto = await import('crypto');
+                const sessionToken = crypto.randomBytes(32).toString('hex');
+
+                // Update user's session token in database (invalidates old sessions)
+                await pool.query(
+                    'UPDATE users SET session_token = $1, session_updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+                    [sessionToken, user.id]
+                );
+
+                // Revoke all existing Keycloak sessions
+                const revokedCount = await keycloakService.revokeAllUserSessions(user.keycloak_id);
+                console.log(`[AUTH] Revoked ${revokedCount} previous session(s) for: ${email}`);
+
+                // Now login and get new tokens
                 const tokens = await keycloakService.loginUser(email, password);
                 console.log(`[AUTH] Keycloak login successful for: ${email}`);
                 
                 return res.json({
                     message: "Login successful",
                     accessToken: tokens.accessToken,
-                    refreshToken: tokens.refreshToken
+                    refreshToken: tokens.refreshToken,
+                    sessionToken: sessionToken // Send to client to store in localStorage
                 });
             } catch (err) {
                 console.error('[AUTH] Keycloak login failed:', err.message);
@@ -122,13 +143,27 @@ export const login = async (req, res) => {
 
             console.log(`[AUTH] ✓ User ${email} auto-migrated to Keycloak on login`);
 
+            // Generate unique session token
+            const crypto = await import('crypto');
+            const sessionToken = crypto.randomBytes(32).toString('hex');
+
+            // Update user's session token in database
+            await pool.query(
+                'UPDATE users SET session_token = $1, session_updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+                [sessionToken, user.id]
+            );
+
+            // Revoke any existing sessions (shouldn't be any on first migration, but be safe)
+            await keycloakService.revokeAllUserSessions(keycloakUser.id);
+
             // Now login with Keycloak
             const tokens = await keycloakService.loginUser(email, password);
 
             return res.json({
                 message: "Login successful",
                 accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken
+                refreshToken: tokens.refreshToken,
+                sessionToken: sessionToken
             });
         } catch (migrateErr) {
             console.error('[AUTH] Auto-migration failed:', migrateErr);
@@ -218,6 +253,10 @@ export const googleLogin = async (req, res) => {
                 [keycloakUser.id, payload.sub, payload.picture, localUser.id]
             );
         }
+
+        // Revoke all existing sessions for this user before creating new one
+        const revokedCount = await keycloakService.revokeAllUserSessions(keycloakUser.id);
+        console.log(`[AUTH] Revoked ${revokedCount} previous session(s) for Google user: ${payload.email}`);
 
         // For Google OAuth, we need to generate a temporary password or use a service account
         // For simplicity, we'll return a message asking user to set password via Keycloak
