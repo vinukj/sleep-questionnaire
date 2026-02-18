@@ -390,11 +390,41 @@ export function AuthProvider({ children }) {
     // Run initial session check
     checkUserSession();
 
+    // Periodic session validation (every 30 seconds)
+    // This detects session invalidation even when user is idle
+    const sessionCheckInterval = setInterval(() => {
+      const tokens = getStoredTokens();
+      if (tokens.accessToken && currentUser) {
+        // Silent session check
+        fetch(`${API_URL}/auth/profile`, {
+          headers: {
+            Authorization: `Bearer ${tokens.accessToken}`,
+            "X-Session-Token": tokens.sessionToken,
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.reason === "session_token_mismatch") {
+              console.warn("[AUTH] Session invalidated during periodic check");
+              alert("Your session has been invalidated because you logged in from another device.");
+              handleLogout();
+              navigate("/login", { replace: true });
+            }
+          })
+          .catch(() => {
+            // Silently ignore errors during periodic check
+          });
+      }
+    }, 30000); // Check every 30 seconds
+
     return () => {
       authChannel.removeEventListener("message", handleAuthMessage);
       window.removeEventListener("storage", handleStorage);
+      clearInterval(sessionCheckInterval);
     };
-  }, [checkUserSession, handleLogout]);
+  }, [checkUserSession, handleLogout, currentUser, navigate]);
 
   const authFetch = async (url, options = {}, retry = true) => {
     const currentTokens = getStoredTokens();
@@ -413,10 +443,21 @@ export function AuthProvider({ children }) {
       credentials: "include",
     });
 
-    // Try to read response body to check for accessExpired flag
+    // Try to read response body to check for session invalidation
     const clone = res.clone();
     let body = null;
     try { body = await clone.json(); } catch {}
+    
+    // Check if session was invalidated (logged in from another device)
+    if (body?.reason === "session_token_mismatch" || body?.reason === "missing_session_token") {
+      console.warn("[AUTH] Session invalidated - forcing logout");
+      // Show alert to user
+      alert("Your session has been invalidated because you logged in from another device.");
+      // Force logout
+      handleLogout();
+      navigate("/login", { replace: true });
+      throw new Error("Session invalidated");
+    }
     
     if (body?.accessExpired === true && retry) {
       const refreshed = await refreshTokens();

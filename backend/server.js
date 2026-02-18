@@ -36,7 +36,7 @@ app.use(cors({
     origin: allowedOrigins, // 
     credentials: true, // important: allows sending cookies
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Session-Token'],
 }));
     
 // Security headers via Helmet
