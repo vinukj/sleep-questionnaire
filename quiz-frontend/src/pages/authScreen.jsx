@@ -7,6 +7,8 @@ import logger from "../utils/logger";
 import "../styles/variables.css";
 import "../styles/components.css";
 import "../styles/AuthScreen.css";
+import logoImage from "../assets/logo-transparent-original.png";
+
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -54,18 +56,8 @@ const SunIcon = () => (
 
 // Logo component with brain/sleep icon
 const Logo = () => (
-  <svg width="60" height="60" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    {/* Brain outline */}
-    <path d="M50 15C35 15 25 25 25 40C25 50 30 58 38 62V75C38 80 42 85 50 85C58 85 62 80 62 75V62C70 58 75 50 75 40C75 25 65 15 50 15Z" 
-      stroke="#3b82f6" strokeWidth="3" fill="none"/>
-    {/* Brain details */}
-    <path d="M40 35C40 35 45 30 50 35C55 40 60 35 60 35" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
-    <path d="M35 45C35 45 42 40 50 45C58 50 65 45 65 45" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
-    {/* Zzz sleep symbols */}
-    <text x="68" y="20" fill="#3b82f6" fontSize="10" fontWeight="bold">z</text>
-    <text x="75" y="15" fill="#3b82f6" fontSize="8" fontWeight="bold">z</text>
-    <text x="80" y="10" fill="#60a5fa" fontSize="6" fontWeight="bold">z</text>
-  </svg>
+  <img src={logoImage} alt="Logo" style={{ width: '82px', height: '82px', objectFit: 'contain' }} />
+  
 );
 
 export default function AuthScreen() {
@@ -289,21 +281,7 @@ export default function AuthScreen() {
             </div>
 
             {/* Remember Me & Forgot Password (login only) */}
-            {isLoginView && (
-              <div className="auth-options">
-                <label className="checkbox">
-                  <input
-                    type="checkbox"
-                    className="checkbox__input"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                  />
-                  <span className="checkbox__box"></span>
-                  <span className="checkbox__label">Remember me</span>
-                </label>
-                <a href="#" className="link auth-forgot-link">Forgot Password?</a>
-              </div>
-            )}
+           
 
             {/* Submit Button */}
             <button 
@@ -319,7 +297,7 @@ export default function AuthScreen() {
             </button>
 
             {/* Divider */}
-            <div className="divider">or</div>
+            
 
             {/* Google Login */}
             {/* <div className="auth-google">

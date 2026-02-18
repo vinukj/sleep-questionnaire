@@ -54,9 +54,23 @@
 /* Stats Grid */
 .admin-stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
   margin-bottom: 2rem;
+}
+
+/* Responsive: 2 columns on tablets */
+@media (max-width: 1024px) {
+  .admin-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Responsive: 1 column on mobile */
+@media (max-width: 640px) {
+  .admin-stats-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Stat Card */
@@ -78,8 +92,8 @@
 }
 
 .admin-stat-value {
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-size: 1.2rem;
+  font-weight: 600;
   color: var(--color-text-primary);
   margin: 0;
 }
@@ -131,37 +145,57 @@
   cursor: pointer;
   transition: all var(--transition-normal);
   text-decoration: none;
-  border: none;
   min-height: auto;
-  background: var(--color-primary);
-  color: white;
-}
-
-.card--clickable:hover {
-  background: #2563eb;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  background: var(--color-bg-secondary);
+  border: 2px solid;
 }
 
 .card--clickable:active {
   transform: scale(0.98);
 }
 
-/* Primary clickable card (blue solid) */
+/* Primary clickable card (blue border) */
 .card--primary {
-  background: var(--color-primary);
+  background: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+  box-shadow: 0 6px 32px rgba(59, 130, 246, 0.3);
 }
 
 .card--primary:hover {
-  background: #2563eb;
+  border-color: var(--color-primary-hover);
+  box-shadow: 0 8px 36px rgba(59, 130, 246, 0.33);
+  transform: translateY(-2px);
 }
 
-/* Secondary clickable card (blue solid) */
+.card--primary .card__title {
+  color: var(--color-text-primary);
+}
+
+.card--primary .icon,
+.card--primary svg {
+  color: var(--color-text-primary);
+}
+
+/* Secondary clickable card (blue border) */
 .card--secondary {
-  background: var(--color-primary);
+  background: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+  box-shadow: 0 6px 32px rgba(59, 130, 246, 0.3);
 }
 
 .card--secondary:hover {
-  background: #2563eb;
+  border-color: var(--color-primary-hover);
+  box-shadow: 0 8px 36px rgba(59, 130, 246, 0.33);
+  transform: translateY(-2px);
+}
+
+.card--secondary .card__title {
+  color: var(--color-text-primary);
+}
+
+.card--secondary .icon,
+.card--secondary svg {
+  color: var(--color-text-primary);
 }
 
 .card__content {
@@ -176,15 +210,15 @@
   gap: 0.75rem;
 }
 
+/* Ensure icons in card content use theme colors */
+.card__content--icon .icon {
+  color: inherit;
+}
+
 .card__title {
   font-size: 0.938rem;
   font-weight: 600;
   margin: 0;
-  color: white;
-}
-
-.card--primary .card__title {
-  color: white;
 }
 
 .card__export-btn {
@@ -193,20 +227,32 @@
   border: none !important;
   padding: 0 !important;
   cursor: pointer;
-  color: inherit;
+  color: var(--color-text-primary) !important;
 }
 
 .card__export-btn:hover {
+  background: none !important;
+  opacity: 0.8;
+}
+
+/* Override MUI Button text color */
+.card__export-btn .MuiButton-root {
+  color: var(--color-text-primary) !important;
+  background: none !important;
+}
+
+/* Override MUI Button icons */
+.card__export-btn .MuiSvgIcon-root {
+  color: var(--color-primary) !important;
+}
+
+.card__export-btn .MuiButton-root:hover {
   background: none !important;
 }
 
 .card--clickable .icon--btn {
   width: 20px;
   height: 20px;
-}
-
-.card--secondary .icon--btn {
-  color: white;
 }
 
 /* Table Card */
@@ -300,6 +346,10 @@
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--transition-fast);
+}
+
+.table__action-btn svg {
+  color: inherit;
 }
 
 .table__action-btn:hover {
@@ -627,42 +677,46 @@
 
 /* Success card variant */
 .card--success {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
+  background: var(--color-bg-secondary);
+  border-color: var(--color-success);
+  box-shadow: 0 6px 32px rgba(59, 130, 246, 0.3);
   transition: all 0.2s ease;
 }
 
 .card--success:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+  border-color: #059669;
+  box-shadow: 0 8px 36px rgba(59, 130, 246, 0.33);
 }
 
 .card--success .card__title {
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .card--success .icon {
-  color: white;
+  color: var(--color-success);
 }
 
 /* Warning card variant */
 .card--warning {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: white;
+  background: var(--color-bg-secondary);
+  border-color: var(--color-warning);
+  box-shadow: 0 6px 32px rgba(59, 130, 246, 0.3);
   transition: all 0.2s ease;
 }
 
 .card--warning:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);
+  border-color: #d97706;
+  box-shadow: 0 8px 36px rgba(59, 130, 246, 0.33);
 }
 
 .card--warning .card__title {
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .card--warning .icon {
-  color: white;
+  color: var(--color-warning);
 }
 
 @media (max-width: 640px) {

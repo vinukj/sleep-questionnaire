@@ -18,7 +18,7 @@ const SearchIcon = () => (
 );
 
 const ChartIcon = () => (
-  <svg className="icon icon--stat" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg className="icon icon--btn" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M3 3V16C3 17.1046 3.89543 18 5 18H21M7 14L12 9L16 13L21 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
@@ -134,12 +134,15 @@ const AdminDashboard = () => {
   });
   const [addUserLoading, setAddUserLoading] = useState(false);
 
-  // Edit User Roles Modal State
-  const [showEditRolesModal, setShowEditRolesModal] = useState(false);
+  // View Users Modal State
+  const [showViewUsersModal, setShowViewUsersModal] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newRole, setNewRole] = useState('');
-  const [editRolesLoading, setEditRolesLoading] = useState(false);
+  const [viewUsersLoading, setViewUsersLoading] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [showResponses,setShowResponses]=useState(false);
+  const [responseFilter, setResponseFilter] = useState('today'); // 'today' or 'all'
 
   useEffect(() => {
     if (user) {
@@ -151,7 +154,7 @@ const AdminDashboard = () => {
     if (user) {
       loadTableData();
     }
-  }, [user, page, rowsPerPage, searchQuery]);
+  }, [user, page, rowsPerPage, searchQuery, responseFilter, showResponses]);
 
   useEffect(() => {
     return () => {
@@ -214,10 +217,54 @@ const AdminDashboard = () => {
       }
 
       const data = await response.json();
-      const allResponses = data.responses || [];
+      let allResponses = data.responses || [];
 
-      if (data.pagination) {
-        setPaginationData(data.pagination);
+      // If not showing all responses, show only today's responses
+      if (!showResponses) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        allResponses = allResponses
+          .filter(response => {
+            const responseDate = new Date(response.created_at);
+            return responseDate >= today && responseDate < tomorrow;
+          })
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        
+        setPaginationData({
+          total: allResponses.length,
+          page: 0,
+          pageSize: 10,
+          totalPages: 1
+        });
+      } else {
+        // When showing all responses, apply the today/all filter
+        if (responseFilter === 'today') {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          
+          allResponses = allResponses.filter(response => {
+            const responseDate = new Date(response.created_at);
+            return responseDate >= today && responseDate < tomorrow;
+          });
+          
+          // Update pagination data for filtered results
+          setPaginationData({
+            total: allResponses.length,
+            page: 0,
+            pageSize: rowsPerPage,
+            totalPages: Math.ceil(allResponses.length / rowsPerPage)
+          });
+        } else {
+          // Use backend pagination data for 'all' filter
+          if (data.pagination) {
+            setPaginationData(data.pagination);
+          }
+        }
       }
 
       setResponses(allResponses);
@@ -306,6 +353,39 @@ const AdminDashboard = () => {
     loadTableData();
   };
 
+  const handleExport = async () => {
+    try {
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const fileName = `questionnaire_responses_admin_${timestamp}.xlsx`;
+
+      logger.info('Admin export started');
+
+      const response = await authFetch('/api/export/excel', {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Server error ${response.status}: ${text}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      logger.success(`Admin export completed: ${fileName}`);
+    } catch (err) {
+      console.error('Export error:', err);
+      setError(`Export failed: ${err.message}`);
+    }
+  };
+
   const handleDelete = async (responseId) => {
     if (!confirm('Are you sure you want to delete this response? This action cannot be undone.')) {
       return;
@@ -370,7 +450,7 @@ const AdminDashboard = () => {
 
   const loadAllUsers = async () => {
     try {
-      setEditRolesLoading(true);
+      setViewUsersLoading(true);
       const response = await authFetch('/auth/admin/users');
       
       if (!response.ok) {
@@ -383,19 +463,19 @@ const AdminDashboard = () => {
       console.error('Load users error:', err);
       setError(err.message);
     } finally {
-      setEditRolesLoading(false);
+      setViewUsersLoading(false);
     }
   };
 
-  const handleOpenEditRoles = async () => {
-    setShowEditRolesModal(true);
+  const handleOpenViewUsers = async () => {
+    setShowViewUsersModal(true);
     await loadAllUsers();
   };
 
-  const handleSelectUser = (userId) => {
-    const user = allUsers.find(u => u.id === parseInt(userId));
+  const handleEditUser = (user) => {
     setSelectedUser(user);
-    setNewRole(user?.role || 'user');
+    setNewRole(user.role);
+    setShowEditUserModal(true);
   };
 
   const handleUpdateUserRole = async (e) => {
@@ -407,7 +487,7 @@ const AdminDashboard = () => {
     }
     
     try {
-      setEditRolesLoading(true);
+      setViewUsersLoading(true);
       setError(null);
       
       const response = await authFetch('/auth/admin/users/role', {
@@ -427,7 +507,7 @@ const AdminDashboard = () => {
       }
       
       logger.success(`User role updated to ${newRole}`);
-      setShowEditRolesModal(false);
+      setShowEditUserModal(false);
       setSelectedUser(null);
       setNewRole('');
       await loadAllUsers(); // Refresh user list
@@ -435,7 +515,7 @@ const AdminDashboard = () => {
       console.error('Update role error:', err);
       setError(err.message);
     } finally {
-      setEditRolesLoading(false);
+      setViewUsersLoading(false);
     }
   };
 
@@ -479,64 +559,54 @@ const AdminDashboard = () => {
             </div>
           ) : (
             <>
-              {/* Search Box */}
-              <div className="card admin-search-card">
-                <div className="input-wrapper">
-                  <SearchIcon />
-                  <input
-                    type="search"
-                    className="input"
-                    placeholder="Search by Hospital ID, Name, Email, or Phone"
-                    value={searchInput}
-                    onChange={handleSearchInput}
-                    aria-label="Search responses"
-                  />
-                </div>
-                <p className="admin-search-hint">
-                  Type at least 2 characters to search. Results trigger after 0.5s typing.
-                </p>
-              </div>
-
               {/* Stats Cards Grid */}
               <div className="admin-stats-grid">
-                {/* Total Responses Card */}
-                <div className="card admin-stat-card">
-                  <div className="admin-stat-content">
-                    <p className="admin-stat-label">Total Responses</p>
-                    <h2 className="admin-stat-value">{stats.totalResponses}</h2>
+                {/* Total Responses Card - Clickable */}
+                <button 
+                  className="card card--clickable card--warning"
+                  onClick={() => {
+                    setShowResponses(!showResponses);
+                    if (!showResponses) {
+                      setResponseFilter('all');
+                    }
+                  }}
+                  style={{ border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                >
+                  <div className="card__content card__content--icon">
+                    {/* <p className="admin-stat-label">{stats.totalResponses}</p> */}
+                    <ChartIcon></ChartIcon>
+                    <h2 className="card__title">All Responses</h2>
                   </div>
-                  <div className="admin-stat-icon">
-                    <ChartIcon />
-                  </div>
-                </div>
-
-                {/* View All Responses Button Card */}
-                <a href="#responses-table" className="card card--clickable card--primary">
-                  <div className="card__content">
-                    <h3 className="card__title">View All Responses</h3>
-                  </div>
-                </a>
+                  
+                    
+                  
+                </button>
 
                 {/* Export Button Card */}
-                <div className="card card--clickable card--secondary">
-                  <ExcelExportButton 
-                    fileName="questionnaire_responses_admin"
-                    className="card__export-btn"
-                    onExportStart={(format) => logger.info(`Admin export started: ${format}`)}
-                    onExportComplete={(format, fileName) => {
-                      logger.success(`Admin export completed: ${fileName}`);
-                    }}
-                    onExportError={(error) => {
-                      setError(`Export failed: ${error}`);
-                    }}
+                <button 
+                  className="card card--clickable card--success"
+                  onClick={handleExport}
+                  style={{ border: 'none', cursor: 'pointer' }}
+                >
+                  <div className="card__content card__content--icon">
+                    <DownloadIcon />
+                    <h3 className="card__title">Export Responses</h3>
+                  </div>
+                </button>
+
+                {/* View Users Button Card - Only for Super Admins */}
+                {(user?.role === 'admin' || user?.user?.role === 'admin') && (
+                  <button 
+                    className="card card--clickable card--warning"
+                    onClick={handleOpenViewUsers}
+                    style={{ border: 'none', cursor: 'pointer' }}
                   >
                     <div className="card__content card__content--icon">
-                      <DownloadIcon />
-                      <h3 className="card__title">Export All Responses</h3>
+                      <UsersIcon />
+                      <h3 className="card__title">View Users</h3>
                     </div>
-                  </ExcelExportButton>
-                </div>
-
+                  </button>
+                )}
                 {/* Add User Button Card - Only for Super Admins */}
                 {(user?.role === 'admin' || user?.user?.role === 'admin') && (
                   <button 
@@ -551,32 +621,73 @@ const AdminDashboard = () => {
                   </button>
                 )}
 
-                {/* Edit User Roles Button Card - Only for Super Admins */}
-                {(user?.role === 'admin' || user?.user?.role === 'admin') && (
-                  <button 
-                    className="card card--clickable card--warning"
-                    onClick={handleOpenEditRoles}
-                    style={{ border: 'none', cursor: 'pointer' }}
-                  >
-                    <div className="card__content card__content--icon">
-                      <UsersIcon />
-                      <h3 className="card__title">Edit User Roles</h3>
-                    </div>
-                  </button>
-                )}
+                
+                
               </div>
 
-              {/* Recent Responses Section */}
+              {/* Responses Table Section - Always Visible */}
               <div className="card admin-table-card" id="responses-table">
                 <div className="admin-table-header">
-                  <h2 className="admin-table-title">Recent Responses</h2>
+                  <h2 className="admin-table-title">
+                    {!showResponses ? "Today's Responses" : (responseFilter === 'today' ? "Today's Responses" : 'All Responses')}
+                  </h2>
                   <div className="admin-table-actions">
+                    {showResponses && (
+                      <div style={{ display: 'flex', gap: '0.5rem', marginRight: 'auto', marginLeft: '1rem' }}>
+                        <button 
+                          className={`btn ${responseFilter === 'today' ? 'btn--primary' : 'btn--secondary'}`}
+                          onClick={() => {
+                            setResponseFilter('today');
+                            setPage(0);
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                          Today
+                        </button>
+                        <button 
+                          className={`btn ${responseFilter === 'all' ? 'btn--primary' : 'btn--secondary'}`}
+                          onClick={() => {
+                            setResponseFilter('all');
+                            setPage(0);
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                          All
+                        </button>
+                      </div>
+                    )}
                     <button className="btn btn--secondary" onClick={handleRefresh} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <RefreshIcon />
                       Refresh
                     </button>
+                    {showResponses && (
+                      <button className="btn btn--secondary" onClick={() => setShowResponses(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <CloseIcon />
+                        Show Recent Only
+                      </button>
+                    )}
                   </div>
                 </div>
+
+                {/* Search Box - Only show when viewing all responses */}
+                {showResponses && (
+                  <div className="admin-search-card" style={{ margin: '1rem 0', padding: '1rem', background: 'var(--color-bg-secondary)', borderRadius: '8px' }}>
+                    <div className="input-wrapper">
+                      <SearchIcon />
+                      <input
+                        type="search"
+                        className="input"
+                        placeholder="Search by Hospital ID, Name, Email, or Phone"
+                        value={searchInput}
+                        onChange={handleSearchInput}
+                        aria-label="Search responses"
+                      />
+                    </div>
+                    <p className="admin-search-hint" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+                      Type at least 2 characters to search. Results trigger after 0.5s typing.
+                    </p>
+                  </div>
+                )}
 
                 {/* Data Table */}
                 <div className="table__wrapper">
@@ -702,111 +813,87 @@ const AdminDashboard = () => {
         </div>
       </main>
 
-      {/* Edit User Roles Modal */}
-      {showEditRolesModal && (
-        <div className="modal-overlay" onClick={() => setShowEditRolesModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+      {/* ers Modal */}
+      {showViewUsersModal && (
+        <div className="modal-overlay" onClick={() => setShowViewUsersModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px' }}>
             <div className="modal__header">
-              <h2 className="modal__title">Edit User Roles</h2>
+              <h2 className="modal__title">All Users</h2>
               <button 
                 className="modal__close"
-                onClick={() => setShowEditRolesModal(false)}
+                onClick={() => setShowViewUsersModal(false)}
                 aria-label="Close modal"
               >
                 <CloseIcon />
               </button>
             </div>
             
-            <form onSubmit={handleUpdateUserRole} className="modal__form">
-              <div className="form-group">
-                <label htmlFor="selectUser" className="form-label">
-                  Select User <span className="form-required">*</span>
-                </label>
-                <select
-                  id="selectUser"
-                  className="input"
-                  onChange={(e) => handleSelectUser(e.target.value)}
-                  value={selectedUser?.id || ''}
-                  required
-                  disabled={editRolesLoading}
-                >
-                  <option value="">-- Select a user --</option>
-                  {allUsers.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name || user.email} - Current Role: {user.role}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedUser && (
-                <>
-                  <div className="form-group">
-                    <label className="form-label">User Details</label>
-                    <div style={{ padding: '0.75rem', background: 'var(--color-bg-secondary)', borderRadius: '8px', fontSize: '0.875rem' }}>
-                      <p style={{ margin: '0 0 0.5rem 0' }}><strong>Email:</strong> {selectedUser.email}</p>
-                      <p style={{ margin: '0' }}><strong>Current Role:</strong> <span className="badge badge--secondary">{selectedUser.role}</span></p>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="newRole" className="form-label">
-                      New Role <span className="form-required">*</span>
-                    </label>
-                    <select
-                      id="newRole"
-                      className="input"
-                      value={newRole}
-                      onChange={(e) => setNewRole(e.target.value)}
-                      required
-                    >
-                      <option value="user">User</option>
-                      <option value="physician">Physician</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                    <p className="form-hint">Select the new role for this user</p>
-                  </div>
-                </>
+            <div style={{ padding: '1.5rem' }}>
+              {viewUsersLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+                  <div className="spinner"></div>
+                </div>
+              ) : allUsers.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                  No users found
+                </div>
+              ) : (
+                <div className="table__wrapper">
+                  <table className="table" role="table" aria-label="All users">
+                    <thead>
+                      <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Role</th>
+                        <th scope="col" style={{ textAlign: 'center' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allUsers.map((user) => (
+                        <tr key={user.id}>
+                          <td>{user.name || 'N/A'}</td>
+                          <td>{user.email}</td>
+                          <td>
+                            <span className={`badge ${
+                              user.role === 'admin' ? 'badge--danger' : 
+                              user.role === 'physician' ? 'badge--warning' : 
+                              'badge--secondary'
+                            }`}>
+                              {user.role}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <div className="table__actions">
+                              <button 
+                                className="table__action-btn" 
+                                onClick={() => handleEditUser(user)}
+                                aria-label="Edit user" 
+                                title="Edit Role"
+                              >
+                                <EditIcon />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
-
-              <div className="modal__actions">
-                <button
-                  type="button"
-                  className="btn btn--secondary"
-                  onClick={() => setShowEditRolesModal(false)}
-                  disabled={editRolesLoading}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn--primary"
-                  disabled={editRolesLoading || !selectedUser}
-                >
-                  {editRolesLoading ? (
-                    <>
-                      <span className="spinner" style={{ width: '16px', height: '16px', marginRight: '0.5rem' }}></span>
-                      Updating...
-                    </>
-                  ) : (
-                    <>Update Role</>
-                  )}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Edit User Roles Modal */}
-      {showEditRolesModal && (
-        <div className="modal-overlay" onClick={() => setShowEditRolesModal(false)}>
+      {/* Edit User Modal */}
+      {showEditUserModal && selectedUser && (
+        <div className="modal-overlay" onClick={() => setShowEditUserModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal__header">
-              <h2 className="modal__title">Edit User Roles</h2>
+              <h2 className="modal__title">Edit User Role</h2>
               <button 
                 className="modal__close"
-                onClick={() => setShowEditRolesModal(false)}
+                onClick={() => setShowEditUserModal(false)}
                 aria-label="Close modal"
               >
                 <CloseIcon />
@@ -815,71 +902,47 @@ const AdminDashboard = () => {
             
             <form onSubmit={handleUpdateUserRole} className="modal__form">
               <div className="form-group">
-                <label htmlFor="selectUser" className="form-label">
-                  Select User <span className="form-required">*</span>
-                </label>
-                <select
-                  id="selectUser"
-                  className="input"
-                  onChange={(e) => handleSelectUser(e.target.value)}
-                  value={selectedUser?.id || ''}
-                  required
-                  disabled={editRolesLoading}
-                >
-                  <option value="">-- Select a user --</option>
-                  {allUsers.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name || user.email} - Current Role: {user.role}
-                    </option>
-                  ))}
-                </select>
+                <label className="form-label">User Details</label>
+                <div style={{ padding: '0.75rem', background: 'var(--color-bg-secondary)', borderRadius: '8px', fontSize: '0.875rem' }}>
+                  <p style={{ margin: '0 0 0.5rem 0' }}><strong>Name:</strong> {selectedUser.name || 'N/A'}</p>
+                  <p style={{ margin: '0 0 0.5rem 0' }}><strong>Email:</strong> {selectedUser.email}</p>
+                  <p style={{ margin: '0' }}><strong>Current Role:</strong> <span className="badge badge--secondary">{selectedUser.role}</span></p>
+                </div>
               </div>
 
-              {selectedUser && (
-                <>
-                  <div className="form-group">
-                    <label className="form-label">User Details</label>
-                    <div style={{ padding: '0.75rem', background: 'var(--color-bg-secondary)', borderRadius: '8px', fontSize: '0.875rem' }}>
-                      <p style={{ margin: '0 0 0.5rem 0' }}><strong>Email:</strong> {selectedUser.email}</p>
-                      <p style={{ margin: '0' }}><strong>Current Role:</strong> <span className="badge badge--secondary">{selectedUser.role}</span></p>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="newRole" className="form-label">
-                      New Role <span className="form-required">*</span>
-                    </label>
-                    <select
-                      id="newRole"
-                      className="input"
-                      value={newRole}
-                      onChange={(e) => setNewRole(e.target.value)}
-                      required
-                    >
-                      <option value="user">User</option>
-                      <option value="physician">Physician</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                    <p className="form-hint">Select the new role for this user</p>
-                  </div>
-                </>
-              )}
+              <div className="form-group">
+                <label htmlFor="newRole" className="form-label">
+                  New Role <span className="form-required">*</span>
+                </label>
+                <select
+                  id="newRole"
+                  className="input"
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  required
+                >
+                  <option value="user">User</option>
+                  <option value="physician">Physician</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <p className="form-hint">User: Basic access | Physician: Admin dashboard access | Admin: Full access</p>
+              </div>
 
               <div className="modal__actions">
                 <button
                   type="button"
                   className="btn btn--secondary"
-                  onClick={() => setShowEditRolesModal(false)}
-                  disabled={editRolesLoading}
+                  onClick={() => setShowEditUserModal(false)}
+                  disabled={viewUsersLoading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="btn btn--primary"
-                  disabled={editRolesLoading || !selectedUser}
+                  disabled={viewUsersLoading}
                 >
-                  {editRolesLoading ? (
+                  {viewUsersLoading ? (
                     <>
                       <span className="spinner" style={{ width: '16px', height: '16px', marginRight: '0.5rem' }}></span>
                       Updating...

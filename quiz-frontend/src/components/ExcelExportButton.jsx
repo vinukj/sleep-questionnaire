@@ -30,6 +30,7 @@ const ExcelExportButton = ({
   onExportComplete,
   onExportError,
   disabled = false,
+  children,
   ...buttonProps
 }) => {
   const [isExporting, setIsExporting] = useState(false);
@@ -147,16 +148,18 @@ const ExcelExportButton = ({
         onClick={handleClick}
         disabled={isDisabled}
         startIcon={
-          isExporting ? (
-            <CircularProgress size={16} />
-          ) : (
-            <FileDownload />
+          children ? null : (
+            isExporting ? (
+              <CircularProgress size={16} />
+            ) : (
+              <FileDownload />
+            )
           )
         }
-        endIcon={showDropdown ? <ExpandMore /> : null}
+        endIcon={children ? null : (showDropdown ? <ExpandMore /> : null)}
         {...buttonProps}
       >
-        {isExporting ? 'Exporting...' : 'Export All Responses'}
+        {children || (isExporting ? 'Exporting...' : 'Export All Responses')}
       </Button>
 
       {showDropdown && (
