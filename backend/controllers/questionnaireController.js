@@ -12,6 +12,7 @@ import {
 } from '../models/userModel.js';
 
 import {calculateSleepScore} from '../services/scoringService.js';
+import {getPrediction} from '../services/predictionService.js';
 
 // Save questionnaire response
 // ...existing code...
@@ -41,11 +42,16 @@ export const submitQuestionnaireResponse = async (req, res) => {
         // Save the response to database
         const savedResponse = await saveQuestionnaireResponse(userId, sanitized);
 
+        // Get prediction from ML model
+        const { prediction, predictionError } = await getPrediction(sanitized);
+
         res.status(201).json({
             success: true,
             message: 'Questionnaire response saved successfully',
             data: savedResponse,
-            scores: flatScores // optional echo of computed values for the client
+            scores: flatScores,
+            prediction: prediction,
+            predictionError: predictionError
         });
     } catch (error) {
         console.error('Error saving questionnaire response:', error);
@@ -162,11 +168,16 @@ export const updateResponse = async (req, res) => {
             });
         }
 
+        // Get updated prediction from ML model
+        const { prediction, predictionError } = await getPrediction(sanitized);
+
         res.json({
             success: true,
             message: 'Questionnaire response updated successfully',
             data: updatedResponse,
-            scores: flatScores // Echo of recalculated scores
+            scores: flatScores, // Echo of recalculated scores
+            prediction: prediction,
+            predictionError: predictionError
         });
     } catch (error) {
         console.error('Error updating questionnaire response:', error);
