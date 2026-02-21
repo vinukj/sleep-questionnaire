@@ -56,7 +56,7 @@ export const buildPredictionPayload = (responseData) => {
     };
 
     // Validate all required fields are present
-    const requiredFields = ['age', 'sex', 'daytime_sleepiness', 'is_snoring', 'witnessed_apnea', 
+    const requiredFields = ['age', 'sex', 'daytime_sleepiness', 'snoring', 'witnessed_apnea', 
                            'htn', 'dm', 'ihd', 'cva', 'hypot3', 'bmi', 'nc', 'malampatti', 'ess', 'iss'];
     
     const missingFields = requiredFields.filter(field => 
