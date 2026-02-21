@@ -71,6 +71,8 @@ export const getPrediction = async (responseData) => {
 
     // Send prediction request to internal ML server
     try {
+        console.log('Sending prediction payload:', JSON.stringify(predictionPayloadResult.payload, null, 2));
+        
         const predictionResponse = await axios.post(
             'http://127.0.0.1:8000/predict', 
             predictionPayloadResult.payload, 
@@ -84,9 +86,14 @@ export const getPrediction = async (responseData) => {
     } catch (error) {
         predictionError = {
             message: 'Failed to get prediction from ML server',
-            error: error.message
+            error: error.message,
+            statusCode: error.response?.status,
+            responseData: error.response?.data
         };
         console.error('Prediction API error:', error.message);
+        console.error('Status code:', error.response?.status);
+        console.error('Response data:', error.response?.data);
+        console.error('Sent payload was:', JSON.stringify(predictionPayloadResult.payload, null, 2));
     }
 
     return { prediction, predictionError };
