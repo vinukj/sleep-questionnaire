@@ -31,12 +31,18 @@ export const buildPredictionPayload = (responseData) => {
         return value; // return as-is if already correct
     };
     
+    // Handle conditional fields - if not snoring, witnessed_apnea should be "No"
+    let witnessedApnea = responseData.witnessed_apneas || responseData.witnessed_apnea || responseData.witnessedApnea;
+    if (!witnessedApnea && toBinary(responseData.is_snoring || responseData.snoring) === 'No') {
+        witnessedApnea = 'No';
+    }
+    
     const payload = {
         age: toNumber(responseData.age),
         sex: convertGender(responseData.gender),
         daytime_sleepiness: toBinary(responseData.daytime_sleepiness),
-        snoring: toBinary(responseData.is_snoring),
-        witnessed_apnea: toBinary(responseData.witnessed_apneas),
+        snoring: toBinary(responseData.is_snoring || responseData.snoring),
+        witnessed_apnea: toBinary(witnessedApnea),
         htn: toBinary(responseData.hypertension),
         dm: toBinary(responseData.diabetes),
         ihd: toBinary(responseData.ihd),
