@@ -6,22 +6,47 @@ import axios from 'axios';
  * @returns {Object} - { valid, missingFields, payload }
  */
 export const buildPredictionPayload = (responseData) => {
+    // Helper to convert gender abbreviations to full words
+    const convertGender = (gender) => {
+        if (!gender) return gender;
+        const g = gender.toString().toUpperCase();
+        if (g === 'F' || g === 'FEMALE') return 'Female';
+        if (g === 'M' || g === 'MALE') return 'Male';
+        return gender; // return as-is if already correct
+    };
+    
+    // Helper to ensure numeric values
+    const toNumber = (value) => {
+        if (value === null || value === undefined || value === '') return value;
+        const num = Number(value);
+        return isNaN(num) ? value : num;
+    };
+    
+    // Helper to normalize binary Yes/No responses
+    const toBinary = (value) => {
+        if (!value) return value;
+        const v = value.toString().toLowerCase().trim();
+        if (v === 'yes' || v === 'y' || v === 'true' || v === '1') return 'Yes';
+        if (v === 'no' || v === 'n' || v === 'false' || v === '0') return 'No';
+        return value; // return as-is if already correct
+    };
+    
     const payload = {
-        age: responseData.age,
-        sex: responseData.gender,
-        daytime_sleepiness: responseData.daytime_sleepiness,
-        snoring: responseData.snoring,
-        witnessed_apnea: responseData.witnessed_apneas,
-        htn: responseData.hypertension,
-        dm: responseData.diabetes,
-        ihd: responseData.ihd,
-        cva: responseData.stroke,
-        hypot3: responseData.hypothyroidism,
-        bmi: responseData.bmi,
-        nc: responseData.neck,
-        malampatti: responseData.mallampati,
-        ess: responseData.ess,
-        iss: responseData.iss
+        age: toNumber(responseData.age),
+        sex: convertGender(responseData.gender),
+        daytime_sleepiness: toBinary(responseData.daytime_sleepiness),
+        snoring: toBinary(responseData.snoring),
+        witnessed_apnea: toBinary(responseData.witnessed_apneas),
+        htn: toBinary(responseData.hypertension),
+        dm: toBinary(responseData.diabetes),
+        ihd: toBinary(responseData.ihd),
+        cva: toBinary(responseData.stroke),
+        hypot3: toBinary(responseData.hypothyroidism),
+        bmi: toNumber(responseData.bmi),
+        nc: toNumber(responseData.neck),
+        malampatti: toNumber(responseData.mallampati),
+        ess: toNumber(responseData.ess),
+        iss: toNumber(responseData.iss)
     };
 
     // Validate all required fields are present
