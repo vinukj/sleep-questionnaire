@@ -35,7 +35,7 @@ export const buildPredictionPayload = (responseData) => {
         age: toNumber(responseData.age),
         sex: convertGender(responseData.gender),
         daytime_sleepiness: toBinary(responseData.daytime_sleepiness),
-        snoring: toBinary(responseData.snoring),
+        snoring: toBinary(responseData.is_snoring),
         witnessed_apnea: toBinary(responseData.witnessed_apneas),
         htn: toBinary(responseData.hypertension),
         dm: toBinary(responseData.diabetes),
@@ -50,7 +50,7 @@ export const buildPredictionPayload = (responseData) => {
     };
 
     // Validate all required fields are present
-    const requiredFields = ['age', 'sex', 'daytime_sleepiness', 'snoring', 'witnessed_apnea', 
+    const requiredFields = ['age', 'sex', 'daytime_sleepiness', 'is_snoring', 'witnessed_apnea', 
                            'htn', 'dm', 'ihd', 'cva', 'hypot3', 'bmi', 'nc', 'malampatti', 'ess', 'iss'];
     
     const missingFields = requiredFields.filter(field => 
