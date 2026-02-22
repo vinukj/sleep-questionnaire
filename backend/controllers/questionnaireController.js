@@ -4,7 +4,8 @@ import {
     getQuestionnaireResponsesByUser, 
     getAllQuestionnaireResponses,
     updateQuestionnaireResponse,
-    deleteQuestionnaireResponseById 
+    deleteQuestionnaireResponseById,
+    savePredictionToResponse 
 } from '../models/userModel.js';
 
 import {
@@ -71,6 +72,17 @@ export const submitQuestionnaireResponse = async (req, res) => {
                 error: predictionResult.reason.message
             };
             console.error('Prediction failed:', predictionResult.reason);
+        }
+
+        // If both DB save and prediction succeeded, update the DB record with prediction
+        if (savedResponse && prediction) {
+            try {
+                await savePredictionToResponse(savedResponse.id, prediction);
+                console.log('Prediction saved to database for response ID:', savedResponse.id);
+            } catch (predError) {
+                console.error('Failed to save prediction to database:', predError);
+                // Don't fail the entire request if prediction save fails
+            }
         }
 
         // Return response based on what succeeded
@@ -230,6 +242,17 @@ export const updateResponse = async (req, res) => {
                 error: predictionResult.reason.message
             };
             console.error('Prediction failed:', predictionResult.reason);
+        }
+
+        // If both DB update and prediction succeeded, update the DB record with prediction
+        if (updatedResponse && prediction) {
+            try {
+                await savePredictionToResponse(id, prediction);
+                console.log('Prediction saved to database for response ID:', id);
+            } catch (predError) {
+                console.error('Failed to save prediction to database:', predError);
+                // Don't fail the entire request if prediction save fails
+            }
         }
 
         // Return response based on what succeeded

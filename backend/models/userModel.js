@@ -177,12 +177,12 @@ export const findOrCreateGoogleUser = async (googleData) => {
 };
 
 // Questionnaire response functions
-export const saveQuestionnaireResponse = async (userId, responseData) => {
+export const saveQuestionnaireResponse = async (userId, responseData, predictionData = null) => {
   const result = await pool.query(
-    `INSERT INTO questionnaire_responses (user_id, response_data) 
-         VALUES ($1, $2) 
+    `INSERT INTO questionnaire_responses (user_id, response_data, prediction_data) 
+         VALUES ($1, $2, $3) 
          RETURNING *`,
-    [userId, JSON.stringify(responseData)],
+    [userId, JSON.stringify(responseData), predictionData ? JSON.stringify(predictionData) : null],
   );
   return result.rows[0];
 };
@@ -273,13 +273,29 @@ export const getAllQuestionnaireResponses = async () => {
   }
 };
 
-export const updateQuestionnaireResponse = async (id, responseData) => {
+export const updateQuestionnaireResponse = async (id, responseData, predictionData = null) => {
+  const predictionUpdate = predictionData !== null ? ', prediction_data = $3' : '';
+  const params = predictionData !== null 
+    ? [JSON.stringify(responseData), id, JSON.stringify(predictionData)]
+    : [JSON.stringify(responseData), id];
+  
   const result = await pool.query(
     `UPDATE questionnaire_responses 
-         SET response_data = $1, updated_at = CURRENT_TIMESTAMP 
+         SET response_data = $1, updated_at = CURRENT_TIMESTAMP${predictionUpdate} 
          WHERE id = $2 
          RETURNING *`,
-    [JSON.stringify(responseData), id],
+    params,
+  );
+  return result.rows[0];
+};
+
+export const savePredictionToResponse = async (responseId, predictionData) => {
+  const result = await pool.query(
+    `UPDATE questionnaire_responses 
+         SET prediction_data = $1, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $2 
+         RETURNING *`,
+    [JSON.stringify(predictionData), responseId],
   );
   return result.rows[0];
 };
