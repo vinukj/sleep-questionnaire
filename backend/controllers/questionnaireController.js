@@ -39,19 +39,53 @@ export const submitQuestionnaireResponse = async (req, res) => {
         // Merge flat scores directly
         Object.assign(sanitized, flatScores);
 
-        // Save the response to database
-        const savedResponse = await saveQuestionnaireResponse(userId, sanitized);
+        // Run DB save and prediction in parallel - both are independent
+        const [dbResult, predictionResult] = await Promise.allSettled([
+            saveQuestionnaireResponse(userId, sanitized),
+            getPrediction(sanitized)
+        ]);
 
-        // Get prediction from ML model
-        const { prediction, predictionError } = await getPrediction(sanitized);
+        // Handle DB save result (non-blocking)
+        let savedResponse = null;
+        let dbError = null;
+        if (dbResult.status === 'fulfilled') {
+            savedResponse = dbResult.value;
+        } else {
+            dbError = {
+                message: 'Failed to save to database',
+                error: dbResult.reason.message
+            };
+            console.error('Database save failed:', dbResult.reason);
+        }
 
-        res.status(201).json({
-            success: true,
-            message: 'Questionnaire response saved successfully',
+        // Handle prediction result (non-blocking)
+        let prediction = null;
+        let predictionError = null;
+        if (predictionResult.status === 'fulfilled') {
+            prediction = predictionResult.value.prediction;
+            predictionError = predictionResult.value.predictionError;
+        } else {
+            predictionError = {
+                message: 'Prediction service error',
+                error: predictionResult.reason.message
+            };
+            console.error('Prediction failed:', predictionResult.reason);
+        }
+
+        // Return response based on what succeeded
+        const success = savedResponse !== null;
+        const statusCode = success ? 201 : 500;
+
+        res.status(statusCode).json({
+            success: success,
+            message: success 
+                ? 'Questionnaire response saved successfully' 
+                : 'Failed to save questionnaire response',
             data: savedResponse,
             scores: flatScores,
             prediction: prediction,
-            predictionError: predictionError
+            predictionError: predictionError,
+            dbError: dbError
         });
     } catch (error) {
         console.error('Error saving questionnaire response:', error);
@@ -158,26 +192,59 @@ export const updateResponse = async (req, res) => {
         // Merge recalculated scores into the updated data
         Object.assign(sanitized, flatScores);
 
-        // Update the response in the database with recalculated scores
-        const updatedResponse = await updateQuestionnaireResponse(id, sanitized);
+        // Run DB update and prediction in parallel - both are independent
+        const [dbResult, predictionResult] = await Promise.allSettled([
+            updateQuestionnaireResponse(id, sanitized),
+            getPrediction(sanitized)
+        ]);
 
-        if (!updatedResponse) {
-            return res.status(404).json({
-                success: false,
-                message: 'Questionnaire response not found'
-            });
+        // Handle DB update result (non-blocking)
+        let updatedResponse = null;
+        let dbError = null;
+        if (dbResult.status === 'fulfilled') {
+            updatedResponse = dbResult.value;
+            if (!updatedResponse) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Questionnaire response not found'
+                });
+            }
+        } else {
+            dbError = {
+                message: 'Failed to update database',
+                error: dbResult.reason.message
+            };
+            console.error('Database update failed:', dbResult.reason);
         }
 
-        // Get updated prediction from ML model
-        const { prediction, predictionError } = await getPrediction(sanitized);
+        // Handle prediction result (non-blocking)
+        let prediction = null;
+        let predictionError = null;
+        if (predictionResult.status === 'fulfilled') {
+            prediction = predictionResult.value.prediction;
+            predictionError = predictionResult.value.predictionError;
+        } else {
+            predictionError = {
+                message: 'Prediction service error',
+                error: predictionResult.reason.message
+            };
+            console.error('Prediction failed:', predictionResult.reason);
+        }
 
-        res.json({
-            success: true,
-            message: 'Questionnaire response updated successfully',
+        // Return response based on what succeeded
+        const success = updatedResponse !== null;
+        const statusCode = success ? 200 : 500;
+
+        res.status(statusCode).json({
+            success: success,
+            message: success 
+                ? 'Questionnaire response updated successfully' 
+                : 'Failed to update questionnaire response',
             data: updatedResponse,
-            scores: flatScores, // Echo of recalculated scores
+            scores: flatScores,
             prediction: prediction,
-            predictionError: predictionError
+            predictionError: predictionError,
+            dbError: dbError
         });
     } catch (error) {
         console.error('Error updating questionnaire response:', error);
