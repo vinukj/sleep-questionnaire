@@ -19,6 +19,10 @@ import {
   ButtonGroup,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import dayjs from 'dayjs';
 import logger from "../utils/logger";
 import class1Image from "../assets/malampatti/class1.jpg";
 import class2Image from "../assets/malampatti/class2.jpg";
@@ -980,29 +984,47 @@ const QuestionRenderer = ({ question, value, onChange, setValue, error }) => {
     return (
       <QuestionBox>
         <FormControl fullWidth error={!!error}>
-          <FormLabel sx={{ fontSize: "0.813rem", fontWeight: 500, color: "#374151", mb: 1 }}>
-            {label}
-          </FormLabel>
-          <TimeInputContainer>
-            <svg style={{ width: "16px", height: "16px", flexShrink: 0 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <input
-              type="time"
-              value={value || ""}
-              onChange={(e) => onChange(e.target.value)}
-              style={{
-                border: "none",
-                outline: "none",
-                fontSize: "0.875rem",
-                color: "#1F2937",
-                background: "transparent",
-                flex: 1,
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <TimePicker
+              label={label}
+              value={value ? dayjs(value, 'HH:mm') : null}
+              onChange={(newValue) => {
+                if (newValue) {
+                  onChange(newValue.format('HH:mm'));
+                } else {
+                  onChange('');
+                }
+              }}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  size: "small",
+                  error: !!error,
+                  helperText: helperText,
+                  sx: {
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "6px",
+                      fontSize: "0.875rem",
+                      "& fieldset": {
+                        borderColor: "#E5E7EB",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#D1D5DB",
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#3B82F6",
+                      },
+                    },
+                    "& .MuiInputLabel-root": {
+                      fontSize: "0.813rem",
+                      fontWeight: 500,
+                      color: "#374151",
+                    },
+                  },
+                },
               }}
             />
-          </TimeInputContainer>
-          {!!error && <FormHelperText>{helperText}</FormHelperText>}
+          </LocalizationProvider>
         </FormControl>
       </QuestionBox>
     );
