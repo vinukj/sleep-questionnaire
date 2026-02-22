@@ -242,8 +242,8 @@ const ViewResponse = () => {
                 <div className="prediction-class">
                   <span className="prediction-label">Classification:</span>
                   <span className={`prediction-badge badge--${
-                    predictionData.final_class === 'Severe' ? 'danger' : 
-                    predictionData.final_class === 'Moderate' ? 'warning' : 
+                    predictionData.final_class[0] === 'Severe' ? 'danger' : 
+                    predictionData.final_class[0] === 'Moderate' ? 'warning' : 
                     'success'
                   }`}>
                     {predictionData.final_class || 'N/A'}
@@ -296,7 +296,7 @@ const ViewResponse = () => {
                       </div>
                     </div>
 
-                    <div className="probability-section">
+                    {/* <div className="probability-section">
                       <h4>Stage 3: Classification</h4>
                       <div className="probability-item">
                         <span>Mild:</span>
@@ -312,7 +312,7 @@ const ViewResponse = () => {
                         </div>
                         <span>{(predictionData.probabilities.Moderate * 100).toFixed(1)}%</span>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               )}
