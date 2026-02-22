@@ -325,6 +325,25 @@ const AdminDashboard = () => {
     return 'badge--success';
   };
 
+  const getPredictionBadgeClass = (prediction) => {
+    if (!prediction || prediction === 'N/A') return 'badge--secondary';
+    const predLower = prediction.toLowerCase();
+    if (predLower.includes('severe') || predLower.includes('high')) return 'badge--danger';
+    if (predLower.includes('moderate') || predLower.includes('mild')) return 'badge--warning';
+    if (predLower.includes('no') || predLower.includes('normal') || predLower.includes('low')) return 'badge--success';
+    return 'badge--secondary';
+  };
+
+  const getPredictionFromResponse = (response) => {
+    try {
+      if (!response.prediction_data) return 'N/A';
+      const prediction = response.prediction_data?.final_class?.[0] ?? null;
+      return prediction || 'N/A';
+    } catch {
+      return 'N/A';
+    }
+  };
+
   const handleViewResponse = (response) => {
     navigate(`/view-response/${response.id}`, { 
       state: { 
@@ -707,6 +726,7 @@ const AdminDashboard = () => {
                           <th scope="col">Patient Name</th>
                           <th scope="col">Patient Email</th>
                           <th scope="col">ISS Score</th>
+                          <th scope="col">Prediction</th>
                           <th scope="col">Date</th>
                           <th scope="col" style={{ textAlign: 'center' }}>Actions</th>
                         </tr>
@@ -714,6 +734,7 @@ const AdminDashboard = () => {
                       <tbody>
                         {responses.map((response) => {
                           const score = getScoreFromResponse(response.response_data);
+                          const prediction = getPredictionFromResponse(response);
                           return (
                             <tr key={response.id}>
                               <td>{response.response_data.hospital_id || 'N/A'}</td>
@@ -733,6 +754,11 @@ const AdminDashboard = () => {
                               <td>
                                 <span className={`badge ${getScoreBadgeClass(score)}`}>
                                   {score}
+                                </span>
+                              </td>
+                              <td>
+                                <span className={`badge ${getPredictionBadgeClass(prediction)}`}>
+                                  {prediction}
                                 </span>
                               </td>
                               <td>{formatDate(response.created_at)}</td>
