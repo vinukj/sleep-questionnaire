@@ -14,6 +14,7 @@ import { styled } from "@mui/material/styles";
 import Navbar from "./Navbar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNavigate, useLocation } from "react-router-dom";
+import PredictionResultModal from "./PredictionResultModal.jsx";
 
 import QuestionnaireContent from "./QuestionnaireContent";
 
@@ -99,6 +100,8 @@ export default function Questionnaire() {
   const [isEditing, setIsEditing] = useState(false);
   const [responseId, setResponseId] = useState(null);
   const [patientName, setPatientName] = useState("");
+  const [predictionData, setPredictionData] = useState(null);
+  const [showPredictionModal, setShowPredictionModal] = useState(false);
 
   // Scroll to top when page changes
   useEffect(() => {
@@ -135,6 +138,14 @@ export default function Questionnaire() {
     }
   }, [waist, hip, methods]);
 
+  // Set default value for surgery_sleep_apnea to "No"
+  useEffect(() => {
+    const currentValue = methods.getValues("surgery_sleep_apnea");
+    if (currentValue === undefined || currentValue === null || currentValue === "") {
+      methods.setValue("surgery_sleep_apnea", "No");
+    }
+  }, [methods]);
+
   const handlePageChange = useCallback((newPage) => {
     setPage(newPage);
   }, []);
@@ -160,9 +171,17 @@ export default function Questionnaire() {
         throw new Error(errorData.message || `Server error: ${response.status}`);
       }
 
-      await response.json();
-      setShowSuccess(true);
-      setTimeout(() => navigate("/home"), 2000);
+      const result = await response.json();
+      
+      // If prediction data is available, show the modal
+      if (result.prediction) {
+        setPredictionData(result.prediction);
+        setShowPredictionModal(true);
+      } else {
+        // If no prediction, show success message directly
+        setShowSuccess(true);
+        setTimeout(() => navigate("/home"), 2000);
+      }
     } catch (err) {
       setSubmitError(err.message || "Failed to submit");
     } finally {
@@ -286,6 +305,17 @@ export default function Questionnaire() {
             ✅ Questionnaire submitted successfully! Redirecting to home page...
           </Alert>
         </Snackbar>
+
+        {/* Prediction Result Modal */}
+        <PredictionResultModal
+          open={showPredictionModal}
+          onClose={() => {
+            setShowPredictionModal(false);
+            setShowSuccess(true);
+            setTimeout(() => navigate("/home"), 2000);
+          }}
+          prediction={predictionData}
+        />
       </Box>
     </>
   );

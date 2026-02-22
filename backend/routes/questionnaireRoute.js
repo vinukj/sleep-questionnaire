@@ -3,7 +3,8 @@ import {
     submitQuestionnaireResponse, 
     getUserQuestionnaireResponses, 
     getAllResponses,
-    updateResponse, 
+    updateResponse,
+    deleteResponse, 
     getVersion
 } from '../controllers/questionnaireController.js';
 import { getQuestionnaireSchema } from '../controllers/questionnaireSchemaController.js';
@@ -25,6 +26,9 @@ router.get('/admin/all-responses', verifyTokens, requireAdmin, getAllResponses);
 
 // Update questionnaire response (authenticated users)
 router.put('/update/:id', verifyTokens, updateResponse);
+
+// Delete questionnaire response (admin only)
+router.delete('/admin/response/:id', verifyTokens, requireAdmin, deleteResponse);
 
 // Get questionnaire schema
 router.get('/schema', getQuestionnaireSchema);

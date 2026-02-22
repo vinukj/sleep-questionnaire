@@ -284,6 +284,16 @@ export const updateQuestionnaireResponse = async (id, responseData) => {
   return result.rows[0];
 };
 
+export const deleteQuestionnaireResponseById = async (id) => {
+  const result = await pool.query(
+    `DELETE FROM questionnaire_responses 
+     WHERE id = $1 
+     RETURNING *`,
+    [id],
+  );
+  return result.rows[0];
+};
+
 export const deleteQuestionnaireResponsesByName = async (name) => {
   try {
     const result = await pool.query(

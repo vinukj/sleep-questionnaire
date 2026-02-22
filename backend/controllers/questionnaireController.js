@@ -3,7 +3,8 @@ import {
     saveQuestionnaireResponse, 
     getQuestionnaireResponsesByUser, 
     getAllQuestionnaireResponses,
-    updateQuestionnaireResponse 
+    updateQuestionnaireResponse,
+    deleteQuestionnaireResponseById 
 } from '../models/userModel.js';
 
 import {
@@ -251,6 +252,41 @@ export const updateResponse = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to update questionnaire response',
+            error: error.message
+        });
+    }
+};
+
+export const deleteResponse = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        if (!id) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Response ID is required' 
+            });
+        }
+
+        const deletedResponse = await deleteQuestionnaireResponseById(id);
+        
+        if (!deletedResponse) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Response not found' 
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Response deleted successfully',
+            data: deletedResponse
+        });
+    } catch (error) {
+        console.error('Error deleting questionnaire response:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete questionnaire response',
             error: error.message
         });
     }
