@@ -177,12 +177,17 @@ export const findOrCreateGoogleUser = async (googleData) => {
 };
 
 // Questionnaire response functions
-export const saveQuestionnaireResponse = async (userId, responseData, predictionData = null) => {
+export const saveQuestionnaireResponse = async (userId, responseData, predictionData = null, mlPayload = null) => {
   const result = await pool.query(
-    `INSERT INTO questionnaire_responses (user_id, response_data, prediction_data) 
-         VALUES ($1, $2, $3) 
+    `INSERT INTO questionnaire_responses (user_id, response_data, prediction_data, ml_payload) 
+         VALUES ($1, $2, $3, $4) 
          RETURNING *`,
-    [userId, JSON.stringify(responseData), predictionData ? JSON.stringify(predictionData) : null],
+    [
+      userId, 
+      JSON.stringify(responseData), 
+      predictionData ? JSON.stringify(predictionData) : null,
+      mlPayload ? JSON.stringify(mlPayload) : null
+    ],
   );
   return result.rows[0];
 };
@@ -273,15 +278,27 @@ export const getAllQuestionnaireResponses = async () => {
   }
 };
 
-export const updateQuestionnaireResponse = async (id, responseData, predictionData = null) => {
-  const predictionUpdate = predictionData !== null ? ', prediction_data = $3' : '';
-  const params = predictionData !== null 
-    ? [JSON.stringify(responseData), id, JSON.stringify(predictionData)]
-    : [JSON.stringify(responseData), id];
+export const updateQuestionnaireResponse = async (id, responseData, predictionData = null, mlPayload = null) => {
+  const updates = [];
+  const params = [JSON.stringify(responseData), id];
+  let paramIndex = 3;
+  
+  if (predictionData !== null) {
+    params.push(JSON.stringify(predictionData));
+    updates.push(`prediction_data = $${paramIndex}`);
+    paramIndex++;
+  }
+  
+  if (mlPayload !== null) {
+    params.push(JSON.stringify(mlPayload));
+    updates.push(`ml_payload = $${paramIndex}`);
+  }
+  
+  const updateClause = updates.length > 0 ? `, ${updates.join(', ')}` : '';
   
   const result = await pool.query(
     `UPDATE questionnaire_responses 
-         SET response_data = $1, updated_at = CURRENT_TIMESTAMP${predictionUpdate} 
+         SET response_data = $1, updated_at = CURRENT_TIMESTAMP${updateClause} 
          WHERE id = $2 
          RETURNING *`,
     params,
@@ -289,13 +306,18 @@ export const updateQuestionnaireResponse = async (id, responseData, predictionDa
   return result.rows[0];
 };
 
-export const savePredictionToResponse = async (responseId, predictionData) => {
+export const savePredictionToResponse = async (responseId, predictionData, mlPayload = null) => {
+  const mlPayloadUpdate = mlPayload !== null ? ', ml_payload = $3' : '';
+  const params = mlPayload !== null
+    ? [JSON.stringify(predictionData), responseId, JSON.stringify(mlPayload)]
+    : [JSON.stringify(predictionData), responseId];
+  
   const result = await pool.query(
     `UPDATE questionnaire_responses 
-         SET prediction_data = $1, updated_at = CURRENT_TIMESTAMP 
+         SET prediction_data = $1, updated_at = CURRENT_TIMESTAMP${mlPayloadUpdate} 
          WHERE id = $2 
          RETURNING *`,
-    [JSON.stringify(predictionData), responseId],
+    params,
   );
   return result.rows[0];
 };

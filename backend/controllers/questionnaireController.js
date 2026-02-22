@@ -63,9 +63,11 @@ export const submitQuestionnaireResponse = async (req, res) => {
         // Handle prediction result (non-blocking)
         let prediction = null;
         let predictionError = null;
+        let mlPayload = null;
         if (predictionResult.status === 'fulfilled') {
             prediction = predictionResult.value.prediction;
             predictionError = predictionResult.value.predictionError;
+            mlPayload = predictionResult.value.mlPayload;
         } else {
             predictionError = {
                 message: 'Prediction service error',
@@ -74,11 +76,11 @@ export const submitQuestionnaireResponse = async (req, res) => {
             console.error('Prediction failed:', predictionResult.reason);
         }
 
-        // If both DB save and prediction succeeded, update the DB record with prediction
+        // If both DB save and prediction succeeded, update the DB record with prediction and payload
         if (savedResponse && prediction) {
             try {
-                await savePredictionToResponse(savedResponse.id, prediction);
-                console.log('Prediction saved to database for response ID:', savedResponse.id);
+                await savePredictionToResponse(savedResponse.id, prediction, mlPayload);
+                console.log('Prediction and ML payload saved to database for response ID:', savedResponse.id);
             } catch (predError) {
                 console.error('Failed to save prediction to database:', predError);
                 // Don't fail the entire request if prediction save fails
@@ -97,6 +99,7 @@ export const submitQuestionnaireResponse = async (req, res) => {
             data: savedResponse,
             scores: flatScores,
             prediction: prediction,
+            mlPayload: mlPayload,
             predictionError: predictionError,
             dbError: dbError
         });
@@ -233,9 +236,11 @@ export const updateResponse = async (req, res) => {
         // Handle prediction result (non-blocking)
         let prediction = null;
         let predictionError = null;
+        let mlPayload = null;
         if (predictionResult.status === 'fulfilled') {
             prediction = predictionResult.value.prediction;
             predictionError = predictionResult.value.predictionError;
+            mlPayload = predictionResult.value.mlPayload;
         } else {
             predictionError = {
                 message: 'Prediction service error',
@@ -244,11 +249,11 @@ export const updateResponse = async (req, res) => {
             console.error('Prediction failed:', predictionResult.reason);
         }
 
-        // If both DB update and prediction succeeded, update the DB record with prediction
+        // If both DB update and prediction succeeded, update the DB record with prediction and payload
         if (updatedResponse && prediction) {
             try {
-                await savePredictionToResponse(id, prediction);
-                console.log('Prediction saved to database for response ID:', id);
+                await savePredictionToResponse(id, prediction, mlPayload);
+                console.log('Prediction and ML payload saved to database for response ID:', id);
             } catch (predError) {
                 console.error('Failed to save prediction to database:', predError);
                 // Don't fail the entire request if prediction save fails
@@ -267,6 +272,7 @@ export const updateResponse = async (req, res) => {
             data: updatedResponse,
             scores: flatScores,
             prediction: prediction,
+            mlPayload: mlPayload,
             predictionError: predictionError,
             dbError: dbError
         });

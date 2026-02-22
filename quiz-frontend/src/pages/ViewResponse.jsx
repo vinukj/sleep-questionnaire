@@ -35,8 +35,11 @@ const ViewResponse = () => {
   const { authFetch } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { id } = useParams();
   const [activeTab, setActiveTab] = useState('tab1');
   const [responseData, setResponseData] = useState(null);
+  const [predictionData, setPredictionData] = useState(null);
+  const [mlPayload, setMlPayload] = useState(null);
   const [loading, setLoading] = useState(true);
   const [questionnaire, setQuestionnaire] = useState([]);
 
@@ -46,9 +49,27 @@ const ViewResponse = () => {
         const schema = await loadQuestionnaire();
         setQuestionnaire(schema);
         
-        // Get response data from location state or fetch it
+        // Get response data from location state or fetch from API
         if (location.state?.responseData) {
           setResponseData(location.state.responseData);
+          
+          // If we have responseId, fetch full data including prediction
+          const responseId = location.state?.responseId || id;
+          if (responseId) {
+            try {
+              const response = await authFetch(`/questionnaire/admin/all-responses`);
+              if (response.ok) {
+                const data = await response.json();
+                const fullResponse = data.responses?.find(r => r.id === parseInt(responseId));
+                if (fullResponse) {
+                  setPredictionData(fullResponse.prediction_data);
+                  setMlPayload(fullResponse.ml_payload);
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching prediction data:', error);
+            }
+          }
         }
         setLoading(false);
       } catch (error) {
@@ -57,7 +78,7 @@ const ViewResponse = () => {
       }
     };
     loadData();
-  }, [location.state]);
+  }, [location.state, id, authFetch]);
 
   const formatValue = (question, value) => {
     if (value === null || value === undefined || value === '') return 'N/A';
@@ -205,12 +226,106 @@ const ViewResponse = () => {
               )}
             </p>
             <div className="ai-insight-badges">
-              <span className="insight-badge">ISS Score: {responseData.issScore || calculateISSScore(responseData)}</span>
-              <span className="insight-badge">Epworth Score: {responseData.epworth_score || 'N/A'}</span>
+              <span className="insight-badge">ISS Score: {responseData.issScore || responseData.iss || calculateISSScore(responseData)}</span>
+              <span className="insight-badge">Epworth Score: {responseData.epworth_score || responseData.ess || 'N/A'}</span>
               {responseData.bmi && <span className="insight-badge">BMI: {parseFloat(responseData.bmi).toFixed(1)}</span>}
             </div>
           </div>
         </div>
+
+        {/* ML Prediction Section */}
+        {predictionData && (
+          <div className="prediction-card">
+            <h2>ML Model Prediction Results</h2>
+            <div className="prediction-content">
+              <div className="prediction-summary">
+                <div className="prediction-class">
+                  <span className="prediction-label">Classification:</span>
+                  <span className={`prediction-badge badge--${
+                    predictionData.final_class === 'Severe' ? 'danger' : 
+                    predictionData.final_class === 'Moderate' ? 'warning' : 
+                    'success'
+                  }`}>
+                    {predictionData.final_class || 'N/A'}
+                  </span>
+                </div>
+                {predictionData.risk_text && (
+                  <div className="prediction-recommendation">
+                    <strong>Recommendation:</strong> {predictionData.risk_text}
+                  </div>
+                )}
+              </div>
+
+              {predictionData.probabilities && (
+                <div className="prediction-probabilities">
+                  <h3>Prediction Probabilities</h3>
+                  <div className="probability-grid">
+                    <div className="probability-section">
+                      <h4>Stage 1: OSA Detection</h4>
+                      <div className="probability-item">
+                        <span>No OSA:</span>
+                        <div className="progress-bar">
+                          <div className="progress-fill" style={{width: `${(predictionData.probabilities.No_OSA * 100).toFixed(1)}%`}}></div>
+                        </div>
+                        <span>{(predictionData.probabilities.No_OSA * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="probability-item">
+                        <span>OSA:</span>
+                        <div className="progress-bar">
+                          <div className="progress-fill" style={{width: `${(predictionData.probabilities.OSA * 100).toFixed(1)}%`}}></div>
+                        </div>
+                        <span>{(predictionData.probabilities.OSA * 100).toFixed(1)}%</span>
+                      </div>
+                    </div>
+
+                    <div className="probability-section">
+                      <h4>Stage 2: Severity</h4>
+                      <div className="probability-item">
+                        <span>Not Severe:</span>
+                        <div className="progress-bar">
+                          <div className="progress-fill" style={{width: `${(predictionData.probabilities.Not_Severe * 100).toFixed(1)}%`}}></div>
+                        </div>
+                        <span>{(predictionData.probabilities.Not_Severe * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="probability-item">
+                        <span>Severe:</span>
+                        <div className="progress-bar">
+                          <div className="progress-fill" style={{width: `${(predictionData.probabilities.Severe * 100).toFixed(1)}%`}}></div>
+                        </div>
+                        <span>{(predictionData.probabilities.Severe * 100).toFixed(1)}%</span>
+                      </div>
+                    </div>
+
+                    <div className="probability-section">
+                      <h4>Stage 3: Classification</h4>
+                      <div className="probability-item">
+                        <span>Mild:</span>
+                        <div className="progress-bar">
+                          <div className="progress-fill" style={{width: `${(predictionData.probabilities.Mild * 100).toFixed(1)}%`}}></div>
+                        </div>
+                        <span>{(predictionData.probabilities.Mild * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="probability-item">
+                        <span>Moderate:</span>
+                        <div className="progress-bar">
+                          <div className="progress-fill" style={{width: `${(predictionData.probabilities.Moderate * 100).toFixed(1)}%`}}></div>
+                        </div>
+                        <span>{(predictionData.probabilities.Moderate * 100).toFixed(1)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {mlPayload && (
+                <details className="ml-payload-details">
+                  <summary>View ML Model Input Payload</summary>
+                  <pre className="ml-payload-json">{JSON.stringify(mlPayload, null, 2)}</pre>
+                </details>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Patient Summary Card */}
         <div className="patient-summary-card">

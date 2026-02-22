@@ -81,7 +81,7 @@ export const buildPredictionPayload = (responseData) => {
 /**
  * Call the ML prediction endpoint
  * @param {Object} responseData - The questionnaire response data
- * @returns {Object} - { prediction, predictionError }
+ * @returns {Object} - { prediction, predictionError, mlPayload }
  */
 export const getPrediction = async (responseData) => {
     // Build and validate prediction payload
@@ -89,6 +89,7 @@ export const getPrediction = async (responseData) => {
     
     let prediction = null;
     let predictionError = null;
+    let mlPayload = null;
 
     if (!predictionPayloadResult.valid) {
         // Missing required fields for prediction
@@ -97,16 +98,19 @@ export const getPrediction = async (responseData) => {
             missingFields: predictionPayloadResult.missingFields
         };
         console.warn('Skipping prediction due to missing fields:', predictionPayloadResult.missingFields);
-        return { prediction, predictionError };
+        return { prediction, predictionError, mlPayload };
     }
+
+    // Store the payload that will be sent
+    mlPayload = predictionPayloadResult.payload;
 
     // Send prediction request to internal ML server
     try {
-        console.log('Sending prediction payload:', JSON.stringify(predictionPayloadResult.payload, null, 2));
+        console.log('Sending prediction payload:', JSON.stringify(mlPayload, null, 2));
         
         const predictionResponse = await axios.post(
             'http://127.0.0.1:8000/predict', 
-            predictionPayloadResult.payload, 
+            mlPayload, 
             {
                 timeout: 5000, // 5 second timeout
                 headers: { 'Content-Type': 'application/json' }
@@ -124,8 +128,8 @@ export const getPrediction = async (responseData) => {
         console.error('Prediction API error:', error.message);
         console.error('Status code:', error.response?.status);
         console.error('Response data:', error.response?.data);
-        console.error('Sent payload was:', JSON.stringify(predictionPayloadResult.payload, null, 2));
+        console.error('Sent payload was:', JSON.stringify(mlPayload, null, 2));
     }
 
-    return { prediction, predictionError };
+    return { prediction, predictionError, mlPayload };
 };
