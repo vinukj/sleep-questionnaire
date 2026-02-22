@@ -206,7 +206,7 @@ export const getAllQuestionnaireResponsesPaginated = async (
   searchQuery = "",
 ) => {
   let query = `
-    SELECT id, user_id, response_data, created_at, updated_at 
+    SELECT id, user_id, response_data, prediction_data, ml_payload, created_at, updated_at 
     FROM questionnaire_responses
   `;
 
