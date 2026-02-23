@@ -220,6 +220,7 @@ export function AuthProvider({ children }) {
           method: "POST",
           headers: {
             Authorization: `Bearer ${startingTokens.refreshToken}`,
+            "X-Session-Token": startingTokens.sessionToken, // ✅ Send session token
             "Content-Type": "application/json",
           },
           credentials: "include",

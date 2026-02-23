@@ -297,14 +297,27 @@ export const refreshTokens = async (req, res) => {
         return res.status(401).json({ error: "Refresh token missing" });
     }
 
+    // Get session token from request header or body (preserve it across refresh)
+    const sessionToken = req.headers['x-session-token'] || req.body.sessionToken;
+    
+    if (!sessionToken) {
+        console.warn('[AUTH] Session token missing in refresh request');
+        return res.status(401).json({ 
+            error: "Session token missing",
+            sessionExpired: true,
+            reason: "missing_session_token_on_refresh"
+        });
+    }
+
     try {
         // Use Keycloak to refresh the token
         const newTokens = await keycloakService.refreshAccessToken(refreshToken);
 
-        console.log(`[AUTH] Token refresh successful`);
+        console.log(`[AUTH] Token refresh successful, preserving session token`);
         res.json({
             accessToken: newTokens.accessToken,
-            refreshToken: newTokens.refreshToken
+            refreshToken: newTokens.refreshToken,
+            sessionToken: sessionToken // ✅ Preserve session token - it should NOT change during refresh
         });
     } catch (err) {
         console.error("[AUTH] Refresh token error:", err);
