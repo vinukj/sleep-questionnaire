@@ -608,7 +608,28 @@ const QuestionnaireContent = ({
 
         {submitError && (
           <Box mt={2}>
-            <Alert severity="error">{submitError}</Alert>
+            <Alert 
+              severity="error"
+              action={
+                page === questionnaire.length && (
+                  <Button 
+                    color="inherit" 
+                    size="small" 
+                    onClick={() => onSubmit(methods.getValues())}
+                    disabled={isSubmitting}
+                  >
+                    Retry
+                  </Button>
+                )
+              }
+            >
+              {submitError}
+              {submitError.includes('token') || submitError.includes('session') ? (
+                <Box component="span" display="block" mt={1} fontSize="0.875rem">
+                  Your form data has been saved. Please try submitting again.
+                </Box>
+              ) : null}
+            </Alert>
           </Box>
         )}
       </form>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useQuestionnaire } from "../hooks/useQuestionnaire.js";
 import logger from "../utils/logger";
@@ -9,6 +9,12 @@ import {
   Card,
   CardContent,
   Container,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import Navbar from "./Navbar.jsx";
@@ -84,7 +90,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
 export default function Questionnaire() {
   const location = useLocation();
   const { questionnaire, loading, error } = useQuestionnaire();
-  const { authFetch } = useAuth();
+  const { authFetch, currentUser } = useAuth();
   const navigate = useNavigate();
   const containerRef = React.useRef(null);
   const methods = useForm({
@@ -102,6 +108,17 @@ export default function Questionnaire() {
   const [patientName, setPatientName] = useState("");
   const [predictionData, setPredictionData] = useState(null);
   const [showPredictionModal, setShowPredictionModal] = useState(false);
+  
+  // Auto-save state
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [savedFormData, setSavedFormData] = useState(null);
+  const autoSaveTimerRef = useRef(null);
+  
+  // Auto-save key based on user ID
+  const getAutoSaveKey = () => {
+    const userId = currentUser?.id || currentUser?.user?.id || 'anonymous';
+    return `questionnaire_autosave_${userId}`;
+  };
 
   // Scroll to top when page changes
   useEffect(() => {
@@ -150,6 +167,91 @@ export default function Questionnaire() {
     setPage(newPage);
   }, []);
 
+  // Auto-save form data to localStorage
+  const saveFormData = useCallback(() => {
+    const formData = methods.getValues();
+    const hasData = Object.keys(formData).some(key => {
+      const value = formData[key];
+      return value !== undefined && value !== null && value !== '';
+    });
+    
+    if (hasData) {
+      const saveData = {
+        data: formData,
+        timestamp: Date.now(),
+        page: page,
+        patientName: patientName
+      };
+      localStorage.setItem(getAutoSaveKey(), JSON.stringify(saveData));
+      logger.info('[Auto-save] Form data saved to localStorage');
+    }
+  }, [methods, page, patientName, getAutoSaveKey]);
+
+  // Load saved form data on mount
+  useEffect(() => {
+    const savedDataStr = localStorage.getItem(getAutoSaveKey());
+    if (savedDataStr && !isEditing) {
+      try {
+        const savedData = JSON.parse(savedDataStr);
+        const ageInMinutes = (Date.now() - savedData.timestamp) / 1000 / 60;
+        
+        // Only offer to restore if saved within last 24 hours
+        if (ageInMinutes < 1440) {
+          setSavedFormData(savedData);
+          setShowRestoreDialog(true);
+        } else {
+          // Clear old saved data
+          localStorage.removeItem(getAutoSaveKey());
+        }
+      } catch (err) {
+        logger.error('[Auto-save] Failed to parse saved data:', err);
+        localStorage.removeItem(getAutoSaveKey());
+      }
+    }
+  }, [isEditing, getAutoSaveKey]);
+
+  // Start auto-save timer (every 30 seconds)
+  useEffect(() => {
+    // Clear any existing timer
+    if (autoSaveTimerRef.current) {
+      clearInterval(autoSaveTimerRef.current);
+    }
+
+    // Don't auto-save when editing existing response
+    if (!isEditing) {
+      autoSaveTimerRef.current = setInterval(() => {
+        saveFormData();
+      }, 30000); // 30 seconds
+    }
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+    };
+  }, [isEditing, saveFormData]);
+
+  // Handle restore saved data
+  const handleRestoreData = () => {
+    if (savedFormData) {
+      Object.keys(savedFormData.data).forEach((key) => {
+        methods.setValue(key, savedFormData.data[key]);
+      });
+      setPage(savedFormData.page || 1);
+      setPatientName(savedFormData.patientName || '');
+      logger.info('[Auto-save] Restored form data from localStorage');
+    }
+    setShowRestoreDialog(false);
+  };
+
+  // Handle discard saved data
+  const handleDiscardSavedData = () => {
+    localStorage.removeItem(getAutoSaveKey());
+    setSavedFormData(null);
+    setShowRestoreDialog(false);
+  };
+
   const handleFormSubmit = useCallback(async (data) => {
     setIsSubmitting(true);
     setSubmitError(null);
@@ -173,6 +275,9 @@ export default function Questionnaire() {
 
       const result = await response.json();
       
+      // Clear auto-saved data on successful submission
+      localStorage.removeItem(getAutoSaveKey());
+      
       // If prediction data is available, show the modal
       if (result.prediction) {
         setPredictionData(result.prediction);
@@ -183,11 +288,13 @@ export default function Questionnaire() {
         setTimeout(() => navigate("/home"), 2000);
       }
     } catch (err) {
+      // Save form data on error so user can retry
+      saveFormData();
       setSubmitError(err.message || "Failed to submit");
     } finally {
       setIsSubmitting(false);
     }
-  }, [authFetch, navigate, isEditing, responseId]);
+  }, [authFetch, navigate, isEditing, responseId, getAutoSaveKey, saveFormData]);
 
   // Pre-fill form with responseData if available
   useEffect(() => {
@@ -316,6 +423,31 @@ export default function Questionnaire() {
           }}
           prediction={predictionData}
         />
+
+        {/* Restore Auto-Saved Data Dialog */}
+        <Dialog
+          open={showRestoreDialog}
+          onClose={handleDiscardSavedData}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Restore Previous Session?</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              We found a previously saved questionnaire from{' '}
+              {savedFormData && new Date(savedFormData.timestamp).toLocaleString()}.
+              Would you like to restore your progress?
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleDiscardSavedData} color="inherit">
+              Start Fresh
+            </Button>
+            <Button onClick={handleRestoreData} variant="contained" color="primary">
+              Restore Progress
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </>
   );

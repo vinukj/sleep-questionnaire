@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useContext,
   useCallback,
+  useRef,
 } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -13,6 +14,7 @@ import {
   clearUserCache,
   clearQuestionnaireCache,
 } from "../service/quizCacheService";
+import { shouldRefreshToken, getSecondsUntilExpiry } from "../utils/jwtUtils";
 
 const AuthContext = createContext(null);
 
@@ -62,9 +64,18 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const [authReady, setAuthReady] = useState(false);
+  
+  // Ref to store the proactive refresh timer
+  const refreshTimerRef = useRef(null);
 
   // ---------------- HANDLE LOGOUT ----------------
   const handleLogout = useCallback(() => {
+    // Clear proactive refresh timer
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+    
     // Clear auth-related state (do not clear entire sessionStorage/localStorage)
     // Clear per-user caches if present
     try {
@@ -111,6 +122,8 @@ export function AuthProvider({ children }) {
 
       // Store tokens
       setStoredTokens(newTokens);
+
+      console.log(getSecondsUntilExpiry(newTokens.refreshToken));
 
       // Fetch profile with new access token
       const profileRes = await fetch(`${API_URL}/auth/profile`, {
@@ -266,6 +279,7 @@ export function AuthProvider({ children }) {
           data: { tokens: newTokens },
         });
 
+        console.log('[Token Refresh] ✅ Access token refreshed successfully');
         return true;
       } catch (err) {
         console.error("Token refresh failed:", err);
@@ -396,6 +410,57 @@ export function AuthProvider({ children }) {
       window.removeEventListener("storage", handleStorage);
     };
   }, [checkUserSession, handleLogout]);
+
+  // ---------------- PROACTIVE TOKEN REFRESH ----------------
+  // Check token expiry every minute and refresh if needed
+  useEffect(() => {
+    const startProactiveRefresh = () => {
+      // Clear any existing timer
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+      }
+
+      // Check token expiry every 60 seconds
+      refreshTimerRef.current = setInterval(() => {
+        const tokens = getStoredTokens();
+        
+        if (!tokens.accessToken || !authReady || !currentUser) {
+          // User not logged in, stop checking
+          return;
+        }
+
+        // Check if token should be refreshed (< 2 minutes remaining)
+        if (shouldRefreshToken(tokens.accessToken, 120)) {
+          const secondsRemaining = getSecondsUntilExpiry(tokens.accessToken);
+          console.log(`[Proactive Refresh] Token expires in ${secondsRemaining}s, refreshing...`);
+          
+          // Trigger refresh in background
+          refreshTokens()
+            .then(success => {
+              if (success) {
+                console.log('[Proactive Refresh] ✅ Refresh completed successfully');
+              } else {
+                console.warn('[Proactive Refresh] ⚠️ Refresh returned false');
+              }
+            })
+            .catch(err => {
+              console.error('[Proactive Refresh] ❌ Failed:', err);
+            });
+        }
+      }, 60000); // Check every 60 seconds
+    };
+
+    if (authReady && currentUser) {
+      startProactiveRefresh();
+    }
+
+    return () => {
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
+  }, [authReady, currentUser, refreshTokens]);
 
   const authFetch = async (url, options = {}, retry = true) => {
     const currentTokens = getStoredTokens();
