@@ -12,7 +12,8 @@ import pool from "../config/db.js";
 export const signup = async (req, res) => {
     console.log(`[AUTH] Signup request:`, { method: req.method, path: req.originalUrl });
     try {
-        const { email, password, name } = req.body;
+        const { email, password, name, role } = req.body;
+        const userRole = role || 'user'; // Default to 'user' if not provided
 
         if (!email || !password) {
             return res.status(400).json({ error: "Email and password are required" });
@@ -24,8 +25,8 @@ export const signup = async (req, res) => {
             return res.status(400).json({ error: "User already exists" });
         }
 
-        // Create user in Keycloak with default 'user' role
-        const keycloakUser = await keycloakService.createUser(email, password, name, ['user']);
+        // Create user in Keycloak with specified role
+        const keycloakUser = await keycloakService.createUser(email, password, name, [userRole]);
 
         // Generate unique session token
         const crypto = await import('crypto');
@@ -34,7 +35,7 @@ export const signup = async (req, res) => {
         // Create user in local database
         const localUser = await pool.query(
             'INSERT INTO users (email, name, keycloak_id, role, session_token, session_updated_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING id, email, name, role',
-            [email, name || email.split('@')[0], keycloakUser.id, 'user', sessionToken]
+            [email, name || email.split('@')[0], keycloakUser.id, userRole, sessionToken]
         );
 
         console.log(`[AUTH] User created: ${email}`);
