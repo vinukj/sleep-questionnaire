@@ -295,8 +295,8 @@ const ViewResponse = () => {
                         <span>{(predictionData.probabilities.Severe * 100).toFixed(1)}%</span>
                       </div>
                     </div>
-
-                    {/* <div className="probability-section">
+{(predictionData.probabilities?.Mild !== undefined || predictionData.probabilities?.Moderate !== undefined) && 
+                     <div className="probability-section">
                       <h4>Stage 3: Classification</h4>
                       <div className="probability-item">
                         <span>Mild:</span>
@@ -312,7 +312,7 @@ const ViewResponse = () => {
                         </div>
                         <span>{(predictionData.probabilities.Moderate * 100).toFixed(1)}%</span>
                       </div>
-                    </div> */}
+                    </div> }
                   </div>
                 </div>
               )}
