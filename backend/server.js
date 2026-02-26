@@ -10,12 +10,18 @@ import userRoutes from "./routes/userRoute.js";
 import exportRoute from "./routes/exportRoute.js";
 import questionnaireRoute from "./routes/questionnaireRoute.js";
 import { initializeTables } from "./models/questionnaireModel.js";
-
+import http from "http";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import { attatchToWebSocketServer } from "./ws/server.js";
 
 dotenv.config();
 const app = express();
+const server = http.createServer(app);
+
+attatchToWebSocketServer(server);
+
+
 
 // Parse JSON bodies (limit to prevent abuse)
 app.use(express.json({ limit: '1mb' }));
@@ -115,7 +121,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Example route
-app.get("/api/hello", (req, res) => {
+app.get("/", (req, res) => {
   res.json({ message: "Hello from Express!" });
 });
 
@@ -124,7 +130,7 @@ initializeTables()
   .then(() => {
     // Start server after database is initialized
     const PORT = 5000;
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
   .catch(error => {
     console.error('Failed to initialize database tables:', error);

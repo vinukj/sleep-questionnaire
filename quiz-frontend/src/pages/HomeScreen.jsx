@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Navbar from '../components/Navbar.jsx';
 import '../styles/variables.css';
 import '../styles/components.css';
 import '../styles/HomeScreen.css';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
+import { createAudioStreamer, StreamState } from '../utils/streamAudio.js';
 
 // Sleep illustration SVG component
 const SleepIllustration = () => (
@@ -34,12 +35,71 @@ const ArrowIcon = () => (
 function HomeScreen() {
   const { currentUser, authReady } = useAuth();
   const navigate = useNavigate();
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamState, setStreamState] = useState(StreamState.IDLE);
+  const [transcriptions, setTranscriptions] = useState([]);
+  const audioStreamerRef = useRef(null);
 
   useEffect(() => {
     if (authReady && !currentUser) {
       navigate('/login', { replace: true });
     }
   }, [currentUser, authReady, navigate]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audioStreamerRef.current) {
+        audioStreamerRef.current.stop();
+      }
+    };
+  }, []);
+
+  const handleConversationToggle = async () => {
+    if (!isStreaming) {
+      // Start streaming
+      try {
+        audioStreamerRef.current = createAudioStreamer({
+          onStateChange: (state) => {
+            console.log('Stream State Changed:', state);
+            setStreamState(state);
+          },
+          onTranscription: (data) => {
+            console.log('Transcription received:', data);
+            setTranscriptions(prev => [...prev, data]);
+          },
+          onError: (error) => {
+            console.error('Audio Streaming Error:', error);
+            alert(`Error: ${error.message}`);
+            setIsStreaming(false);
+          }
+        });
+
+        await audioStreamerRef.current.start();
+        setIsStreaming(true);
+      } catch (error) {
+        console.error('Failed to start audio streaming:', error);
+        alert('Failed to start conversation. Please check microphone permissions.');
+      }
+    } else {
+      // Stop streaming
+      if (audioStreamerRef.current) {
+        audioStreamerRef.current.stop();
+        console.log('=== Audio Stream Output ===');
+        console.log('Total transcriptions received:', transcriptions.length);
+        console.log('Transcriptions:', transcriptions);
+        console.log('=========================');
+      }
+      setIsStreaming(false);
+                  {/* Audio Conversation Button */}
+                 
+                  
+                  {/* Status Indicator */}
+                 
+                
+      setStreamState(StreamState.IDLE);
+    }
+  };
 
   if (!authReady) {
     return (
@@ -91,6 +151,38 @@ function HomeScreen() {
                   </button>
                 </div>
               </div>
+               <button
+                    onClick={handleConversationToggle}
+                    className={`btn ${isStreaming ? 'btn--danger' : 'btn--secondary'} home-start-btn`}
+                    style={{ marginTop: '1rem' }}
+                    disabled={streamState === StreamState.CONNECTING}
+                  >
+                    {streamState === StreamState.CONNECTING ? 'Connecting...' : 
+                     isStreaming ? 'Stop Conversation' : 'Start Conversation'}
+                    {!isStreaming && <ArrowIcon />}
+                  </button>
+                   {isStreaming && (
+                    <div style={{ 
+                      marginTop: '1rem', 
+                      padding: '0.5rem 1rem', 
+                      backgroundColor: '#dcfce7', 
+                      borderRadius: '8px',
+                      fontSize: '0.875rem',
+                      color: '#166534',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <span style={{ 
+                        width: '8px', 
+                        height: '8px', 
+                        backgroundColor: '#16a34a', 
+                        borderRadius: '50%',
+                        animation: 'pulse 2s infinite'
+                      }}></span>
+                      Recording... ({transcriptions.length} transcriptions)
+                    </div>
+                  )}
             </div>
 
             {/* Footer */}
