@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice Capture Lab</title>
+    <style>
+      :root {
+        --bg: #f7f3eb;
+        --panel: #fffdf9;
+        --ink: #1f2a2e;
+        --accent: #005f73;
+        --accent2: #ee9b00;
+        --muted: #6c757d;
+        --line: #ded6c5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Space Grotesk", "Manrope", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 15% 10%, #ffe8d6 0%, transparent 30%),
+          radial-gradient(circle at 90% 90%, #e0fbfc 0%, transparent 35%),
+          var(--bg);
+        min-height: 100vh;
+      }
+
+      .wrap {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .hero {
+        margin-bottom: 18px;
+      }
+
+      .kicker {
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      h1 {
+        margin: 6px 0 8px;
+        font-size: clamp(28px, 5vw, 48px);
+        line-height: 1.05;
+      }
+
+      .sub {
+        margin: 0;
+        color: var(--muted);
+        max-width: 70ch;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 8px 22px rgba(31, 42, 46, 0.08);
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr auto auto auto;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+
+      input[type="text"] {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 14px;
+        background: #fff;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .start {
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .stop {
+        background: #9b2226;
+        color: #fff;
+      }
+
+      .new {
+        background: var(--accent2);
+        color: #1f2a2e;
+      }
+
+      .status {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      .meter {
+        height: 10px;
+        border-radius: 999px;
+        background: #ece6db;
+        overflow: hidden;
+        margin-bottom: 16px;
+      }
+
+      .meter > div {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #0a9396, #ee9b00);
+        transition: width 0.08s linear;
+      }
+
+      .stream {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        min-height: 260px;
+        max-height: 55vh;
+        overflow-y: auto;
+        padding: 12px;
+        background: #fff;
+      }
+
+      .row {
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #ede5d6;
+        animation: reveal 200ms ease-out;
+      }
+
+      .row.partial {
+        opacity: 0.75;
+      }
+
+      .meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+
+      .speaker {
+        font-weight: 800;
+        color: var(--accent);
+      }
+
+      .speaker.s2 {
+        color: #9b2226;
+      }
+
+      .txt {
+        font-size: 15px;
+        line-height: 1.35;
+      }
+
+      @keyframes reveal {
+        from {
+          transform: translateY(6px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .controls {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <section class="hero">
+        <p class="kicker">Local Demo Service</p>
+        <h1>Live Diarization + Transcript</h1>
+        <p class="sub">
+          This UI streams microphone audio to your standalone Python service and shows speaker-labeled live transcripts.
+          No Azure integration in this service.
+        </p>
+      </section>
+
+      <section class="panel">
+        <div class="controls">
+          <input id="apiBase" type="text" placeholder="API base (e.g. http://127.0.0.1:8110)" />
+          <input id="sessionId" type="text" placeholder="Session ID" />
+          <button id="newBtn" class="new">New Session</button>
+          <button id="startBtn" class="start">Start</button>
+          <button id="stopBtn" class="stop" disabled>Stop</button>
+        </div>
+
+        <div id="status" class="status">Idle</div>
+        <div class="meter"><div id="meterBar"></div></div>
+
+        <div id="stream" class="stream"></div>
+      </section>
+    </div>
+
+    <script>
+      const sampleRate = 16000;
+      let socket;
+      let audioCtx;
+      let source;
+      let processor;
+      let mediaStream;
+      let partialNode = null;
+
+      const streamEl = document.getElementById("stream");
+      const statusEl = document.getElementById("status");
+      const meterBar = document.getElementById("meterBar");
+      const apiBaseInput = document.getElementById("apiBase");
+      const sessionInput = document.getElementById("sessionId");
+      const startBtn = document.getElementById("startBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const newBtn = document.getElementById("newBtn");
+
+      function defaultApiBase() {
+        if (location.protocol === "http:" || location.protocol === "https:") {
+          if (location.port === "5500") return "http://127.0.0.1:8110";
+          return `${location.protocol}//${location.host}`;
+        }
+        return "http://127.0.0.1:8110";
+      }
+
+      function getApiBase() {
+        const base = (apiBaseInput.value || "").trim();
+        return (base || defaultApiBase()).replace(/\/$/, "");
+      }
+
+      function getWebSocketUrl(path) {
+        const base = getApiBase();
+        let url;
+        try {
+          url = new URL(base);
+        } catch {
+          url = new URL("http://127.0.0.1:8110");
+        }
+        const wsProtocol = url.protocol === "https:" ? "wss:" : "ws:";
+        return `${wsProtocol}//${url.host}${path}`;
+      }
+
+      function now() {
+        return new Date().toLocaleTimeString();
+      }
+
+      function renderRow({ speaker, text, partial = false, start = null, end = null }) {
+        const row = document.createElement("div");
+        row.className = `row ${partial ? "partial" : ""}`;
+
+        const speakerClass = String(speaker).toUpperCase() === "S2" ? "speaker s2" : "speaker";
+        const timeline = start !== null && end !== null ? `${start.toFixed(2)}s - ${end.toFixed(2)}s` : now();
+
+        row.innerHTML = `
+          <div class="meta">
+            <span class="${speakerClass}">${speaker}</span>
+            <span>${timeline}</span>
+          </div>
+          <div class="txt"></div>
+        `;
+        row.querySelector(".txt").innerText = text;
+        streamEl.appendChild(row);
+        streamEl.scrollTop = streamEl.scrollHeight;
+        return row;
+      }
+
+      function downsampleBuffer(buffer, inputRate, outputRate) {
+        if (outputRate === inputRate) return buffer;
+        const ratio = inputRate / outputRate;
+        const newLen = Math.round(buffer.length / ratio);
+        const result = new Float32Array(newLen);
+        let offsetResult = 0;
+        let offsetBuffer = 0;
+
+        while (offsetResult < result.length) {
+          const nextOffsetBuffer = Math.round((offsetResult + 1) * ratio);
+          let accum = 0;
+          let count = 0;
+          for (let i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
+            accum += buffer[i];
+            count++;
+          }
+          result[offsetResult] = accum / (count || 1);
+          offsetResult++;
+          offsetBuffer = nextOffsetBuffer;
+        }
+        return result;
+      }
+
+      function floatTo16BitPCM(float32Array) {
+        const buf = new ArrayBuffer(float32Array.length * 2);
+        const view = new DataView(buf);
+        let peak = 0;
+        for (let i = 0; i < float32Array.length; i++) {
+          const s = Math.max(-1, Math.min(1, float32Array[i]));
+          peak = Math.max(peak, Math.abs(s));
+          view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        }
+        meterBar.style.width = `${Math.min(100, peak * 140)}%`;
+        return buf;
+      }
+
+      async function newSession() {
+        const resp = await fetch(`${getApiBase()}/sessions/new`);
+        const data = await resp.json();
+        sessionInput.value = data.session_id;
+      }
+
+      async function startStream() {
+        if (!sessionInput.value.trim()) {
+          await newSession();
+        }
+        const sid = sessionInput.value.trim();
+
+        statusEl.textContent = "Connecting...";
+        socket = new WebSocket(getWebSocketUrl(`/ws/live/${sid}`));
+        socket.binaryType = "arraybuffer";
+
+        socket.onopen = async () => {
+          statusEl.textContent = "Live";
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+          socket.send(JSON.stringify({ event: "start" }));
+
+          mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          source = audioCtx.createMediaStreamSource(mediaStream);
+          processor = audioCtx.createScriptProcessor(4096, 1, 1);
+
+          processor.onaudioprocess = (e) => {
+            if (!socket || socket.readyState !== WebSocket.OPEN) return;
+            const input = e.inputBuffer.getChannelData(0);
+            const down = downsampleBuffer(input, audioCtx.sampleRate, sampleRate);
+            const pcm = floatTo16BitPCM(down);
+            socket.send(pcm);
+          };
+
+          source.connect(processor);
+          processor.connect(audioCtx.destination);
+        };
+
+        socket.onmessage = (ev) => {
+          if (typeof ev.data !== "string") return;
+          const data = JSON.parse(ev.data);
+
+          if (data.event === "partial") {
+            if (partialNode) partialNode.remove();
+            partialNode = renderRow({
+              speaker: data.speaker || "S1",
+              text: data.text,
+              partial: true,
+              start: data.start,
+              end: data.end,
+            });
+          }
+
+          if (data.event === "final") {
+            if (partialNode) {
+              partialNode.remove();
+              partialNode = null;
+            }
+            renderRow({
+              speaker: data.speaker || "S1",
+              text: data.text,
+              partial: false,
+              start: data.start,
+              end: data.end,
+            });
+          }
+
+          if (data.event === "error") {
+            statusEl.textContent = `Error: ${data.message}`;
+          }
+
+          if (data.event === "done") {
+            statusEl.textContent = "Finalized";
+          }
+        };
+
+        socket.onclose = () => {
+          statusEl.textContent = "Disconnected";
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+        };
+      }
+
+      function stopStream() {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ event: "stop" }));
+        }
+
+        if (processor) processor.disconnect();
+        if (source) source.disconnect();
+        if (audioCtx) audioCtx.close();
+        if (mediaStream) mediaStream.getTracks().forEach((t) => t.stop());
+
+        processor = null;
+        source = null;
+        audioCtx = null;
+        mediaStream = null;
+        meterBar.style.width = "0%";
+      }
+
+      startBtn.addEventListener("click", startStream);
+      stopBtn.addEventListener("click", stopStream);
+      newBtn.addEventListener("click", newSession);
+
+      apiBaseInput.value = defaultApiBase();
+      newSession();
+    </script>
+  </body>
+</html>
