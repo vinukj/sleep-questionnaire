@@ -16,6 +16,7 @@ A full-stack web application for sleep research and quiz management. Built with 
 
 - Frontend: React, React Router, Context API, Vite
 - Backend: Express, PostgreSQL, JWT, bcrypt, Swagger
+- RAG Service: FastAPI, ChromaDB
 - API Docs: Swagger UI (`/api-docs`)
 
 ## Getting Started
@@ -36,6 +37,10 @@ A full-stack web application for sleep research and quiz management. Built with 
    ```sh
    cd backend
    npm install
+   cd ../rag-service
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
    cd ../quiz-frontend
    npm install
    ```
@@ -63,7 +68,17 @@ A full-stack web application for sleep research and quiz management. Built with 
 7. **Access the app:**
    - Frontend: [http://localhost:5173](http://localhost:5173)
    - Backend API: [http://localhost:5000](http://localhost:5000)
+   - RAG API: [http://localhost:8100](http://localhost:8100)
+   - RAG Docs: [http://localhost:8100/docs](http://localhost:8100/docs)
    - Swagger Docs: [http://localhost:5000/api-docs](http://localhost:5000/api-docs)
+
+## RAG Integration
+
+- A separate service is available at `rag-service/` for retrieval-augmented explanations.
+- Backend calls `POST /explain` after prediction as a best-effort step. Prediction flow still succeeds if RAG is unavailable.
+- Configure backend with:
+  - `RAG_ENABLED=true`
+  - `RAG_SERVICE_URL=http://127.0.0.1:8100`
 
 ## API Documentation
 

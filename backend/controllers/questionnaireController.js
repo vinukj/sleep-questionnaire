@@ -15,6 +15,7 @@ import {
 
 import {calculateSleepScore} from '../services/scoringService.js';
 import {getPrediction} from '../services/predictionService.js';
+import {getRagExplanation} from '../services/ragService.js';
 
 // Save questionnaire response
 // ...existing code...
@@ -87,6 +88,20 @@ export const submitQuestionnaireResponse = async (req, res) => {
             }
         }
 
+        // Best-effort RAG explanation, should never break the main flow
+        let ragExplanation = null;
+        let ragError = null;
+        if (prediction) {
+            const ragResult = await getRagExplanation({
+                prediction,
+                responseData: sanitized,
+                patientId: userId,
+                responseId: savedResponse?.id ?? null,
+            });
+            ragExplanation = ragResult.explanation;
+            ragError = ragResult.error;
+        }
+
         // Return response based on what succeeded
         const success = savedResponse !== null;
         const statusCode = success ? 201 : 500;
@@ -100,7 +115,9 @@ export const submitQuestionnaireResponse = async (req, res) => {
             scores: flatScores,
             prediction: prediction,
             mlPayload: mlPayload,
+            ragExplanation: ragExplanation,
             predictionError: predictionError,
+            ragError: ragError,
             dbError: dbError
         });
     } catch (error) {
@@ -260,6 +277,20 @@ export const updateResponse = async (req, res) => {
             }
         }
 
+        // Best-effort RAG explanation, should never break the main flow
+        let ragExplanation = null;
+        let ragError = null;
+        if (prediction) {
+            const ragResult = await getRagExplanation({
+                prediction,
+                responseData: sanitized,
+                patientId: req.user?.id,
+                responseId: Number(id),
+            });
+            ragExplanation = ragResult.explanation;
+            ragError = ragResult.error;
+        }
+
         // Return response based on what succeeded
         const success = updatedResponse !== null;
         const statusCode = success ? 200 : 500;
@@ -273,7 +304,9 @@ export const updateResponse = async (req, res) => {
             scores: flatScores,
             prediction: prediction,
             mlPayload: mlPayload,
+            ragExplanation: ragExplanation,
             predictionError: predictionError,
+            ragError: ragError,
             dbError: dbError
         });
     } catch (error) {

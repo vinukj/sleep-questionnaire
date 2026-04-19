@@ -1,4 +1,5 @@
 import {WebSocketServer, WebSocket} from "ws"
+import { getPrediction } from "../services/predictionService.js"
 
 export function attatchToWebSocketServer(server){
     const wss = new WebSocketServer({
@@ -21,7 +22,7 @@ export function attatchToWebSocketServer(server){
         console.log("✅ React Connected ; Opening tunnel to Python....");
 
         const pythonWs = new WebSocket('ws://127.0.0.1:8001/ws');
-        
+
         // Track Python connection status
         pythonWs.on('open', () => {
             console.log("✅ Python WebSocket connected successfully!");
@@ -31,15 +32,45 @@ export function attatchToWebSocketServer(server){
             }));
         });
 
-        pythonWs.on('message',(data)=>{
-            console.log("📩 Message from Python:", data.toString().substring(0, 100));
-            reactWs.send(data.toString());
+        pythonWs.on('message', async (data)=>{
+            const text = data.toString();
+            console.log("📩 Message from Python:", text.substring(0, 100));
+
+            // Intercept gemini_result, enrich with prediction, then forward
+            try {
+                const parsed = JSON.parse(text);
+                if (parsed.type === 'gemini_result' && parsed.result) {
+                    const geminiResult = parsed.result;
+                    console.log("🧠 Enriching Gemini result with ML prediction...");
+
+                    const { prediction, predictionError, mlPayload } = await getPrediction(geminiResult);
+
+                    const enrichedResult = {
+                        ...geminiResult,
+                        ml_prediction: prediction,
+                        ml_prediction_error: predictionError,
+                        ml_payload_sent: mlPayload
+                    };
+
+                    console.log("📤 Sending enriched result to React");
+                    reactWs.send(JSON.stringify({
+                        type: 'gemini_result',
+                        session_id: parsed.session_id,
+                        result: enrichedResult
+                    }));
+                    return;
+                }
+            } catch {
+                // Not JSON or parse error, forward as-is
+            }
+
+            reactWs.send(text);
         });
 
-        reactWs.on('message', (data,isBinary)=> {
+        reactWs.on('message', (data, isBinary)=> {
             if(pythonWs.readyState===WebSocket.OPEN){
-                console.log("📤 Forwarding audio data to Python (size:", data.length, "bytes)");
-                pythonWs.send(data);
+                console.log("📤 Forwarding to Python (size:", data.length, "bytes, isBinary:", isBinary, ")");
+                pythonWs.send(data, { binary: isBinary });
             } else {
                 console.warn("⚠️ Python WebSocket not ready. State:", pythonWs.readyState);
             }

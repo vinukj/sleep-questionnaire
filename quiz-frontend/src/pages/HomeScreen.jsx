@@ -38,6 +38,7 @@ function HomeScreen() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamState, setStreamState] = useState(StreamState.IDLE);
   const [transcriptions, setTranscriptions] = useState([]);
+  const [geminiResult, setGeminiResult] = useState(null);
   const audioStreamerRef = useRef(null);
 
   useEffect(() => {
@@ -68,6 +69,10 @@ function HomeScreen() {
             console.log('Transcription received:', data);
             setTranscriptions(prev => [...prev, data]);
           },
+          onGeminiResult: (result) => {
+            console.log('Gemini result received:', result);
+            setGeminiResult(result);
+          },
           onError: (error) => {
             console.error('Audio Streaming Error:', error);
             alert(`Error: ${error.message}`);
@@ -91,12 +96,7 @@ function HomeScreen() {
         console.log('=========================');
       }
       setIsStreaming(false);
-                  {/* Audio Conversation Button */}
-                 
-                  
-                  {/* Status Indicator */}
-                 
-                
+      setGeminiResult(null);
       setStreamState(StreamState.IDLE);
     }
   };
@@ -197,6 +197,164 @@ function HomeScreen() {
           </section>
         </div>
       </main>
+
+      {/* Gemini Result Modal */}
+      {geminiResult && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem'
+          }}
+          onClick={() => setGeminiResult(null)}
+        >
+          <div
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: '12px',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              padding: '1.5rem',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b' }}>Clinical Analysis Result</h2>
+              <button
+                onClick={() => setGeminiResult(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  color: '#64748b',
+                  lineHeight: 1,
+                  padding: '0 0.25rem'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {typeof geminiResult === 'object' ? (
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                {/* Gemini clinical fields */}
+                {Object.entries(geminiResult)
+                  .filter(([key, v]) =>
+                    v !== null &&
+                    !['ml_prediction', 'ml_prediction_error', 'ml_payload_sent'].includes(key)
+                  )
+                  .map(([key, value]) => (
+                    <div
+                      key={key}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.5rem 0.75rem',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '6px',
+                        borderBottom: '1px solid #e2e8f0'
+                      }}
+                    >
+                      <span style={{
+                        textTransform: 'capitalize',
+                        fontWeight: 500,
+                        color: '#475569',
+                        fontSize: '0.875rem'
+                      }}>
+                        {key.replace(/_/g, ' ')}
+                      </span>
+                      <span style={{
+                        fontWeight: 600,
+                        color: '#1e293b',
+                        fontSize: '0.875rem'
+                      }}>
+                        {String(value)}
+                      </span>
+                    </div>
+                  ))}
+
+                {/* ML Prediction Section */}
+                {geminiResult.ml_prediction && (
+                  <div style={{
+                    marginTop: '0.5rem',
+                    padding: '0.75rem',
+                    backgroundColor: '#eff6ff',
+                    borderRadius: '8px',
+                    border: '1px solid #bfdbfe'
+                  }}>
+                    <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#1e40af' }}>
+                      🤖 ML Prediction
+                    </h3>
+                    {Object.entries(geminiResult.ml_prediction).map(([key, value]) => (
+                      <div
+                        key={key}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '0.35rem 0.5rem',
+                          borderBottom: '1px solid #dbeafe'
+                        }}
+                      >
+                        <span style={{
+                          textTransform: 'capitalize',
+                          fontWeight: 500,
+                          color: '#3b82f6',
+                          fontSize: '0.8rem'
+                        }}>
+                          {key.replace(/_/g, ' ')}
+                        </span>
+                        <span style={{
+                          fontWeight: 600,
+                          color: '#1e3a5f',
+                          fontSize: '0.8rem'
+                        }}>
+                          {typeof value === 'number' ? value.toFixed(3) : String(value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {geminiResult.ml_prediction_error && (
+                  <div style={{
+                    marginTop: '0.5rem',
+                    padding: '0.5rem 0.75rem',
+                    backgroundColor: '#fef2f2',
+                    borderRadius: '6px',
+                    border: '1px solid #fecaca',
+                    fontSize: '0.8rem',
+                    color: '#991b1b'
+                  }}>
+                    ⚠️ Prediction unavailable: {geminiResult.ml_prediction_error.message}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{
+                padding: '1rem',
+                backgroundColor: '#f1f5f9',
+                borderRadius: '8px',
+                fontSize: '0.875rem',
+                color: '#334155',
+                whiteSpace: 'pre-wrap'
+              }}>
+                {String(geminiResult)}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

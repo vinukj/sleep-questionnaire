@@ -1,6 +1,6 @@
 /**
  * AudioStreamer - Real-time audio streaming utility
- * Handles WebSocket connection, microphone access, and audio streaming
+ * Handles WebSocket connection, microphone access, and raw PCM audio streaming
  */
 
 export const StreamState = {
@@ -15,27 +15,30 @@ export class AudioStreamer {
     this.wsUrl = config.wsUrl || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//localhost:5000/ws/audio`;
     this.onStateChange = config.onStateChange || (() => {});
     this.onTranscription = config.onTranscription || (() => {});
+    this.onGeminiResult = config.onGeminiResult || (() => {});
     this.onError = config.onError || (() => {});
-    
-    // Audio configuration
+
+    // Audio configuration - raw PCM 16kHz mono
     this.audioConstraints = {
       audio: {
-        channelCount: 1, // Mono
-        sampleRate: 16000, // 16kHz
+        channelCount: { ideal: 1 },
+        sampleRate: { ideal: 16000 },
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true
       }
     };
-    
+
     // State
     this.state = StreamState.IDLE;
     this.ws = null;
     this.mediaStream = null;
-    this.mediaRecorder = null;
+    this.audioContext = null;
+    this.scriptProcessor = null;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = config.maxReconnectAttempts || 3;
     this.reconnectDelay = config.reconnectDelay || 2000;
+    this.buffer = new Int16Array(0); // Accumulator for resampling
   }
 
   /**
@@ -44,18 +47,15 @@ export class AudioStreamer {
   async start() {
     try {
       this.updateState(StreamState.CONNECTING);
-      
+
       // Step 1: Connect to WebSocket
       await this.connectWebSocket();
-      
+
       // Step 2: Request microphone access
       await this.initializeAudio();
-      
-      // Step 3: Start recording and streaming
-      this.startRecording();
-      
+
       this.updateState(StreamState.RECORDING);
-      this.reconnectAttempts = 0; // Reset on successful start
+      this.reconnectAttempts = 0;
     } catch (error) {
       this.handleError('Failed to start audio streaming', error);
       this.cleanup();
@@ -69,42 +69,38 @@ export class AudioStreamer {
     return new Promise((resolve, reject) => {
       try {
         this.ws = new WebSocket(this.wsUrl);
-        
-        // Set binary type for audio data
         this.ws.binaryType = 'arraybuffer';
-        
+
         this.ws.onopen = () => {
           console.log('WebSocket connected to', this.wsUrl);
           resolve();
         };
-        
+
         this.ws.onmessage = (event) => {
           this.handleMessage(event.data);
         };
-        
+
         this.ws.onerror = (error) => {
           console.error('WebSocket error:', error);
           reject(error);
         };
-        
+
         this.ws.onclose = (event) => {
           console.log('WebSocket closed:', event.code, event.reason);
-          
-          // Attempt reconnection if not manually stopped
+
           if (this.state === StreamState.RECORDING) {
             this.attemptReconnection();
           }
         };
-        
-        // Timeout for connection
+
         const timeout = setTimeout(() => {
           if (this.ws.readyState !== WebSocket.OPEN) {
             reject(new Error('WebSocket connection timeout'));
           }
         }, 10000);
-        
+
         this.ws.addEventListener('open', () => clearTimeout(timeout), { once: true });
-        
+
       } catch (error) {
         reject(error);
       }
@@ -112,40 +108,49 @@ export class AudioStreamer {
   }
 
   /**
-   * Initialize audio capture
+   * Initialize audio capture using AudioContext + ScriptProcessor
+   * Sends raw PCM 16-bit 16kHz mono over WebSocket
    */
   async initializeAudio() {
     try {
-      // Request microphone access with specific constraints
       this.mediaStream = await navigator.mediaDevices.getUserMedia(this.audioConstraints);
-      
-      // Verify audio track settings
+
       const audioTrack = this.mediaStream.getAudioTracks()[0];
       const settings = audioTrack.getSettings();
       console.log('Audio track settings:', {
         sampleRate: settings.sampleRate,
         channelCount: settings.channelCount
       });
-      
-      // Create MediaRecorder
-      const mimeType = this.getSupportedMimeType();
-      this.mediaRecorder = new MediaRecorder(this.mediaStream, {
-        mimeType,
-        audioBitsPerSecond: 128000
-      });
-      
-      // Handle audio data chunks
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0 && this.ws && this.ws.readyState === WebSocket.OPEN) {
-          // Send raw binary blob over WebSocket
-          this.ws.send(event.data);
+
+      this.audioContext = new AudioContext({ sampleRate: 16000 });
+      const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+
+      // ScriptProcessorNode with 128ms buffer at 16kHz = 2048 samples (nearest valid power of 2)
+      const bufferSize = 2048;
+      this.scriptProcessor = this.audioContext.createScriptProcessor(bufferSize, 1, 1);
+
+      this.scriptProcessor.onaudioprocess = (event) => {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+        const inputBuffer = event.inputBuffer;
+        const floatSamples = inputBuffer.getChannelData(0);
+
+        // Convert Float32 [-1, 1] to Int16
+        const int16Samples = new Int16Array(floatSamples.length);
+        for (let i = 0; i < floatSamples.length; i++) {
+          const s = Math.max(-1, Math.min(1, floatSamples[i]));
+          int16Samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
         }
+
+        this.ws.send(int16Samples.buffer);
       };
-      
-      this.mediaRecorder.onerror = (error) => {
-        this.handleError('MediaRecorder error', error);
-      };
-      
+
+      source.connect(this.scriptProcessor);
+      // ScriptProcessor must be connected to a destination to fire events
+      this.scriptProcessor.connect(this.audioContext.destination);
+
+      console.log('Raw PCM streaming started (16kHz, 16-bit, mono)');
+
     } catch (error) {
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
         throw new Error('Microphone access denied. Please grant permission and try again.');
@@ -157,50 +162,14 @@ export class AudioStreamer {
   }
 
   /**
-   * Get supported MIME type for audio recording
-   */
-  getSupportedMimeType() {
-    const mimeTypes = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/ogg;codecs=opus',
-      'audio/mp4'
-    ];
-    
-    for (const mimeType of mimeTypes) {
-      if (MediaRecorder.isTypeSupported(mimeType)) {
-        console.log('Using MIME type:', mimeType);
-        return mimeType;
-      }
-    }
-    
-    // Fallback to default
-    return '';
-  }
-
-  /**
-   * Start recording with 100ms timeslice for low-latency streaming
-   */
-  startRecording() {
-    if (this.mediaRecorder && this.mediaRecorder.state === 'inactive') {
-      // 100ms timeslice for low-latency streaming
-      this.mediaRecorder.start(100);
-      console.log('MediaRecorder started with 100ms timeslice');
-    }
-  }
-
-  /**
    * Handle incoming messages from WebSocket
    */
   handleMessage(data) {
     try {
-      // Parse JSON messages
       const message = JSON.parse(data);
-      
-      // Handle different message types
+
       switch (message.type) {
         case 'transcribed':
-          // Handle transcription with speaker diarization
           this.onTranscription({
             text: message.text,
             speakerId: message.speaker_id,
@@ -208,9 +177,9 @@ export class AudioStreamer {
             confidence: message.confidence
           });
           break;
-          
+
+        case 'recognizing':
         case 'interim':
-          // Handle interim/partial transcriptions
           this.onTranscription({
             text: message.text,
             speakerId: message.speaker_id,
@@ -218,21 +187,25 @@ export class AudioStreamer {
             interim: true
           });
           break;
-          
+
         case 'error':
           this.handleError('Server error', new Error(message.message || 'Unknown server error'));
           break;
-          
+
         case 'status':
           console.log('Server status:', message.status);
           break;
-          
+
+        case 'gemini_result':
+          this.onGeminiResult(message.result);
+          break;
+
         default:
-          console.log('Unknown message type:', message.type);
+          // log messages (transcribing, recognized, session, etc.)
+          break;
       }
     } catch (error) {
-      // If not JSON, log raw data
-      console.log('Received non-JSON message:', data);
+      // Not JSON
     }
   }
 
@@ -245,14 +218,13 @@ export class AudioStreamer {
       this.stop();
       return;
     }
-    
+
     this.reconnectAttempts++;
     console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-    
+
     setTimeout(async () => {
       try {
         await this.connectWebSocket();
-        this.startRecording();
         console.log('Reconnected successfully');
       } catch (error) {
         console.error('Reconnection failed:', error);
@@ -262,7 +234,7 @@ export class AudioStreamer {
   }
 
   /**
-   * Stop streaming and cleanup resources
+   * Stop streaming and cleanup
    */
   stop() {
     console.log('Stopping audio streamer...');
@@ -272,29 +244,26 @@ export class AudioStreamer {
 
   /**
    * Cleanup all resources
-   * CRITICAL: Ensures proper cleanup to prevent memory leaks
    */
   cleanup() {
-    // Stop and cleanup MediaRecorder
-    if (this.mediaRecorder) {
-      if (this.mediaRecorder.state !== 'inactive') {
-        this.mediaRecorder.stop();
-      }
-      this.mediaRecorder.ondataavailable = null;
-      this.mediaRecorder.onerror = null;
-      this.mediaRecorder = null;
+    if (this.scriptProcessor) {
+      this.scriptProcessor.onaudioprocess = null;
+      this.scriptProcessor.disconnect();
+      this.scriptProcessor = null;
     }
-    
-    // Stop all media stream tracks (removes mic-in-use indicator)
+
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => {
         track.stop();
-        console.log('Stopped track:', track.kind);
       });
       this.mediaStream = null;
     }
-    
-    // Close WebSocket connection
+
     if (this.ws) {
       if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
         this.ws.close(1000, 'Client stopped streaming');
@@ -305,7 +274,9 @@ export class AudioStreamer {
       this.ws.onclose = null;
       this.ws = null;
     }
-    
+
+    this.buffer = new Int16Array(0);
+
     console.log('Cleanup completed');
   }
 
@@ -330,16 +301,10 @@ export class AudioStreamer {
     });
   }
 
-  /**
-   * Get current state
-   */
   getState() {
     return this.state;
   }
 
-  /**
-   * Check if currently recording
-   */
   isRecording() {
     return this.state === StreamState.RECORDING;
   }
