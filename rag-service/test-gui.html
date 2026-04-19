@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sleep RAG Tester</title>
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --panel: #ffffff;
+      --ink: #1e293b;
+      --muted: #64748b;
+      --primary: #0f766e;
+      --primary-ink: #ffffff;
+      --border: #cbd5e1;
+      --danger: #b91c1c;
+      --ok: #166534;
+      --code-bg: #0f172a;
+      --code-ink: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at top right, #dbeafe 0%, var(--bg) 40%);
+      color: var(--ink);
+    }
+
+    .wrap {
+      width: min(1100px, 96vw);
+      margin: 24px auto 40px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #0f766e, #0ea5e9);
+      color: #f8fafc;
+      border-radius: 14px;
+      padding: 18px 20px;
+    }
+
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: 1.4rem;
+    }
+
+    .hero p {
+      margin: 0;
+      opacity: 0.95;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin: 0 0 12px;
+    }
+
+    label {
+      display: block;
+      margin: 8px 0 6px;
+      font-weight: 600;
+      font-size: 0.92rem;
+    }
+
+    input,
+    textarea,
+    select,
+    button {
+      font: inherit;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 10px;
+      background: #ffffff;
+      color: var(--ink);
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .btn {
+      margin-top: 12px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--primary);
+      color: var(--primary-ink);
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .btn:hover {
+      filter: brightness(0.96);
+    }
+
+    .btn.secondary {
+      background: #334155;
+    }
+
+    .output {
+      background: var(--code-bg);
+      color: var(--code-ink);
+      border-radius: 10px;
+      padding: 12px;
+      min-height: 220px;
+      overflow: auto;
+      white-space: pre-wrap;
+      line-height: 1.35;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 0.88rem;
+    }
+
+    .status {
+      margin: 8px 0 0;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .status.ok {
+      color: var(--ok);
+    }
+
+    .status.err {
+      color: var(--danger);
+    }
+
+    @media (max-width: 700px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>Sleep RAG Service Tester</h1>
+      <p>Standalone GUI to test /health, /ingest/text, /ingest/pdf, and /explain endpoints.</p>
+    </section>
+
+    <section class="card">
+      <h2>Connection</h2>
+      <p class="muted">Set your API base URL before running requests.</p>
+      <div class="row">
+        <div>
+          <label for="baseUrl">Base URL</label>
+          <input id="baseUrl" type="text" value="http://127.0.0.1:8100" />
+        </div>
+        <div>
+          <label for="timeoutMs">Timeout (ms)</label>
+          <input id="timeoutMs" type="number" value="15000" />
+        </div>
+      </div>
+      <button class="btn secondary" id="healthBtn" type="button">Check Health</button>
+      <div id="status" class="status"></div>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Ingest Text</h2>
+        <label for="textSourceId">source_id</label>
+        <input id="textSourceId" type="text" value="guideline-osa-001" />
+
+        <label for="textSourceName">source_name</label>
+        <input id="textSourceName" type="text" value="OSA Guideline Notes" />
+
+        <div class="row">
+          <div>
+            <label for="textSourceType">source_type</label>
+            <select id="textSourceType">
+              <option value="guideline" selected>guideline</option>
+              <option value="patient_report">patient_report</option>
+            </select>
+          </div>
+          <div>
+            <label for="textPatientId">patient_id (optional)</label>
+            <input id="textPatientId" type="text" placeholder="patient-123" />
+          </div>
+        </div>
+
+        <label for="textResponseId">response_id (optional)</label>
+        <input id="textResponseId" type="number" placeholder="42" />
+
+        <label for="textMetadata">metadata (JSON)</label>
+        <textarea id="textMetadata">{"source":"manual-test"}</textarea>
+
+        <label for="textContent">content</label>
+        <textarea id="textContent">Patients with loud snoring, daytime sleepiness, and elevated ESS may have high risk of obstructive sleep apnea. Clinical correlation with PSG is recommended.</textarea>
+
+        <button class="btn" id="ingestTextBtn" type="button">POST /ingest/text</button>
+      </article>
+
+      <article class="card">
+        <h2>Ingest PDF</h2>
+        <label for="pdfSourceId">source_id</label>
+        <input id="pdfSourceId" type="text" value="report-001" />
+
+        <label for="pdfSourceName">source_name</label>
+        <input id="pdfSourceName" type="text" value="Sleep Study Report" />
+
+        <div class="row">
+          <div>
+            <label for="pdfSourceType">source_type</label>
+            <select id="pdfSourceType">
+              <option value="patient_report" selected>patient_report</option>
+              <option value="guideline">guideline</option>
+            </select>
+          </div>
+          <div>
+            <label for="pdfPatientId">patient_id (optional)</label>
+            <input id="pdfPatientId" type="text" placeholder="patient-123" />
+          </div>
+        </div>
+
+        <label for="pdfResponseId">response_id (optional)</label>
+        <input id="pdfResponseId" type="number" placeholder="42" />
+
+        <label for="pdfFile">PDF file</label>
+        <input id="pdfFile" type="file" accept="application/pdf" />
+
+        <button class="btn" id="ingestPdfBtn" type="button">POST /ingest/pdf</button>
+      </article>
+    </section>
+
+    <section class="card">
+      <h2>Explain</h2>
+      <p class="muted">Keep JSON valid. You can test with minimal payload first.</p>
+      <div class="row">
+        <div>
+          <label for="predictionJson">prediction (JSON)</label>
+          <textarea id="predictionJson">{"risk":"High","score":0.82,"label":"Likely OSA"}</textarea>
+        </div>
+        <div>
+          <label for="responseJson">response_data (JSON)</label>
+          <textarea id="responseJson">{"daytime_sleepiness":"yes","is_snoring":"yes","ess":14,"bmi":31.2,"neck":41}</textarea>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="explainPatientId">patient_id (optional)</label>
+          <input id="explainPatientId" type="text" placeholder="patient-123" />
+        </div>
+        <div>
+          <label for="explainResponseId">response_id (optional)</label>
+          <input id="explainResponseId" type="number" placeholder="42" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="topK">top_k (optional)</label>
+          <input id="topK" type="number" placeholder="5" />
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button class="btn" id="explainBtn" type="button">POST /explain</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Response</h2>
+      <pre class="output" id="output">No requests yet.</pre>
+    </section>
+  </main>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+
+    function getBaseUrl() {
+      return (el("baseUrl").value || "").trim().replace(/\/+$/, "");
+    }
+
+    function getTimeout() {
+      const raw = Number(el("timeoutMs").value);
+      return Number.isFinite(raw) && raw > 0 ? raw : 15000;
+    }
+
+    function setStatus(msg, isError) {
+      const s = el("status");
+      s.textContent = msg;
+      s.className = isError ? "status err" : "status ok";
+    }
+
+    function printOutput(data) {
+      if (typeof data === "string") {
+        el("output").textContent = data;
+        return;
+      }
+      el("output").textContent = JSON.stringify(data, null, 2);
+    }
+
+    function parseJsonOrThrow(raw, label) {
+      try {
+        return JSON.parse(raw);
+      } catch (err) {
+        throw new Error("Invalid JSON in " + label + ": " + err.message);
+      }
+    }
+
+    async function request(path, options) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), getTimeout());
+      try {
+        const res = await fetch(getBaseUrl() + path, {
+          ...options,
+          signal: controller.signal,
+        });
+        const text = await res.text();
+        let data = text;
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch (e) {
+          // Keep raw text if not JSON.
+        }
+
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status + " - " + JSON.stringify(data));
+        }
+
+        return data;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    el("healthBtn").addEventListener("click", async () => {
+      setStatus("Checking health...", false);
+      try {
+        const data = await request("/health", { method: "GET" });
+        setStatus("Health check passed.", false);
+        printOutput(data);
+      } catch (err) {
+        setStatus("Health check failed.", true);
+        printOutput(String(err));
+      }
+    });
+
+    el("ingestTextBtn").addEventListener("click", async () => {
+      setStatus("Ingesting text...", false);
+      try {
+        const metadata = parseJsonOrThrow(el("textMetadata").value, "metadata");
+        const responseIdRaw = el("textResponseId").value.trim();
+        const payload = {
+          source_id: el("textSourceId").value.trim(),
+          source_name: el("textSourceName").value.trim(),
+          content: el("textContent").value,
+          source_type: el("textSourceType").value,
+          patient_id: el("textPatientId").value.trim() || null,
+          response_id: responseIdRaw ? Number(responseIdRaw) : null,
+          metadata,
+        };
+
+        const data = await request("/ingest/text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        setStatus("Text ingested.", false);
+        printOutput(data);
+      } catch (err) {
+        setStatus("Text ingest failed.", true);
+        printOutput(String(err));
+      }
+    });
+
+    el("ingestPdfBtn").addEventListener("click", async () => {
+      setStatus("Ingesting PDF...", false);
+      try {
+        const fileInput = el("pdfFile");
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) {
+          throw new Error("Choose a PDF file first.");
+        }
+
+        const form = new FormData();
+        form.append("source_id", el("pdfSourceId").value.trim());
+        form.append("source_name", el("pdfSourceName").value.trim());
+        form.append("source_type", el("pdfSourceType").value);
+
+        const patientId = el("pdfPatientId").value.trim();
+        if (patientId) {
+          form.append("patient_id", patientId);
+        }
+
+        const responseId = el("pdfResponseId").value.trim();
+        if (responseId) {
+          form.append("response_id", String(Number(responseId)));
+        }
+
+        form.append("file", file);
+
+        const data = await request("/ingest/pdf", {
+          method: "POST",
+          body: form,
+        });
+        setStatus("PDF ingested.", false);
+        printOutput(data);
+      } catch (err) {
+        setStatus("PDF ingest failed.", true);
+        printOutput(String(err));
+      }
+    });
+
+    el("explainBtn").addEventListener("click", async () => {
+      setStatus("Generating explanation...", false);
+      try {
+        const prediction = parseJsonOrThrow(el("predictionJson").value, "prediction");
+        const responseData = parseJsonOrThrow(el("responseJson").value, "response_data");
+        const topKRaw = el("topK").value.trim();
+        const responseIdRaw = el("explainResponseId").value.trim();
+
+        const payload = {
+          prediction,
+          response_data: responseData,
+          patient_id: el("explainPatientId").value.trim() || null,
+          response_id: responseIdRaw ? Number(responseIdRaw) : null,
+          top_k: topKRaw ? Number(topKRaw) : null,
+        };
+
+        const data = await request("/explain", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        setStatus("Explanation generated.", false);
+        printOutput(data);
+      } catch (err) {
+        setStatus("Explain request failed.", true);
+        printOutput(String(err));
+      }
+    });
+  </script>
+</body>
+</html>
